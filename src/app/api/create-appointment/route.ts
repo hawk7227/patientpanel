@@ -306,9 +306,10 @@ export async function POST(request: Request) {
     const appointmentLink = `${baseUrl}/appointment/${accessToken}`;
     const doctorPanelLink = "https://hipa-doctor-panel.vercel.app/doctor/appointments";
     
-    // Format date and time for display
+    // Format date and time for display (matching screenshot format)
     let formattedDate = "Not scheduled";
     let formattedTime = "";
+    let formattedDateForSMS = "";
     if (requestedDateTime) {
       const appointmentDate = new Date(requestedDateTime);
       const options: Intl.DateTimeFormatOptions = {
@@ -319,6 +320,24 @@ export async function POST(request: Request) {
         timeZone: data.patientTimezone || "America/New_York",
       };
       formattedDate = appointmentDate.toLocaleDateString("en-US", options);
+      
+      // Format for SMS (e.g., "Wednesday, November 19th")
+      // Get date components in the patient's timezone
+      const timeZone = data.patientTimezone || "America/New_York";
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: timeZone,
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      });
+      const parts = formatter.formatToParts(appointmentDate);
+      const weekday = parts.find(p => p.type === "weekday")?.value || "";
+      const month = parts.find(p => p.type === "month")?.value || "";
+      const day = parseInt(parts.find(p => p.type === "day")?.value || "0");
+      const daySuffix = day === 1 || day === 21 || day === 31 ? 'st' : 
+                       day === 2 || day === 22 ? 'nd' : 
+                       day === 3 || day === 23 ? 'rd' : 'th';
+      formattedDateForSMS = `${weekday}, ${month} ${day}${daySuffix}`;
       
       const timeOptions: Intl.DateTimeFormatOptions = {
         hour: "numeric",
@@ -337,21 +356,45 @@ export async function POST(request: Request) {
                             visitType === "phone" ? "Phone Visit" : 
                             "Consultation";
 
+    // Generate SMS message for patient (used in both SMS and email)
+    let patientSMSMessage = "";
+    if (data.phone || data.email) {
+      // Format SMS message similar to screenshot
+      if (formattedDateForSMS && formattedTime) {
+        patientSMSMessage = `You have a ${visitTypeDisplay} appointment with ${doctorName} on ${formattedDateForSMS} at ${formattedTime.replace(' AM', 'am').replace(' PM', 'pm')} AZ Time.`;
+        if (zoomMeetingUrl) {
+          patientSMSMessage += `\n\nYour ${visitTypeDisplay} link is: ${zoomMeetingUrl}`;
+        }
+      } else {
+        // Fallback to template-based message
+        patientSMSMessage = generateSMSMessage({
+          patientName: data.firstName || 'there',
+          fullName: patientName,
+          appointmentDate: formattedDate,
+          appointmentTime: formattedTime,
+          visitType: visitType,
+          visitTypeDisplay: visitTypeDisplay,
+          appointmentLink: appointmentLink,
+          zoomMeetingUrl: zoomMeetingUrl,
+        });
+      }
+    }
+
     // Send email notification to patient
     if (data.email) {
       try {
         const emailHTML = generateAppointmentEmailHTML({
-          patientName,
+          doctorName,
           appointmentDate: formattedDate,
           appointmentTime: formattedTime,
           visitType,
           zoomMeetingUrl,
-          appointmentLink,
+          smsMessage: patientSMSMessage,
         });
 
         const emailResult = await sendEmail({
           to: data.email,
-          subject: `Appointment Confirmed - ${formattedDate}`,
+          subject: `Your telemedicine appointment with ${doctorName}`,
           html: emailHTML,
         });
 
@@ -369,21 +412,9 @@ export async function POST(request: Request) {
     // Send SMS notification to patient
     if (data.phone) {
       try {
-        // Generate SMS message from template
-        const smsMessage = generateSMSMessage({
-          patientName: data.firstName || 'there',
-          fullName: patientName,
-          appointmentDate: formattedDate,
-          appointmentTime: formattedTime,
-          visitType: visitType,
-          visitTypeDisplay: visitTypeDisplay,
-          appointmentLink: appointmentLink,
-          zoomMeetingUrl: zoomMeetingUrl,
-        });
-        
         const smsResult = await sendSMS({
           to: data.phone,
-          message: smsMessage,
+          message: patientSMSMessage,
         });
 
         if (smsResult.success) {
