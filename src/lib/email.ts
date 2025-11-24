@@ -12,6 +12,27 @@ interface SendEmailOptions {
 }
 
 /**
+ * Check if SMTP is configured
+ */
+function isSMTPConfigured(): boolean {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPassword = process.env.SMTP_PASSWORD;
+  return !!(smtpHost && smtpUser && smtpPassword);
+}
+
+/**
+ * Get missing SMTP environment variables
+ */
+function getMissingSMTPVars(): string[] {
+  const missing: string[] = [];
+  if (!process.env.SMTP_HOST) missing.push("SMTP_HOST");
+  if (!process.env.SMTP_USER) missing.push("SMTP_USER");
+  if (!process.env.SMTP_PASSWORD) missing.push("SMTP_PASSWORD");
+  return missing;
+}
+
+/**
  * Create SMTP transporter
  */
 function createTransporter() {
@@ -21,7 +42,11 @@ function createTransporter() {
   const smtpPassword = process.env.SMTP_PASSWORD;
 
   if (!smtpHost || !smtpUser || !smtpPassword) {
-    throw new Error("SMTP configuration is incomplete. Please check your environment variables.");
+    const missing = getMissingSMTPVars();
+    throw new Error(
+      `SMTP configuration is incomplete. Missing environment variables: ${missing.join(", ")}. ` +
+      `Please configure these in your Vercel project settings under Settings > Environment Variables.`
+    );
   }
 
   return nodemailer.createTransport({
@@ -48,6 +73,17 @@ function createTransporter() {
  * Send email via SMTP
  */
 export async function sendEmail({ to, subject, html, text }: SendEmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  // Check if SMTP is configured before attempting to send
+  if (!isSMTPConfigured()) {
+    const missing = getMissingSMTPVars();
+    const errorMessage = `SMTP not configured. Missing: ${missing.join(", ")}. Email sending is disabled.`;
+    console.warn(errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+
   try {
     const transporter = createTransporter();
     const smtpFrom = process.env.SMTP_FROM || process.env.SMTP_USER;
@@ -72,10 +108,11 @@ export async function sendEmail({ to, subject, html, text }: SendEmailOptions): 
       messageId: info.messageId,
     };
   } catch (error) {
-    console.error("Error sending email:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error sending email:", errorMessage);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: errorMessage,
     };
   }
 }
