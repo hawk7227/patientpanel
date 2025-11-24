@@ -126,14 +126,14 @@ export function generateAppointmentEmailHTML({
   appointmentDate,
   appointmentTime,
   visitType,
-  zoomMeetingUrl,
+  appointmentLink,
   smsMessage,
 }: {
   doctorName: string;
   appointmentDate: string;
   appointmentTime: string;
   visitType: string;
-  zoomMeetingUrl?: string | null;
+  appointmentLink: string;
   smsMessage?: string;
 }): string {
   const visitTypeDisplay = visitType === "video" ? "Video Visit" : visitType === "phone" ? "Phone Visit" : "Consultation";
@@ -142,8 +142,8 @@ export function generateAppointmentEmailHTML({
   let smsContent = smsMessage;
   if (!smsContent) {
     smsContent = `You have a ${visitTypeDisplay} appointment with ${doctorName} on ${appointmentDate} at ${appointmentTime} AZ Time.`;
-    if (zoomMeetingUrl) {
-      smsContent += `\n\nYour ${visitTypeDisplay} link is: ${zoomMeetingUrl}`;
+    if (appointmentLink) {
+      smsContent += `\n\nYour appointment link is: ${appointmentLink}`;
     }
   }
   
@@ -163,11 +163,9 @@ export function generateAppointmentEmailHTML({
             <p style="margin: 0 0 15px 0; color: #333; font-size: 14px; white-space: pre-line;">"${smsContent}"</p>
           </div>
           
-          ${zoomMeetingUrl ? `
           <div style="margin: 20px 0;">
-            <p style="margin: 0 0 10px 0; color: #333; font-size: 14px;">Your ${visitTypeDisplay} link is: <a href="${zoomMeetingUrl}" style="color: #0066cc; text-decoration: underline;">${zoomMeetingUrl}</a></p>
+            <p style="margin: 0 0 10px 0; color: #333; font-size: 14px;">Your appointment link is: <a href="${appointmentLink}" style="color: #0066cc; text-decoration: underline;">${appointmentLink}</a></p>
           </div>
-          ` : ""}
           
           <div style="margin: 20px 0;">
             <p style="margin: 0 0 10px 0; color: #333; font-size: 14px;">See you in 5 minutes on Medazon! Please use the link sent to your email/text.</p>

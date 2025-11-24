@@ -362,8 +362,8 @@ export async function POST(request: Request) {
       // Format SMS message similar to screenshot
       if (formattedDateForSMS && formattedTime) {
         patientSMSMessage = `You have a ${visitTypeDisplay} appointment with ${doctorName} on ${formattedDateForSMS} at ${formattedTime.replace(' AM', 'am').replace(' PM', 'pm')} AZ Time.`;
-        if (zoomMeetingUrl) {
-          patientSMSMessage += `\n\nYour ${visitTypeDisplay} link is: ${zoomMeetingUrl}`;
+        if (appointmentLink) {
+          patientSMSMessage += `\n\nYour appointment link is: ${appointmentLink}`;
         }
       } else {
         // Fallback to template-based message
@@ -375,7 +375,7 @@ export async function POST(request: Request) {
           visitType: visitType,
           visitTypeDisplay: visitTypeDisplay,
           appointmentLink: appointmentLink,
-          zoomMeetingUrl: zoomMeetingUrl,
+          zoomMeetingUrl: null, // Don't include zoom link for patients
         });
       }
     }
@@ -388,7 +388,7 @@ export async function POST(request: Request) {
           appointmentDate: formattedDate,
           appointmentTime: formattedTime,
           visitType,
-          zoomMeetingUrl,
+          appointmentLink,
           smsMessage: patientSMSMessage,
         });
 
