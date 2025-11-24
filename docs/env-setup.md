@@ -45,6 +45,21 @@
 - `ZOOM_API_SECRET` - Your Zoom Server-to-Server OAuth API Secret
 - `ZOOM_ACCOUNT_ID` - Your Zoom Account ID
 
+### ClickSend (Required for SMS notifications)
+- `CLICKSEND_USERNAME` - Your ClickSend API username
+- `CLICKSEND_API_KEY` - Your ClickSend API key
+- `CLICKSEND_SENDER_ID` - Optional, your ClickSend sender ID (defaults to "Medazon")
+
+### SMTP (Required for email notifications)
+- `SMTP_HOST` - Your SMTP server hostname (e.g., smtp.gmail.com, smtp.sendgrid.net)
+- `SMTP_PORT` - SMTP port (usually 587 for TLS or 465 for SSL)
+- `SMTP_USER` - Your SMTP username/email
+- `SMTP_PASSWORD` - Your SMTP password or app-specific password
+- `SMTP_FROM` - Email address to send from (defaults to SMTP_USER)
+
+### Application URL (Optional)
+- `NEXT_PUBLIC_APP_URL` - Your application's base URL (e.g., https://medazonhealth.com). If not set, will be auto-detected from request headers.
+
 ## Troubleshooting
 
 ### Error: "Missing Supabase server environment variables"

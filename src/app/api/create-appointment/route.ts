@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { createZoomMeeting } from "@/lib/zoom";
+import { sendSMS } from "@/lib/clicksend";
+import { sendEmail, generateAppointmentEmailHTML } from "@/lib/email";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -273,6 +275,103 @@ export async function POST(request: Request) {
     if (paymentError) {
       console.error("Error creating payment record:", paymentError);
       // Don't fail the request, appointment is already created
+    }
+
+    // Send email and SMS notifications with appointment link
+    // Get base URL from environment or request headers
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) {
+      if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+        baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+      } else {
+        const headers = request.headers;
+        const host = headers.get('host');
+        const protocol = headers.get('x-forwarded-proto') || 'https';
+        baseUrl = host ? `${protocol}://${host}` : 'https://medazonhealth.com';
+      }
+    }
+    
+    const appointmentLink = `${baseUrl}/appointment/${accessToken}`;
+    
+    // Format date and time for display
+    let formattedDate = "Not scheduled";
+    let formattedTime = "";
+    if (requestedDateTime) {
+      const appointmentDate = new Date(requestedDateTime);
+      const options: Intl.DateTimeFormatOptions = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: data.patientTimezone || "America/New_York",
+      };
+      formattedDate = appointmentDate.toLocaleDateString("en-US", options);
+      
+      const timeOptions: Intl.DateTimeFormatOptions = {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+        timeZone: data.patientTimezone || "America/New_York",
+      };
+      formattedTime = appointmentDate.toLocaleTimeString("en-US", timeOptions);
+    }
+
+    const patientName = data.firstName && data.lastName 
+      ? `${data.firstName} ${data.lastName}` 
+      : "Patient";
+    
+    const visitTypeDisplay = visitType === "video" ? "Video Visit" : 
+                            visitType === "phone" ? "Phone Visit" : 
+                            "Consultation";
+
+    // Send email notification
+    if (data.email) {
+      try {
+        const emailHTML = generateAppointmentEmailHTML({
+          patientName,
+          appointmentDate: formattedDate,
+          appointmentTime: formattedTime,
+          visitType,
+          zoomMeetingUrl,
+          appointmentLink,
+        });
+
+        const emailResult = await sendEmail({
+          to: data.email,
+          subject: `Appointment Confirmed - ${formattedDate}`,
+          html: emailHTML,
+        });
+
+        if (emailResult.success) {
+          console.log("Appointment confirmation email sent successfully");
+        } else {
+          console.error("Failed to send email:", emailResult.error);
+        }
+      } catch (emailError) {
+        console.error("Error sending appointment confirmation email:", emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    // Send SMS notification
+    if (data.phone) {
+      try {
+        const smsMessage = `Hi ${data.firstName || 'there'}, your ${visitTypeDisplay} is confirmed for ${formattedDate} at ${formattedTime}. View details: ${appointmentLink}${zoomMeetingUrl ? ` Join: ${zoomMeetingUrl}` : ''}`;
+        
+        const smsResult = await sendSMS({
+          to: data.phone,
+          message: smsMessage,
+        });
+
+        if (smsResult.success) {
+          console.log("Appointment confirmation SMS sent successfully");
+        } else {
+          console.error("Failed to send SMS:", smsResult.error);
+        }
+      } catch (smsError) {
+        console.error("Error sending appointment confirmation SMS:", smsError);
+        // Don't fail the request if SMS fails
+      }
     }
 
     return NextResponse.json({
