@@ -49,6 +49,7 @@
 - `CLICKSEND_USERNAME` - Your ClickSend API username
 - `CLICKSEND_API_KEY` - Your ClickSend API key
 - `CLICKSEND_SENDER_ID` - Optional, your ClickSend sender ID (defaults to "Medazon")
+- `SMS_TEMPLATE` - Optional, custom SMS message template (see SMS Template section below)
 
 ### SMTP (Required for email notifications)
 - `SMTP_HOST` - Your SMTP server hostname (e.g., smtp.gmail.com, smtp.sendgrid.net)

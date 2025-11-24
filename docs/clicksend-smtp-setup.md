@@ -87,7 +87,38 @@ SMTP_PASSWORD=your-ses-smtp-password
 SMTP_FROM=noreply@medazonhealth.com
 ```
 
-### Option 4: Other SMTP Providers
+### Option 4: Hostinger Email SMTP
+
+If you're using Hostinger hosting with their email service:
+
+1. **Get your email credentials** from Hostinger:
+   - Log in to your Hostinger control panel (hPanel)
+   - Go to **Email** section
+   - Create or select an email account (e.g., `noreply@yourdomain.com`)
+   - Note the email address and password
+
+2. **Add to `.env.local`**:
+
+```env
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=587
+SMTP_USER=noreply@yourdomain.com
+SMTP_PASSWORD=your-email-password
+SMTP_FROM=noreply@yourdomain.com
+```
+
+**Alternative Hostinger SMTP settings** (if above doesn't work):
+- Try `smtp.titan.email` as SMTP_HOST (for newer Hostinger accounts)
+- Try port `465` with SSL instead of `587` with TLS
+- Make sure `SMTP_USER` is the **full email address** (not just username)
+
+**Important Notes for Hostinger:**
+- Use the **full email address** as `SMTP_USER` (e.g., `fiverrsajjad@yourdomain.com`)
+- Use the **email account password** (not your hosting account password)
+- If authentication fails, try port `465` with SSL
+- Some Hostinger accounts use `smtp.titan.email` instead of `smtp.hostinger.com`
+
+### Option 5: Other SMTP Providers
 
 Most SMTP providers follow the same pattern. Common settings:
 

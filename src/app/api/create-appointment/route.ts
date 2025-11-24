@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { createZoomMeeting } from "@/lib/zoom";
 import { sendSMS } from "@/lib/clicksend";
-import { sendEmail, generateAppointmentEmailHTML } from "@/lib/email";
+import { generateSMSMessage } from "@/lib/sms-template";
+import { sendEmail, generateAppointmentEmailHTML, generateDoctorAppointmentEmailHTML } from "@/lib/email";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -68,12 +69,16 @@ export async function POST(request: Request) {
     // Doctor ID (hardcoded as specified)
     const DOCTOR_ID = "1fd1af57-5529-4d00-a301-e653b4829efc";
     
-    // Verify doctor exists, create if doesn't exist
+    // Verify doctor exists, create if doesn't exist, and get full doctor info
     const { data: existingDoctor } = await supabase
       .from("doctors")
-      .select("id")
+      .select("id, email, phone, first_name, last_name")
       .eq("id", DOCTOR_ID)
       .single();
+
+    let doctorEmail = "doctor@medazonhealth.com";
+    let doctorPhone = null;
+    let doctorName = "Doctor";
 
     if (!existingDoctor) {
       // Create the doctor if it doesn't exist
@@ -96,6 +101,13 @@ export async function POST(request: Request) {
           { error: "Failed to verify doctor", details: doctorError.message },
           { status: 500 }
         );
+      }
+    } else {
+      // Use existing doctor info
+      doctorEmail = existingDoctor.email || "doctor@medazonhealth.com";
+      doctorPhone = existingDoctor.phone;
+      if (existingDoctor.first_name && existingDoctor.last_name) {
+        doctorName = `${existingDoctor.first_name} ${existingDoctor.last_name}`;
       }
     }
     
@@ -292,6 +304,7 @@ export async function POST(request: Request) {
     }
     
     const appointmentLink = `${baseUrl}/appointment/${accessToken}`;
+    const doctorPanelLink = "https://hipa-doctor-panel.vercel.app/doctor/appointments";
     
     // Format date and time for display
     let formattedDate = "Not scheduled";
@@ -324,7 +337,7 @@ export async function POST(request: Request) {
                             visitType === "phone" ? "Phone Visit" : 
                             "Consultation";
 
-    // Send email notification
+    // Send email notification to patient
     if (data.email) {
       try {
         const emailHTML = generateAppointmentEmailHTML({
@@ -343,20 +356,30 @@ export async function POST(request: Request) {
         });
 
         if (emailResult.success) {
-          console.log("Appointment confirmation email sent successfully");
+          console.log("Appointment confirmation email sent to patient successfully");
         } else {
-          console.error("Failed to send email:", emailResult.error);
+          console.error("Failed to send email to patient:", emailResult.error);
         }
       } catch (emailError) {
-        console.error("Error sending appointment confirmation email:", emailError);
+        console.error("Error sending appointment confirmation email to patient:", emailError);
         // Don't fail the request if email fails
       }
     }
 
-    // Send SMS notification
+    // Send SMS notification to patient
     if (data.phone) {
       try {
-        const smsMessage = `Hi ${data.firstName || 'there'}, your ${visitTypeDisplay} is confirmed for ${formattedDate} at ${formattedTime}. View details: ${appointmentLink}${zoomMeetingUrl ? ` Join: ${zoomMeetingUrl}` : ''}`;
+        // Generate SMS message from template
+        const smsMessage = generateSMSMessage({
+          patientName: data.firstName || 'there',
+          fullName: patientName,
+          appointmentDate: formattedDate,
+          appointmentTime: formattedTime,
+          visitType: visitType,
+          visitTypeDisplay: visitTypeDisplay,
+          appointmentLink: appointmentLink,
+          zoomMeetingUrl: zoomMeetingUrl,
+        });
         
         const smsResult = await sendSMS({
           to: data.phone,
@@ -364,12 +387,64 @@ export async function POST(request: Request) {
         });
 
         if (smsResult.success) {
-          console.log("Appointment confirmation SMS sent successfully");
+          console.log("Appointment confirmation SMS sent to patient successfully");
         } else {
-          console.error("Failed to send SMS:", smsResult.error);
+          console.error("Failed to send SMS to patient:", smsResult.error);
         }
       } catch (smsError) {
-        console.error("Error sending appointment confirmation SMS:", smsError);
+        console.error("Error sending appointment confirmation SMS to patient:", smsError);
+        // Don't fail the request if SMS fails
+      }
+    }
+
+    // Send email notification to doctor
+    if (doctorEmail) {
+      try {
+        const doctorEmailHTML = generateDoctorAppointmentEmailHTML({
+          patientName,
+          appointmentDate: formattedDate,
+          appointmentTime: formattedTime,
+          visitType,
+          doctorPanelLink,
+          zoomMeetingUrl,
+          patientEmail: data.email || null,
+          patientPhone: data.phone || null,
+        });
+
+        const doctorEmailResult = await sendEmail({
+          to: doctorEmail,
+          subject: `New Appointment Scheduled - ${patientName} - ${formattedDate}`,
+          html: doctorEmailHTML,
+        });
+
+        if (doctorEmailResult.success) {
+          console.log("Appointment notification email sent to doctor successfully");
+        } else {
+          console.error("Failed to send email to doctor:", doctorEmailResult.error);
+        }
+      } catch (doctorEmailError) {
+        console.error("Error sending appointment notification email to doctor:", doctorEmailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    // Send SMS notification to doctor
+    if (doctorPhone) {
+      try {
+        const doctorSMSMessage = `New appointment scheduled: ${patientName} on ${formattedDate} at ${formattedTime}. ${visitTypeDisplay}. View: ${doctorPanelLink}${zoomMeetingUrl ? ` Meeting: ${zoomMeetingUrl}` : ""}`;
+        
+        const doctorSMSResult = await sendSMS({
+          to: doctorPhone,
+          message: doctorSMSMessage,
+        });
+
+        if (doctorSMSResult.success) {
+          console.log("Appointment notification SMS sent to doctor successfully");
+        } else {
+          console.error("Failed to send SMS to doctor:", doctorSMSResult.error);
+        }
+      } catch (doctorSMSError) {
+        console.error("Error sending appointment notification SMS to doctor:", doctorSMSError);
         // Don't fail the request if SMS fails
       }
     }
