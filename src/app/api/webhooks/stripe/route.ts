@@ -4,7 +4,7 @@ import Stripe from "stripe";
 import { createServerClient } from "@/lib/supabase";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-11-17.clover",
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -26,10 +26,11 @@ export async function POST(request: Request) {
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } catch (err: any) {
-      console.error("Webhook signature verification failed:", err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      console.error("Webhook signature verification failed:", errorMessage);
       return NextResponse.json(
-        { error: `Webhook Error: ${err.message}` },
+        { error: `Webhook Error: ${errorMessage}` },
         { status: 400 }
       );
     }
@@ -84,10 +85,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Webhook error:", error);
     return NextResponse.json(
-      { error: "Webhook handler failed", details: error.message },
+      { error: "Webhook handler failed", details: errorMessage },
       { status: 500 }
     );
   }

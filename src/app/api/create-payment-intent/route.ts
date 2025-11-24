@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2024-11-20.acacia", // Use latest API version or the one matching your account
+    apiVersion: "2025-11-17.clover", // Use latest API version or the one matching your account
 });
 
 export async function POST(request: Request) {
@@ -22,10 +22,11 @@ export async function POST(request: Request) {
         return NextResponse.json({
             clientSecret: paymentIntent.client_secret,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error("Internal Error:", error);
         return NextResponse.json(
-            { error: `Internal Server Error: ${error.message}` },
+            { error: `Internal Server Error: ${errorMessage}` },
             { status: 500 }
         );
     }
