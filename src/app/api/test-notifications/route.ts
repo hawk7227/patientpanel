@@ -28,18 +28,20 @@ export async function POST(request: Request) {
       const testToken = "test-token-1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnop";
       const appointmentLink = `${baseUrl}/appointment/${testToken}`;
 
+      const testSMSMessage = "You have a Video Visit appointment with Dr. Test Doctor on Monday, December 1st at 10:00am AZ Time.\n\nYour Video Visit link is: https://zoom.us/j/123456789";
+      
       const emailHTML = generateAppointmentEmailHTML({
-        patientName: "Test Patient",
+        doctorName: "Dr. Test Doctor",
         appointmentDate: "Monday, December 1, 2024",
         appointmentTime: "10:00 AM EST",
         visitType: "video",
         zoomMeetingUrl: "https://zoom.us/j/123456789",
-        appointmentLink,
+        smsMessage: testSMSMessage,
       });
 
       results.email = await sendEmail({
         to: testEmail,
-        subject: "Test Appointment Confirmation - Medazon Health",
+        subject: "Your telemedicine appointment with Dr. Test Doctor",
         html: emailHTML,
       });
     }
@@ -123,18 +125,20 @@ export async function GET(request: Request) {
       const testToken = "test-token-1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnop";
       const appointmentLink = `${baseUrl}/appointment/${testToken}`;
 
+      const testSMSMessage = "You have a Video Visit appointment with Dr. Test Doctor on Monday, December 1st at 10:00am AZ Time.\n\nYour Video Visit link is: https://zoom.us/j/123456789";
+      
       const emailHTML = generateAppointmentEmailHTML({
-        patientName: "Test Patient",
+        doctorName: "Dr. Test Doctor",
         appointmentDate: "Monday, December 1, 2024",
         appointmentTime: "10:00 AM EST",
         visitType: "video",
         zoomMeetingUrl: "https://zoom.us/j/123456789",
-        appointmentLink,
+        smsMessage: testSMSMessage,
       });
 
       results.email = await sendEmail({
         to: email,
-        subject: "Test Appointment Confirmation - Medazon Health",
+        subject: "Your telemedicine appointment with Dr. Test Doctor",
         html: emailHTML,
       });
     }

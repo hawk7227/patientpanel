@@ -236,7 +236,7 @@ export default function TestNotificationsPage() {
                     ) : (
                       <div className="text-red-400 text-sm">
                         ✗ Failed to send SMS: {results.sms.error}
-                        {results.sms.details && (
+                        {results.sms.details !== undefined && results.sms.details !== null && (
                           <pre className="text-xs mt-2 text-gray-400 overflow-auto">
                             {JSON.stringify(results.sms.details, null, 2)}
                           </pre>
