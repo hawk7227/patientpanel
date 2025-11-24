@@ -28,14 +28,14 @@ export async function POST(request: Request) {
       const testToken = "test-token-1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnop";
       const appointmentLink = `${baseUrl}/appointment/${testToken}`;
 
-      const testSMSMessage = "You have a Video Visit appointment with Dr. Test Doctor on Monday, December 1st at 10:00am AZ Time.\n\nYour Video Visit link is: https://zoom.us/j/123456789";
+      const testSMSMessage = `You have a Video Visit appointment with Dr. Test Doctor on Monday, December 1st at 10:00am AZ Time.\n\nYour appointment link is: ${appointmentLink}`;
       
       const emailHTML = generateAppointmentEmailHTML({
         doctorName: "Dr. Test Doctor",
         appointmentDate: "Monday, December 1, 2024",
         appointmentTime: "10:00 AM EST",
         visitType: "video",
-        zoomMeetingUrl: "https://zoom.us/j/123456789",
+        appointmentLink: appointmentLink,
         smsMessage: testSMSMessage,
       });
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         visitType: "video",
         visitTypeDisplay: "Video Visit",
         appointmentLink: appointmentLink,
-        zoomMeetingUrl: "https://zoom.us/j/123456789",
+        zoomMeetingUrl: null, // Don't include zoom link for patients
       });
 
       results.sms = await sendSMS({
@@ -125,14 +125,14 @@ export async function GET(request: Request) {
       const testToken = "test-token-1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnop";
       const appointmentLink = `${baseUrl}/appointment/${testToken}`;
 
-      const testSMSMessage = "You have a Video Visit appointment with Dr. Test Doctor on Monday, December 1st at 10:00am AZ Time.\n\nYour Video Visit link is: https://zoom.us/j/123456789";
+      const testSMSMessage = `You have a Video Visit appointment with Dr. Test Doctor on Monday, December 1st at 10:00am AZ Time.\n\nYour appointment link is: ${appointmentLink}`;
       
       const emailHTML = generateAppointmentEmailHTML({
         doctorName: "Dr. Test Doctor",
         appointmentDate: "Monday, December 1, 2024",
         appointmentTime: "10:00 AM EST",
         visitType: "video",
-        zoomMeetingUrl: "https://zoom.us/j/123456789",
+        appointmentLink: appointmentLink,
         smsMessage: testSMSMessage,
       });
 
@@ -157,7 +157,7 @@ export async function GET(request: Request) {
         visitType: "video",
         visitTypeDisplay: "Video Visit",
         appointmentLink: appointmentLink,
-        zoomMeetingUrl: "https://zoom.us/j/123456789",
+        zoomMeetingUrl: null, // Don't include zoom link for patients
       });
 
       results.sms = await sendSMS({
