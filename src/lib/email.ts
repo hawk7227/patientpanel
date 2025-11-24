@@ -189,7 +189,7 @@ export function generateDoctorAppointmentEmailHTML({
   appointmentTime,
   visitType,
   doctorPanelLink,
-  zoomMeetingUrl,
+  zoomStartUrl,
   patientEmail,
   patientPhone,
 }: {
@@ -198,7 +198,7 @@ export function generateDoctorAppointmentEmailHTML({
   appointmentTime: string;
   visitType: string;
   doctorPanelLink: string;
-  zoomMeetingUrl?: string | null;
+  zoomStartUrl?: string | null;
   patientEmail?: string | null;
   patientPhone?: string | null;
 }): string {
@@ -232,10 +232,12 @@ export function generateDoctorAppointmentEmailHTML({
           ${patientPhone ? `<p style="margin: 5px 0;"><strong>Patient Phone:</strong> ${patientPhone}</p>` : ""}
         </div>
         
-        ${zoomMeetingUrl ? `
-        <div style="background-color: #e8f5e9; border-left: 4px solid #00cba9; padding: 15px; margin-bottom: 20px;">
-          <p style="margin: 0 0 10px 0;"><strong>Video Meeting Link:</strong></p>
-          <p style="margin: 0;"><a href="${zoomMeetingUrl}" style="color: #00cba9; text-decoration: none;">${zoomMeetingUrl}</a></p>
+        ${zoomStartUrl ? `
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+          <p style="margin: 0 0 10px 0; color: #856404; font-weight: bold;">⚠️ WARNING: This is a START meeting link - Only for hosts</p>
+          <p style="margin: 0 0 10px 0; color: #856404;">Do NOT share this link with patients. This link allows you to start and control the meeting.</p>
+          <p style="margin: 0 0 10px 0;"><strong>Start Meeting Link:</strong></p>
+          <p style="margin: 0;"><a href="${zoomStartUrl}" style="color: #0066cc; text-decoration: underline; word-break: break-all;">${zoomStartUrl}</a></p>
         </div>
         ` : ""}
         

@@ -223,6 +223,7 @@ export async function POST(request: Request) {
 
     // Create Zoom meeting for video appointments
     let zoomMeetingUrl = null;
+    let zoomStartUrl = null;
     if (visitType === "video" && requestedDateTime) {
       try {
         const patientName = data.firstName && data.lastName 
@@ -239,7 +240,7 @@ export async function POST(request: Request) {
         });
 
         zoomMeetingUrl = zoomMeeting.join_url;
-        const zoomStartUrl = zoomMeeting.start_url;
+        zoomStartUrl = zoomMeeting.start_url;
         
         // Log meeting details for admin panel access
         console.log("Zoom Meeting Created:", {
@@ -437,7 +438,7 @@ export async function POST(request: Request) {
           appointmentTime: formattedTime,
           visitType,
           doctorPanelLink,
-          zoomMeetingUrl,
+          zoomStartUrl,
           patientEmail: data.email || null,
           patientPhone: data.phone || null,
         });
@@ -462,7 +463,10 @@ export async function POST(request: Request) {
     // Send SMS notification to doctor
     if (doctorPhone) {
       try {
-        const doctorSMSMessage = `New appointment scheduled: ${patientName} on ${formattedDate} at ${formattedTime}. ${visitTypeDisplay}. View: ${doctorPanelLink}${zoomMeetingUrl ? ` Meeting: ${zoomMeetingUrl}` : ""}`;
+        let doctorSMSMessage = `New appointment scheduled: ${patientName} on ${formattedDate} at ${formattedTime}. ${visitTypeDisplay}. View: ${doctorPanelLink}`;
+        if (zoomStartUrl) {
+          doctorSMSMessage += `\n\n⚠️ WARNING: START meeting link (host only, do NOT share with patients) and this will start meeting instantly: ${zoomStartUrl}`;
+        }
         
         const doctorSMSResult = await sendSMS({
           to: doctorPhone,
