@@ -468,6 +468,7 @@ export async function POST(request: Request) {
           doctorSMSMessage += `\n\n⚠️ WARNING: START meeting link (host only, do NOT share with patients) and this will start meeting instantly: ${zoomStartUrl}`;
         }
         
+        
         const doctorSMSResult = await sendSMS({
           to: doctorPhone,
           message: doctorSMSMessage,
