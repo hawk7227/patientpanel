@@ -62,7 +62,8 @@ export default function AppointmentCalendar({
         // Helper function to check availability for a date
         const checkDateAvailability = async (year: number, month: number, day: number): Promise<string | null> => {
           const date = new Date(year, month, day);
-          const dateStr = date.toISOString().split("T")[0];
+          // Format date string directly without timezone conversion to avoid off-by-one errors
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           
           // Skip past dates
           if (date < today) return null;
@@ -195,14 +196,13 @@ export default function AppointmentCalendar({
   }, [selectedDate, doctorId]);
 
   const handleDateClick = (day: number) => {
-    const date = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      day
-    );
-    const dateStr = date.toISOString().split("T")[0];
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    // Format date string directly without timezone conversion to avoid off-by-one errors
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     
     // Check if date is in the past
+    const date = new Date(year, month, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date < today) {
@@ -297,12 +297,11 @@ export default function AppointmentCalendar({
             ))}
             {Array.from({ length: daysInMonth }).map((_, idx) => {
               const day = idx + 1;
-              const date = new Date(
-                currentMonth.getFullYear(),
-                currentMonth.getMonth(),
-                day
-              );
-              const dateStr = date.toISOString().split("T")[0];
+              const year = currentMonth.getFullYear();
+              const month = currentMonth.getMonth();
+              const date = new Date(year, month, day);
+              // Format date string directly without timezone conversion to avoid off-by-one errors
+              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               const isPast = date < today;
@@ -354,7 +353,7 @@ export default function AppointmentCalendar({
               ) : (availableTimes.length > 0 || bookedTimes.length > 0) ? (
                 <>
                   <p className="text-sm text-gray-400 mb-4">Times Available</p>
-                  <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
                     {(() => {
                       // Combine available and booked times, then sort
                       const allTimes = new Set([...availableTimes, ...bookedTimes]);
