@@ -2,9 +2,11 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Video, Phone, Edit2, Loader2 } from "lucide-react";
+import { Check, Video, Phone, Edit2, Loader2, Clock } from "lucide-react";
 import dynamic from "next/dynamic";
+import AppointmentCalendar from "@/components/AppointmentCalendar";
 
 const GooglePlacesAutocomplete = dynamic(
   () => import("@/components/GooglePlacesAutocomplete"),
@@ -97,6 +99,12 @@ function IntakeForm() {
     dateOfBirth: "",
     streetAddress: "",
   });
+  const [doctorInfo, setDoctorInfo] = useState<{
+    id: string;
+    name: string;
+    credentials: string;
+    specialty: string;
+  } | null>(null);
 
   useEffect(() => {
     const symptomParam = searchParams.get("symptom");
@@ -104,6 +112,38 @@ function IntakeForm() {
       setFormData(prev => ({ ...prev, symptoms: symptomParam }));
     }
   }, [searchParams]);
+
+  // Fetch doctor info when step 3 is active
+  useEffect(() => {
+    if (step === 3) {
+      const fetchDoctorInfo = async () => {
+        try {
+          const response = await fetch('/api/get-doctor-availability?date=2025-01-01&doctorId=1fd1af57-5529-4d00-a301-e653b4829efc');
+          if (response.ok) {
+            const data = await response.json();
+            if (data.doctor) {
+              setDoctorInfo({
+                id: data.doctor.id,
+                name: data.doctor.name,
+                credentials: "MSN, APRN, FNP-C", // You can fetch this from database if available
+                specialty: data.doctor.specialty || "A Private Practice Provider",
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching doctor info:", error);
+          // Set default doctor info
+          setDoctorInfo({
+            id: "1fd1af57-5529-4d00-a301-e653b4829efc",
+            name: "LaMonica A. Hodges",
+            credentials: "MSN, APRN, FNP-C",
+            specialty: "A Private Practice Provider",
+          });
+        }
+      };
+      fetchDoctorInfo();
+    }
+  }, [step]);
 
   const handleBooleanSelection = (key: keyof FormData, value: boolean) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -116,7 +156,13 @@ function IntakeForm() {
   };
 
   const handleVisitTypeSelection = (type: string) => {
-    setFormData((prev) => ({ ...prev, visitType: type }));
+    setFormData((prev) => {
+      // Reset date/time when changing visit type
+      if (prev.visitType !== type) {
+        return { ...prev, visitType: type, appointmentDate: "", appointmentTime: "" };
+      }
+      return { ...prev, visitType: type };
+    });
   };
 
   const isStepValid = (stepId: number) => {
@@ -170,7 +216,9 @@ function IntakeForm() {
          </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-start pt-24 p-4 w-full max-w-2xl mx-auto z-0 gap-4">
+      <div className={`flex-1 flex flex-col items-center justify-start pt-24 p-4 w-full mx-auto z-0 gap-4 ${
+        step === 3 ? "max-w-5xl" : "max-w-2xl"
+      }`}>
         
         {/* Render Steps */}
         {STEPS.map((s) => {
@@ -179,7 +227,9 @@ function IntakeForm() {
           
           // If this step is in the future (step < s.id), we don't render it unless we want a "stack" effect from bottom.
           // But usually we only show active and past.
+          // For step 3, hide past steps to make it look like a separate page
           if (step < s.id) return null;
+          if (step === 3 && s.id < 3) return null;
 
           return (
             <div 
@@ -260,80 +310,116 @@ function IntakeForm() {
                     </>
                   )}
 
-                  {/* Visit Type Selection (Step 3) */}
+                  {/* Visit Type Selection (Step 3) - Separate Page View */}
                   {s.id === 3 && (
-                    <div className="space-y-6">
-                      <div className="grid gap-3">
-                        {["Video", "Phone"].map((type) => (
-                          <button
-                            key={type}
-                            onClick={() => handleVisitTypeSelection(type)}
-                            className={`bg-[#11161c] border rounded-xl p-4 flex items-center gap-4 transition-all text-left group ${
-                              formData.visitType === type 
-                              ? "border-primary-teal bg-primary-teal/5" 
-                              : "border-white/10 hover:border-primary-teal/50 hover:bg-white/5"
-                            }`}
-                          >
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                              formData.visitType === type ? "bg-primary-teal text-black" : "bg-white/5 text-primary-teal group-hover:bg-primary-teal group-hover:text-black"
-                            }`}>
-                              {type === "Video" && <Video size={18} />}
-                              {type === "Phone" && <Phone size={18} />}
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-white text-sm">{type === "Video" ? "Video Call" : "Phone Call"}</h3>
-                              <p className="text-xs text-gray-400">
-                                {type === "Video" ? "Face-to-face video consultation." : "Audio-only consultation."}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
+                    <div className="w-full max-w-4xl mx-auto bg-[#0d1218] border border-white/5 rounded-xl shadow-2xl overflow-hidden">
+                      {/* Condition Information Header */}
+                      <div className="bg-[#11161c] border-b border-white/10 px-8 py-6">
+                        <h2 className="text-2xl font-bold text-white">Condition Information</h2>
                       </div>
 
-                      {/* Appointment Date and Time */}
-                      {formData.visitType && (
-                        <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Select Appointment Date and Time</label>
-                            <div className="grid grid-cols-2 gap-3">
-                              <input
-                                type="date"
-                                value={formData.appointmentDate}
-                                onChange={(e) => setFormData(prev => ({ ...prev, appointmentDate: e.target.value }))}
-                                onClick={(e) => {
-                                  const input = e.currentTarget as HTMLInputElement;
-                                  if (input.showPicker) {
-                                    input.showPicker();
-                                  }
-                                }}
-                                onFocus={(e) => {
-                                  const input = e.currentTarget as HTMLInputElement;
-                                  if (input.showPicker) {
-                                    input.showPicker();
-                                  }
-                                }}
-                                min={new Date().toISOString().split('T')[0]}
-                                className="w-full bg-[#11161c] border border-white/20 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all cursor-pointer"
-                              />
-                              <input
-                                type="time"
-                                value={formData.appointmentTime}
-                                onChange={(e) => setFormData(prev => ({ ...prev, appointmentTime: e.target.value }))}
-                                className="w-full bg-[#11161c] border border-white/20 rounded-lg py-3 px-4 text-white focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+                      {/* Doctor Profile Section */}
+                      <div className="px-8 py-8 flex flex-col items-center border-b border-white/10">
+                        {doctorInfo ? (
+                          <>
+                            {/* Doctor Avatar */}
+                            <div className="w-24 h-24 rounded-full overflow-hidden mb-4 shadow-lg ring-4 ring-white/10">
+                              <Image
+                                src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg"
+                                alt={doctorInfo.name}
+                                width={96}
+                                height={96}
+                                className="w-full h-full object-cover"
+                                priority
                               />
                             </div>
+                            
+                            {/* Doctor Name & Credentials */}
+                            <h3 className="text-xl font-bold text-white mb-1">
+                              {doctorInfo.name}
+                            </h3>
+                            <p className="text-sm font-semibold text-gray-300 mb-1">
+                              {doctorInfo.credentials}
+                            </p>
+                            <p className="text-sm text-gray-400 mb-3">
+                              {doctorInfo.specialty}
+                            </p>
+                            
+                            {/* Appointment Duration */}
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                              <Clock size={16} />
+                              <span>30 min</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="animate-pulse">
+                            <div className="w-24 h-24 rounded-full bg-[#11161c] mb-4"></div>
+                            <div className="h-6 w-48 bg-[#11161c] rounded mb-2"></div>
+                            <div className="h-4 w-32 bg-[#11161c] rounded"></div>
                           </div>
-                          
+                        )}
+                      </div>
+
+                      {/* Visit Type Selection */}
+                      <div className="px-8 py-6 border-b border-white/10">
+                        <h3 className="text-lg font-semibold text-white mb-4">Select Visit Type</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          {["Video", "Phone"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => handleVisitTypeSelection(type)}
+                              className={`border-2 rounded-xl p-4 flex items-center gap-4 transition-all text-left group ${
+                                formData.visitType === type 
+                                  ? "border-primary-teal bg-primary-teal/10" 
+                                  : "border-white/20 hover:border-primary-teal/50 hover:bg-white/5"
+                              }`}
+                            >
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                                formData.visitType === type 
+                                  ? "bg-primary-teal text-black" 
+                                  : "bg-white/5 text-primary-teal group-hover:bg-primary-teal/20 group-hover:text-primary-teal"
+                              }`}>
+                                {type === "Video" && <Video size={20} />}
+                                {type === "Phone" && <Phone size={20} />}
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-white text-sm">{type === "Video" ? "Video Call" : "Phone Call"}</h4>
+                                <p className="text-xs text-gray-400">
+                                  {type === "Video" ? "Face-to-face video consultation." : "Audio-only consultation."}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Calendar & Time Selection */}
+                      {formData.visitType && (
+                        <div className="px-8 py-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <h3 className="text-lg font-semibold text-white mb-6">Select a Date & Time</h3>
+                          <AppointmentCalendar
+                            selectedDate={formData.appointmentDate || null}
+                            selectedTime={formData.appointmentTime || null}
+                            onDateSelect={(date) => setFormData(prev => ({ ...prev, appointmentDate: date }))}
+                            onTimeSelect={(time) => setFormData(prev => ({ ...prev, appointmentTime: time }))}
+                            doctorId="1fd1af57-5529-4d00-a301-e653b4829efc"
+                          />
+                        </div>
+                      )}
+
+                      {/* Confirm Button */}
+                      {formData.visitType && (
+                        <div className="px-8 py-6 bg-[#11161c] border-t border-white/10">
                           <button 
                             onClick={nextStep}
                             disabled={!isStepValid(s.id)}
-                            className={`w-full font-bold py-3 rounded-lg transition-colors shadow-lg ${
+                            className={`w-full font-bold py-4 rounded-lg transition-colors shadow-lg ${
                               !isStepValid(s.id)
                                 ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
-                                : "bg-white text-black hover:bg-gray-200"
+                                : "bg-primary-teal text-black hover:bg-primary-teal/90"
                             }`}
                           >
-                            Next
+                            Confirm Appointment
                           </button>
                         </div>
                       )}
