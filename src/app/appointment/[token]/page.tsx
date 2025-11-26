@@ -238,6 +238,8 @@ function AppointmentContent() {
             </div>
           </div>
 
+
+
           {/* Countdown Timer / Meeting Link Section */}
           {appointment.visit_type === "video" && (
             <>
