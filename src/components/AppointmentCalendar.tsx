@@ -259,22 +259,22 @@ export default function AppointmentCalendar({
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Calendar */}
-        <div className="bg-[#11161c] border border-white/10 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-[#11161c] border border-white/10 rounded-lg p-4 sm:p-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <button
               onClick={() => navigateMonth("prev")}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              <ChevronLeft size={20} className="text-gray-400" />
+              <ChevronLeft size={18} className="sm:w-5 sm:h-5 text-gray-400" />
             </button>
-            <h3 className="text-lg font-semibold text-white">{monthName}</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-white">{monthName}</h3>
             <button
               onClick={() => navigateMonth("next")}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              <ChevronRight size={20} className="text-gray-400" />
+              <ChevronRight size={18} className="sm:w-5 sm:h-5 text-gray-400" />
             </button>
           </div>
 
@@ -283,7 +283,7 @@ export default function AppointmentCalendar({
             {weekDays.map((day, idx) => (
               <div
                 key={idx}
-                className="text-center text-sm font-medium text-gray-400 py-2"
+                className="text-center text-xs sm:text-sm font-medium text-gray-400 py-1 sm:py-2"
               >
                 {day}
               </div>
@@ -313,7 +313,7 @@ export default function AppointmentCalendar({
                   key={day}
                   onClick={() => handleDateClick(day)}
                   disabled={isPast || !isAvailable}
-                  className={`aspect-square rounded-lg text-sm font-medium transition-all relative ${
+                  className={`aspect-square rounded-lg text-xs sm:text-sm font-medium transition-all relative ${
                     isSelected
                       ? "bg-primary-teal text-black shadow-lg scale-105"
                       : isAvailable && !isPast
@@ -323,23 +323,23 @@ export default function AppointmentCalendar({
                 >
                   {day}
                   {isAvailable && !isPast && (
-                    <span className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-teal rounded-full" />
+                    <span className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-teal rounded-full" />
                   )}
                 </button>
               );
             })}
           </div>
 
-          <p className="text-xs text-gray-400 mt-4 text-center">
+          <p className="text-[10px] sm:text-xs text-gray-400 mt-3 sm:mt-4 text-center">
             Times shown in your timezone: {timezone.replace("_", " ")}
           </p>
         </div>
 
         {/* Time slots */}
-        <div className="bg-[#11161c] border border-white/10 rounded-lg p-6">
+        <div className="bg-[#11161c] border border-white/10 rounded-lg p-4 sm:p-6">
           {selectedDate ? (
             <>
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
                 Selected: {new Date(selectedDate).toLocaleDateString("en-US", {
                   month: "long",
                   day: "numeric",
@@ -347,13 +347,13 @@ export default function AppointmentCalendar({
                 })}
               </h3>
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-teal"></div>
+                <div className="flex items-center justify-center py-6 sm:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary-teal"></div>
                 </div>
               ) : (availableTimes.length > 0 || bookedTimes.length > 0) ? (
                 <>
-                  <p className="text-sm text-gray-400 mb-4">Times Available</p>
-                  <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto pr-2">
+                  <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4">Times Available</p>
+                  <div className="grid grid-cols-2 gap-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-1 sm:pr-2">
                     {(() => {
                       // Combine available and booked times, then sort
                       const allTimes = new Set([...availableTimes, ...bookedTimes]);
@@ -382,9 +382,9 @@ export default function AppointmentCalendar({
                             key={time}
                             onClick={() => !isPast && !isBooked && onTimeSelect(normalizeTime(time))}
                             disabled={isPast || isBooked}
-                            className={`py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all relative ${
+                            className={`py-2 sm:py-3 px-2 sm:px-4 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all relative flex flex-col items-center justify-center min-h-[48px] ${
                               isBooked
-                                ? "border-red-500/50 bg-red-500/10 text-red-400 cursor-not-allowed opacity-75"
+                                ? "border-red-500/50 bg-red-500/10 cursor-not-allowed"
                                 : isPast
                                 ? "border-white/10 text-gray-500 bg-white/5 cursor-not-allowed opacity-50"
                                 : normalizeTime(selectedTime || "") === normalizeTime(time)
@@ -393,10 +393,10 @@ export default function AppointmentCalendar({
                             }`}
                             title={isBooked ? "This time slot is already booked" : isPast ? "This time has passed" : ""}
                           >
-                            {formatTime(time)}
                             {isBooked && (
-                              <span className="absolute top-1 right-1 text-xs font-semibold text-red-400">Booked</span>
+                              <span className="text-[9px] sm:text-[10px] font-bold text-red-400 mb-0.5 uppercase tracking-wide">Booked</span>
                             )}
+                            <span className={isBooked ? "text-red-400/70" : ""}>{formatTime(time)}</span>
                           </button>
                         );
                       });
@@ -404,16 +404,16 @@ export default function AppointmentCalendar({
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                  <Clock size={32} className="mb-2 opacity-50" />
-                  <p className="text-sm">No available times for this date</p>
+                <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-gray-400">
+                  <Clock size={24} className="sm:w-8 sm:h-8 mb-2 opacity-50" />
+                  <p className="text-xs sm:text-sm">No available times for this date</p>
                 </div>
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-              <Clock size={32} className="mb-2 opacity-50" />
-              <p className="text-sm">Select a date to see available times</p>
+            <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-gray-400">
+              <Clock size={24} className="sm:w-8 sm:h-8 mb-2 opacity-50" />
+              <p className="text-xs sm:text-sm">Select a date to see available times</p>
             </div>
           )}
         </div>
