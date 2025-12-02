@@ -23,8 +23,10 @@ export default function AppointmentCalendar({
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingTimes, setLoadingTimes] = useState(false);
   const [timezone, setTimezone] = useState("America/New_York");
   const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
+  const [autoNavigateCount, setAutoNavigateCount] = useState(0);
 
   // Get first day of month and number of days
   const firstDayOfMonth = new Date(
@@ -45,92 +47,94 @@ export default function AppointmentCalendar({
     const fetchAvailableDates = async () => {
       setLoading(true);
       try {
-        const dates = new Set<string>();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        // Fetch for current month
+        // Calculate date range for current month and next month
         const currentMonthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const currentMonthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-        const currentMonthDays = currentMonthEnd.getDate();
-        
-        // Fetch for next month
-        const nextMonthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
         const nextMonthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
-        const nextMonthDays = nextMonthEnd.getDate();
         
-        // Helper function to check availability for a date
-        const checkDateAvailability = async (year: number, month: number, day: number): Promise<string | null> => {
-          const date = new Date(year, month, day);
-          // Format date string directly without timezone conversion to avoid off-by-one errors
-          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        // Format dates as YYYY-MM-DD
+        const startDate = currentMonthStart.toISOString().split('T')[0];
+        const endDate = nextMonthEnd.toISOString().split('T')[0];
+        
+        // Make a single batch request for the entire date range
+        const response = await fetch(
+          `/api/get-doctor-availability?startDate=${startDate}&endDate=${endDate}&doctorId=${doctorId || ""}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
           
-          // Skip past dates
-          if (date < today) return null;
+          // Set timezone if available
+          if (data.doctor?.timezone && !timezone) {
+            setTimezone(data.doctor.timezone);
+          }
           
-          try {
-            const response = await fetch(
-              `/api/get-doctor-availability?date=${dateStr}&doctorId=${doctorId || ""}`
-            );
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.availableSlots && data.availableSlots.length > 0) {
-                if (!timezone && data.doctor?.timezone) {
-                  setTimezone(data.doctor.timezone);
-                }
-                return dateStr;
+          // Convert availableDates array to Set
+          const dates = new Set<string>(data.availableDates || []);
+          
+          // Filter out past dates
+          const filteredDates = new Set<string>();
+          dates.forEach((dateStr) => {
+            const date = new Date(dateStr);
+            if (date >= today) {
+              filteredDates.add(dateStr);
+            }
+          });
+          
+          setAvailableDates(filteredDates);
+          
+          // Check if current month has any available dates
+          const currentMonthStartDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+          const currentMonthEndDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+          const currentMonthStartStr = currentMonthStartDate.toISOString().split('T')[0];
+          const currentMonthEndStr = currentMonthEndDate.toISOString().split('T')[0];
+          
+          // Check if there are any available dates in the current month
+          let hasDatesInCurrentMonth = false;
+          filteredDates.forEach((dateStr) => {
+            if (dateStr >= currentMonthStartStr && dateStr <= currentMonthEndStr) {
+              hasDatesInCurrentMonth = true;
+            }
+          });
+          
+          // If no dates in current month but we have future dates, navigate to the earliest available month
+          if (!hasDatesInCurrentMonth && filteredDates.size > 0 && autoNavigateCount < 12) {
+            // Find the earliest available date
+            const sortedDates = Array.from(filteredDates).sort();
+            if (sortedDates.length > 0) {
+              const earliestDate = new Date(sortedDates[0]);
+              
+              // Only navigate if the earliest date is in a different month
+              if (earliestDate.getMonth() !== currentMonth.getMonth() || 
+                  earliestDate.getFullYear() !== currentMonth.getFullYear()) {
+                // Navigate to the month of the earliest available date
+                setCurrentMonth(new Date(earliestDate.getFullYear(), earliestDate.getMonth(), 1));
+                setAutoNavigateCount(prev => prev + 1);
+                return; // Exit early, will trigger re-fetch with new month
               }
             }
-          } catch (error) {
-            console.error(`Error fetching availability for ${dateStr}:`, error);
           }
-          return null;
-        };
-        
-        // Create array of all dates to check (current month + next month)
-        const datePromises: Promise<string | null>[] = [];
-        
-        // Add all days in current month
-        for (let day = 1; day <= currentMonthDays; day++) {
-          datePromises.push(
-            checkDateAvailability(
-              currentMonth.getFullYear(),
-              currentMonth.getMonth(),
-              day
-            )
-          );
-        }
-        
-        // Add all days in next month
-        for (let day = 1; day <= nextMonthDays; day++) {
-          datePromises.push(
-            checkDateAvailability(
-              nextMonthStart.getFullYear(),
-              nextMonthStart.getMonth(),
-              day
-            )
-          );
-        }
-        
-        // Wait for all requests to complete in parallel
-        const results = await Promise.all(datePromises);
-        results.forEach((dateStr) => {
-          if (dateStr) {
-            dates.add(dateStr);
+          
+          // Reset auto-navigate count if we found dates in current month
+          if (hasDatesInCurrentMonth) {
+            setAutoNavigateCount(0);
           }
-        });
-        
-        setAvailableDates(dates);
+        } else {
+          console.error("Error fetching available dates:", await response.text());
+          setAvailableDates(new Set());
+        }
       } catch (error) {
         console.error("Error fetching available dates:", error);
+        setAvailableDates(new Set());
       } finally {
         setLoading(false);
       }
     };
 
     fetchAvailableDates();
-  }, [currentMonth, doctorId, timezone]);
+  }, [currentMonth, doctorId, timezone, autoNavigateCount]);
 
   // Fetch booked appointments for current and next month
   useEffect(() => {
@@ -160,18 +164,32 @@ export default function AppointmentCalendar({
 
   // Fetch available times when date is selected
   useEffect(() => {
-    const fetchAvailableTimes = async () => {
-      if (!selectedDate) {
-        setAvailableTimes([]);
-        setBookedTimes([]);
-        return;
-      }
+    if (!selectedDate) {
+      setAvailableTimes([]);
+      setBookedTimes([]);
+      setLoadingTimes(false);
+      return;
+    }
 
-      setLoading(true);
+    // Set loading immediately and clear previous results
+    setAvailableTimes([]);
+    setBookedTimes([]);
+    setLoadingTimes(true);
+
+    // Use AbortController to cancel previous requests if date changes
+    const abortController = new AbortController();
+
+    const fetchAvailableTimes = async () => {
       try {
         const response = await fetch(
-          `/api/get-doctor-availability?date=${selectedDate}&doctorId=${doctorId || ""}`
+          `/api/get-doctor-availability?date=${selectedDate}&doctorId=${doctorId || ""}`,
+          { signal: abortController.signal }
         );
+        
+        // Check if request was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
         
         if (response.ok) {
           const data = await response.json();
@@ -184,15 +202,30 @@ export default function AppointmentCalendar({
           setAvailableTimes([]);
           setBookedTimes([]);
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Ignore abort errors
+        if (error.name === 'AbortError') {
+          return;
+        }
         console.error("Error fetching available times:", error);
-        setAvailableTimes([]);
+        if (!abortController.signal.aborted) {
+          setAvailableTimes([]);
+          setBookedTimes([]);
+        }
       } finally {
-        setLoading(false);
+        // Only clear loading if not aborted
+        if (!abortController.signal.aborted) {
+          setLoadingTimes(false);
+        }
       }
     };
 
     fetchAvailableTimes();
+    
+    // Cleanup: abort request if date changes before it completes
+    return () => {
+      abortController.abort();
+    };
   }, [selectedDate, doctorId]);
 
   const handleDateClick = (day: number) => {
@@ -211,6 +244,10 @@ export default function AppointmentCalendar({
     
     // Only allow selection if date has available slots
     if (availableDates.has(dateStr)) {
+      // Immediately clear previous times and show loading
+      setAvailableTimes([]);
+      setBookedTimes([]);
+      setLoadingTimes(true);
       onDateSelect(dateStr);
       onTimeSelect(""); // Reset time selection
     }
@@ -239,6 +276,7 @@ export default function AppointmentCalendar({
   };
 
   const navigateMonth = (direction: "prev" | "next") => {
+    setAutoNavigateCount(0); // Reset auto-navigate count when user manually navigates
     setCurrentMonth((prev) => {
       const newDate = new Date(prev);
       if (direction === "prev") {
@@ -265,14 +303,16 @@ export default function AppointmentCalendar({
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <button
               onClick={() => navigateMonth("prev")}
-              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors"
+              disabled={loading}
+              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={18} className="sm:w-5 sm:h-5 text-gray-400" />
             </button>
             <h3 className="text-base sm:text-lg font-semibold text-white">{monthName}</h3>
             <button
               onClick={() => navigateMonth("next")}
-              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors"
+              disabled={loading}
+              className="p-1.5 sm:p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight size={18} className="sm:w-5 sm:h-5 text-gray-400" />
             </button>
@@ -295,39 +335,49 @@ export default function AppointmentCalendar({
             {Array.from({ length: startingDayOfWeek }).map((_, idx) => (
               <div key={`empty-${idx}`} className="aspect-square" />
             ))}
-            {Array.from({ length: daysInMonth }).map((_, idx) => {
-              const day = idx + 1;
-              const year = currentMonth.getFullYear();
-              const month = currentMonth.getMonth();
-              const date = new Date(year, month, day);
-              // Format date string directly without timezone conversion to avoid off-by-one errors
-              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const isPast = date < today;
-              const isAvailable = availableDates.has(dateStr);
-              const isSelected = selectedDate === dateStr;
+            {loading ? (
+              // Show shimmer placeholders while loading
+              Array.from({ length: daysInMonth }).map((_, idx) => (
+                <div
+                  key={`skeleton-${idx}`}
+                  className="aspect-square rounded-lg border-2 border-white/10 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-shimmer"
+                />
+              ))
+            ) : (
+              Array.from({ length: daysInMonth }).map((_, idx) => {
+                const day = idx + 1;
+                const year = currentMonth.getFullYear();
+                const month = currentMonth.getMonth();
+                const date = new Date(year, month, day);
+                // Format date string directly without timezone conversion to avoid off-by-one errors
+                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isPast = date < today;
+                const isAvailable = availableDates.has(dateStr);
+                const isSelected = selectedDate === dateStr;
 
-              return (
-                <button
-                  key={day}
-                  onClick={() => handleDateClick(day)}
-                  disabled={isPast || !isAvailable}
-                  className={`aspect-square rounded-lg text-xs sm:text-sm font-medium transition-all relative ${
-                    isSelected
-                      ? "bg-primary-teal text-black shadow-lg scale-105"
-                      : isAvailable && !isPast
-                      ? "bg-white/5 text-white hover:bg-white/10 cursor-pointer border border-white/10"
-                      : "bg-white/5 text-gray-500 cursor-not-allowed opacity-50 border border-white/5"
-                  }`}
-                >
-                  {day}
-                  {isAvailable && !isPast && (
-                    <span className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-teal rounded-full" />
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={day}
+                    onClick={() => handleDateClick(day)}
+                    disabled={isPast || !isAvailable}
+                    className={`aspect-square rounded-lg text-xs sm:text-sm font-medium transition-all relative ${
+                      isSelected
+                        ? "bg-primary-teal text-black shadow-lg scale-105"
+                        : isAvailable && !isPast
+                        ? "bg-white/5 text-white hover:bg-white/10 cursor-pointer border border-white/10"
+                        : "bg-white/5 text-gray-500 cursor-not-allowed opacity-50 border border-white/5"
+                    }`}
+                  >
+                    {day}
+                    {isAvailable && !isPast && (
+                      <span className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-primary-teal rounded-full" />
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           <p className="text-[10px] sm:text-xs text-gray-400 mt-3 sm:mt-4 text-center">
@@ -346,9 +396,17 @@ export default function AppointmentCalendar({
                   year: "numeric",
                 })}
               </h3>
-              {loading ? (
-                <div className="flex items-center justify-center py-6 sm:py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary-teal"></div>
+              {loadingTimes ? (
+                <div className="flex flex-col gap-2 sm:gap-3">
+                  <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+                  <div className="grid grid-cols-2 gap-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-1 sm:pr-2">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="py-2 sm:py-3 px-2 sm:px-4 rounded-lg border-2 border-white/10 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-shimmer min-h-[48px]"
+                      />
+                    ))}
+                  </div>
                 </div>
               ) : (availableTimes.length > 0 || bookedTimes.length > 0) ? (
                 <>
