@@ -51,7 +51,6 @@ export default function CheckoutForm() {
         <PaymentElement 
           options={{
             layout: "tabs",
-            paymentMethodTypes: ['card'],
             wallets: {
               applePay: 'never',
               googlePay: 'never',
