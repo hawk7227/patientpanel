@@ -5,7 +5,7 @@ import Stripe from "stripe";
 import { createServerClient } from "@/lib/supabase";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2022-11-15",  // stable Stripe version
+  apiVersion: "2022-11-15",  
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -41,10 +41,9 @@ export async function POST(request: Request) {
       .update({ status: "captured" })
       .eq("payment_intent_id", pi.id);
 
-    console.log("✅ Updated DB for PaymentIntent:", pi.id);
   }
 
-  // 2. Handle Charge (split payout) — when fee info is available
+  // 2. Handle Charge (split payout) — when fee info is available----
   if (event.type === "charge.succeeded" || event.type === "charge.updated") {
     const charge = event.data.object as Stripe.Charge;
 
@@ -61,9 +60,6 @@ export async function POST(request: Request) {
       const net = bal.net;       // in cents
       const split = Math.round(net * 0.5);
 
-      console.log(
-        `💵 Charge ${charge.id}: gross=$${charge.amount / 100}, fee=$${(bal.fee) / 100}, net=$${net / 100}, split=$${split / 100}`
-      );
 
       if (split <= 0) {
         console.warn("⚠ Split amount zero or negative — skipping transfer.");
@@ -77,7 +73,6 @@ export async function POST(request: Request) {
       });
 
       if (existing.data.length > 0) {
-        console.log("⚠ Transfer already exists — skipping duplicate");
       } else {
         const transfer = await stripe.transfers.create({
           amount: split,
@@ -89,7 +84,7 @@ export async function POST(request: Request) {
             charge_id: charge.id,
           },
         });
-        console.log("🚀 Transfer created:", transfer.id, "Amount:", split / 100);
+
       }
     } catch (err: any) {
       console.error("❌ Error during transfer creation:", err.message);
@@ -109,7 +104,6 @@ export async function POST(request: Request) {
       .update({ status: "cancelled" })
       .eq("payment_intent_id", pi.id);
 
-    console.log("❌ PaymentIntent failed:", pi.id);
   }
 
   return NextResponse.json({ received: true });
