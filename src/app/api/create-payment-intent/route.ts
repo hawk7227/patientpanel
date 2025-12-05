@@ -1,31 +1,30 @@
+// app/api/create-payment-intent/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-11-17.clover", // Use latest API version or the one matching your account
+  apiVersion: "2022-11-15",
 });
 
 export async function POST(request: Request) {
-    try {
-        const { items } = await request.json();
+  try {
+    const { amount } = await request.json();
+    const amountCents = Math.round(amount * 100);
 
-        // Create a PaymentIntent with the order amount and currency
-        // Only allow card payments
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: 18500, // $185.00
-            currency: "usd",
-            payment_method_types: ['card'],
-        });
+    const pi = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: "usd",
+      automatic_payment_methods: { enabled: true },
+      transfer_group: `pi_split_${Date.now()}`,
+      description: "Split payout after Stripe fee",
+    });
 
-        return NextResponse.json({
-            clientSecret: paymentIntent.client_secret,
-        });
-    } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error("Internal Error:", error);
-        return NextResponse.json(
-            { error: `Internal Server Error: ${errorMessage}` },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({
+      clientSecret: pi.client_secret,
+      id: pi.id,
+    });
+  } catch (err: any) {
+    console.error("Stripe Error:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
