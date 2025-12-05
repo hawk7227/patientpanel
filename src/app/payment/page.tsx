@@ -13,16 +13,26 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 export default function PaymentPage() {
   const [clientSecret, setClientSecret] = useState("");
 
-  useEffect(() => {
-    // Create PaymentIntent as soon as the page loads
-    fetch("/api/create-payment-intent", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: [{ id: "consultation-fee" }] }),
-    })
-      .then((res) => res.json())
-      .then((data) => setClientSecret(data.clientSecret));
-  }, []);
+  // useEffect(() => {
+  //   // Create PaymentIntent as soon as the page loads
+  //   fetch("/api/create-payment-intent", {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //    body: JSON.stringify({ amount: 185 }),
+  //   })
+  //     .then((res) => res.json())
+  //     .then((data) => setClientSecret(data.clientSecret));
+  // }, []);
+  const createIntent = async () => {
+  if (clientSecret) return; // prevent double
+  const res = await fetch("/api/create-payment-intent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: 185 }),
+  });
+  const data = await res.json();
+  setClientSecret(data.clientSecret);
+};
 
   const appearance = {
     theme: 'night' as const,
@@ -76,7 +86,7 @@ export default function PaymentPage() {
               </div>
             </div>
 
-            {clientSecret ? (
+            {/* {clientSecret ? (
               <Elements options={options} stripe={stripePromise}>
                 <CheckoutForm />
               </Elements>
@@ -90,7 +100,33 @@ export default function PaymentPage() {
                   </p>
                 )}
               </div>
-            )}
+            )} */}
+            {clientSecret ? (
+
+  <Elements options={options} stripe={stripePromise}>
+    <CheckoutForm />
+  </Elements>
+) : (
+
+  <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
+    {!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? (
+      <p className="text-red-400 text-xs sm:text-sm text-center px-4">
+        Stripe Publishable Key is missing. Please add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to .env.local
+      </p>
+    ) : (
+      <>
+        <button
+          className="bg-primary-teal text-white px-4 py-2 rounded-md hover:bg-primary-teal/90 transition"
+          onClick={createIntent}
+        >
+          Pay Securely
+        </button>
+        <p className="text-gray-500 text-sm sm:text-base">Click to initialize secure payment</p>
+      </>
+    )}
+  </div>
+)}
+
           </div>
         </div>
 
