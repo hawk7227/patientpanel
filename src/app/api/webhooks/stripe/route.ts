@@ -222,7 +222,7 @@ import Stripe from "stripe";
 import { createServerClient } from "@/lib/supabase";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2022-11-15",  // stable Stripe version
+  apiVersion: "2025-11-17.clover",  // stable Stripe version
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
