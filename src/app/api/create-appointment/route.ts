@@ -81,27 +81,14 @@ export async function POST(request: Request) {
     let doctorName = "Doctor";
 
     if (!existingDoctor) {
-      // Create the doctor if it doesn't exist
-      const { error: doctorError } = await supabase
-        .from("doctors")
-        .insert({
-          id: DOCTOR_ID,
-          first_name: "Default",
-          last_name: "Doctor",
-          email: "doctor@medazonhealth.com",
-          specialty: "General Practice",
-          license_number: `LIC-${DOCTOR_ID.substring(0, 10)}`,
-          is_active: true,
-          is_approved: true,
-        });
+  
 
-      if (doctorError) {
-        console.error("Error creating doctor:", doctorError);
+      
         return NextResponse.json(
-          { error: "Failed to verify doctor", details: doctorError.message },
+          { error: "Failed to verify doctor"},
           { status: 500 }
         );
-      }
+      
     } else {
       // Use existing doctor info
       doctorEmail = existingDoctor.email || "doctor@medazonhealth.com";
