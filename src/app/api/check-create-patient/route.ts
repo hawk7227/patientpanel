@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     // Step 2: Check if patient exists in patients table by user_id
     const { data: existingPatient, error: patientSearchError } = await supabase
       .from("patients")
-      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, timezone")
+      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, timezone, preferred_pharmacy")
       .eq("user_id", userId)
       .single();
 
