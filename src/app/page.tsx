@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import symptomSuggestions from "@/data/symptom-suggestions.json";
 import { 
   Search, 
   Video, 
@@ -34,16 +35,60 @@ function SymptomSearch() {
   const [showPatientWordsSection, setShowPatientWordsSection] = useState(false);
   const [showEmailField, setShowEmailField] = useState(false);
 
+  // Smart search function - matches against name and smart_search array
+  const filteredSuggestions = useMemo(() => {
+    if (!symptom.trim()) return [];
+    
+    const searchTerm = symptom.toLowerCase().trim();
+    
+    // For single character, show suggestions that start with that letter or have keywords starting with it
+    if (searchTerm.length === 1) {
+      return symptomSuggestions.filter(item => {
+        // Check if name starts with the letter
+        const nameStartsWith = item.name.toLowerCase().startsWith(searchTerm);
+        
+        // Check if any keyword starts with the letter
+        const keywordStartsWith = item.smart_search.some(keyword => 
+          keyword.toLowerCase().startsWith(searchTerm)
+        );
+        
+        return nameStartsWith || keywordStartsWith;
+      }).slice(0, 10);
+    }
+    
+    // For multiple characters, use full search
+    return symptomSuggestions.filter(item => {
+      // Check if search term matches the name
+      const nameMatch = item.name.toLowerCase().includes(searchTerm);
+      
+      // Check if search term matches any smart_search keywords
+      const smartMatch = item.smart_search.some(keyword => 
+        keyword.toLowerCase().includes(searchTerm) || 
+        searchTerm.includes(keyword.toLowerCase())
+      );
+      
+      return nameMatch || smartMatch;
+    }).slice(0, 10); // Limit to 10 results for performance
+  }, [symptom]);
+
   // Show patient's own words section when symptom is entered
   const handleSymptomChange = (value: string) => {
     setSymptom(value);
+    // Always show dropdown if there's text - filteredSuggestions will handle the actual filtering
     setShowDropdown(value.length > 0);
     setShowPatientWordsSection(value.trim().length > 0);
   };
+  
+  // Update dropdown visibility when filteredSuggestions changes
+  useEffect(() => {
+    if (symptom.length > 0) {
+      setShowDropdown(filteredSuggestions.length > 0);
+    }
+  }, [filteredSuggestions, symptom.length]);
 
   // Handle suggestion selection - just set the text, don't navigate
-  const handleSuggestionClick = (suggestion: string) => {
-    setSymptom(suggestion);
+  const handleSuggestionClick = (suggestionName: string) => {
+    setSymptom(suggestionName);
     setShowDropdown(false);
     setShowPatientWordsSection(true);
   };
@@ -131,7 +176,9 @@ function SymptomSearch() {
             className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
             onChange={(e) => handleSymptomChange(e.target.value)}
             onFocus={() => {
-               if (symptom.length > 0) setShowDropdown(true);
+               if (symptom.length > 0) {
+                 setShowDropdown(true);
+               }
             }}
             onBlur={() => {
                // Delay hiding dropdown to allow clicks
@@ -140,28 +187,19 @@ function SymptomSearch() {
          />
          
          {/* Auto-suggestion Dropdown */}
-         {showDropdown && (
-           <div className="absolute top-full left-0 w-full bg-[#0d1218] border border-primary-teal/30 rounded-b-lg shadow-2xl z-50 overflow-hidden mt-1">
-              {[
-                 "Anxiety / Depression",
-                 "ADHD Evaluation / Focus Issues",
-                 "Gastroenteritis / Food Poisoning",
-                 "Rash / Allergic Reaction",
-                 "Migraine / Headache",
-                 "Abdominal Pain / Indigestion",
-                 "Back Pain / Muscle Strain",
-                 "Private / Sensitive Concern"
-              ].filter(s => s.toLowerCase().includes(symptom.toLowerCase())).map((s) => (
+         {showDropdown && filteredSuggestions.length > 0 && (
+           <div className="absolute top-full left-0 w-full bg-[#0d1218] border border-primary-teal/30 rounded-b-lg shadow-2xl z-50 overflow-hidden mt-1 max-h-[300px] overflow-y-auto">
+              {filteredSuggestions.map((item) => (
                  <div 
-                    key={s}
+                    key={item.name}
                     className="px-4 py-3 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-left border-b border-white/5 last:border-0 transition-colors font-medium"
                     onMouseDown={(e) => {
                        // Prevent blur event
                        e.preventDefault();
                     }}
-                    onClick={() => handleSuggestionClick(s)}
+                    onClick={() => handleSuggestionClick(item.name)}
                  >
-                    {s}
+                    {item.name}
                  </div>
               ))}
            </div>
