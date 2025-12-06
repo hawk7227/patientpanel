@@ -21,19 +21,102 @@ import {
   Ear,
   Stethoscope,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 
 function SymptomSearch() {
   const router = useRouter();
   const [symptom, setSymptom] = useState("");
+  const [patientOwnWords, setPatientOwnWords] = useState("");
+  const [email, setEmail] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPatientWordsSection, setShowPatientWordsSection] = useState(false);
+  const [showEmailField, setShowEmailField] = useState(false);
 
-  const handleStart = () => {
+  // Show patient's own words section when symptom is entered
+  const handleSymptomChange = (value: string) => {
+    setSymptom(value);
+    setShowDropdown(value.length > 0);
+    setShowPatientWordsSection(value.trim().length > 0);
+  };
+
+  // Handle suggestion selection - just set the text, don't navigate
+  const handleSuggestionClick = (suggestion: string) => {
+    setSymptom(suggestion);
+    setShowDropdown(false);
+    setShowPatientWordsSection(true);
+  };
+
+  // Show email field when patient's own words are entered (or if they skip it)
+  const handlePatientWordsChange = (value: string) => {
+    setPatientOwnWords(value);
+    setShowEmailField(true); // Show email field once they start typing or section is visible
+  };
+
+  const handleBookAppointment = async () => {
     if (!symptom.trim()) {
       alert("Please enter or select a symptom to continue.");
       return;
     }
-    router.push(`/intake?symptom=${encodeURIComponent(symptom)}`);
+
+    if (!email.trim()) {
+      alert("Please enter your email address to continue.");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Combine selected symptom and patient's own words for chief complaint
+      const chiefComplaint = patientOwnWords.trim() 
+        ? `${symptom} / ${patientOwnWords.trim()}`
+        : symptom;
+
+      // Check if user exists
+      const response = await fetch('/api/check-user-exists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to check user');
+      }
+
+      if (result.exists && result.patientId) {
+        // User exists - skip to appointment booking
+        // Save symptom, patient's own words, and patient info to sessionStorage
+        sessionStorage.setItem('appointmentData', JSON.stringify({
+          symptom: symptom,
+          patientOwnWords: patientOwnWords.trim(),
+          chiefComplaint: chiefComplaint,
+          email: email.trim(),
+          patientId: result.patientId,
+          skipIntake: true, // Flag to skip intake questions
+        }));
+        
+        // Navigate directly to appointment booking (step 3 in intake flow)
+        router.push(`/intake?symptom=${encodeURIComponent(symptom)}&email=${encodeURIComponent(email.trim())}&skipIntake=true`);
+      } else {
+        // User doesn't exist - go to full intake flow
+        // Pass the combined chief complaint
+        router.push(`/intake?symptom=${encodeURIComponent(chiefComplaint)}&email=${encodeURIComponent(email.trim())}`);
+      }
+    } catch (error) {
+      console.error('Error checking user:', error);
+      alert(error instanceof Error ? error.message : 'Failed to process request. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,19 +128,20 @@ function SymptomSearch() {
             type="text" 
             value={symptom}
             placeholder="Type your symptoms here..."
-            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal mb-8 transition-all"
-            onChange={(e) => {
-               setSymptom(e.target.value);
-               setShowDropdown(e.target.value.length > 0);
-            }}
+            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+            onChange={(e) => handleSymptomChange(e.target.value)}
             onFocus={() => {
                if (symptom.length > 0) setShowDropdown(true);
+            }}
+            onBlur={() => {
+               // Delay hiding dropdown to allow clicks
+               setTimeout(() => setShowDropdown(false), 200);
             }}
          />
          
          {/* Auto-suggestion Dropdown */}
          {showDropdown && (
-           <div className="absolute top-[calc(100%-2rem)] left-0 w-full bg-[#0d1218] border border-primary-teal/30 rounded-b-lg shadow-2xl z-50 overflow-hidden">
+           <div className="absolute top-full left-0 w-full bg-[#0d1218] border border-primary-teal/30 rounded-b-lg shadow-2xl z-50 overflow-hidden mt-1">
               {[
                  "Anxiety / Depression",
                  "ADHD Evaluation / Focus Issues",
@@ -71,11 +155,11 @@ function SymptomSearch() {
                  <div 
                     key={s}
                     className="px-4 py-3 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-left border-b border-white/5 last:border-0 transition-colors font-medium"
-                    onClick={() => {
-                       setSymptom(s);
-                       setShowDropdown(false);
-                       router.push(`/intake?symptom=${encodeURIComponent(s)}`);
+                    onMouseDown={(e) => {
+                       // Prevent blur event
+                       e.preventDefault();
                     }}
+                    onClick={() => handleSuggestionClick(s)}
                  >
                     {s}
                  </div>
@@ -84,19 +168,60 @@ function SymptomSearch() {
          )}
       </div>
 
-      <div className="flex justify-center gap-4">
-         <button 
-            onClick={handleStart}
-            disabled={!symptom.trim()}
-            className={`bg-primary-orange text-white px-6 py-2.5 rounded-lg transition-all text-sm font-bold shadow-lg shadow-orange-900/20 ${
-               !symptom.trim() 
+      {/* Patient's Own Words Section - shown after symptom is entered */}
+      {showPatientWordsSection && (
+        <div className="mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-primary-teal font-bold text-lg">YES</span>
+            <span className="text-white font-semibold text-sm">Now Tell us what's going on in your own words</span>
+          </div>
+          <textarea
+            value={patientOwnWords}
+            placeholder="Patient types here...(symptoms and when it started)"
+            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all min-h-[100px] resize-y"
+            onChange={(e) => handlePatientWordsChange(e.target.value)}
+            onFocus={() => setShowEmailField(true)}
+          />
+        </div>
+      )}
+
+      {/* Email field - shown when patient's own words section is visible */}
+      {showEmailField && (
+        <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <label className="block text-left text-white font-bold mb-3 text-sm ml-1">EMAIL:</label>
+          <input 
+            type="email" 
+            value={email}
+            placeholder="your.email@example.com"
+            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && symptom.trim() && email.trim()) {
+                handleBookAppointment();
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* Book Appointment button - shown when email field is visible */}
+      {showEmailField && (
+        <div className="flex justify-center gap-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          <button 
+            onClick={handleBookAppointment}
+            disabled={!symptom.trim() || !email.trim() || isLoading}
+            className={`bg-primary-orange text-white px-8 py-3 rounded-lg transition-all text-sm font-bold shadow-lg shadow-orange-900/20 flex items-center gap-2 ${
+               !symptom.trim() || !email.trim() || isLoading
                ? "opacity-50 cursor-not-allowed grayscale" 
                : "hover:bg-orange-600"
             }`}
          >
-            Book An Appointment →
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {!isLoading && <Calendar size={18} />}
+            Book My Appointment
          </button>
       </div>
+      )}
     </div>
   );
 }

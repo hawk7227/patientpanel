@@ -66,6 +66,30 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get patient data from patients table
+    const { data: patientData, error: patientError } = await supabase
+      .from("patients")
+      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, timezone")
+      .eq("id", data.patientId)
+      .single();
+
+    if (patientError || !patientData) {
+      console.error("Error fetching patient:", patientError);
+      return NextResponse.json(
+        { error: "Patient not found", details: patientError?.message },
+        { status: 404 }
+      );
+    }
+
+    // Use patient data from database, fallback to form data if not available
+    const patientFirstName = patientData.first_name || data.firstName || null;
+    const patientLastName = patientData.last_name || data.lastName || null;
+    const patientEmail = patientData.email || data.email || null;
+    const patientPhone = patientData.phone || data.phone || null;
+    const patientDob = patientData.date_of_birth || data.dateOfBirth || null;
+    const patientLocation = patientData.location || data.streetAddress || null;
+    const patientTimezone = patientData.timezone || data.patientTimezone || 'America/New_York';
+
     // Doctor ID (hardcoded as specified)
     const DOCTOR_ID = "1fd1af57-5529-4d00-a301-e653b4829efc";
     
@@ -136,7 +160,8 @@ export async function POST(request: Request) {
     // Prepare appointment data with all required fields
     const appointmentInsert: Record<string, unknown> = {
       // Patient and Doctor references
-      user_id: data.patientId,
+      user_id: patientData.user_id || data.patientId, // Use user_id from patients table
+      patient_id: patientData.id, // Set patient_id from patients table
       doctor_id: DOCTOR_ID,
       
       // Payment information
@@ -151,14 +176,14 @@ export async function POST(request: Request) {
       requested_date_time: requestedDateTime,
       service_type: "uti_treatment",
       
-      // Patient information
-      patient_first_name: data.firstName || null,
-      patient_last_name: data.lastName || null,
-      patient_email: data.email || null,
-      patient_phone: data.phone || null,
-      patient_dob: data.dateOfBirth || null,
-      patient_location: data.streetAddress || null,
-      patient_timezone: data.patientTimezone || 'America/New_York',
+      // Patient information (use data from patients table)
+      patient_first_name: patientFirstName,
+      patient_last_name: patientLastName,
+      patient_email: patientEmail,
+      patient_phone: patientPhone,
+      patient_dob: patientDob,
+      patient_location: patientLocation,
+      patient_timezone: patientTimezone,
       
       // Medical history
       chief_complaint: data.symptoms || null,
@@ -213,16 +238,16 @@ export async function POST(request: Request) {
     let zoomStartUrl = null;
     if (visitType === "video" && requestedDateTime) {
       try {
-        const patientName = data.firstName && data.lastName 
-          ? `${data.firstName} ${data.lastName}` 
+        const patientName = patientFirstName && patientLastName 
+          ? `${patientFirstName} ${patientLastName}` 
           : undefined;
 
         const zoomMeeting = await createZoomMeeting({
           topic: `Medical Consultation - ${patientName || "Patient"}`,
           startTime: requestedDateTime,
           duration: 30, // 30 minutes default
-          timezone: data.patientTimezone || "America/New_York",
-          patientEmail: data.email || undefined,
+          timezone: patientTimezone,
+          patientEmail: patientEmail || undefined,
           patientName: patientName,
         });
 
@@ -336,8 +361,8 @@ export async function POST(request: Request) {
       formattedTime = appointmentDate.toLocaleTimeString("en-US", timeOptions);
     }
 
-    const patientName = data.firstName && data.lastName 
-      ? `${data.firstName} ${data.lastName}` 
+    const patientName = patientFirstName && patientLastName 
+      ? `${patientFirstName} ${patientLastName}` 
       : "Patient";
     
     const visitTypeDisplay = visitType === "video" ? "Video Visit" : 
@@ -356,7 +381,7 @@ export async function POST(request: Request) {
       } else {
         // Fallback to template-based message
         patientSMSMessage = generateSMSMessage({
-          patientName: data.firstName || 'there',
+          patientName: patientFirstName || 'there',
           fullName: patientName,
           appointmentDate: formattedDate,
           appointmentTime: formattedTime,
@@ -369,7 +394,7 @@ export async function POST(request: Request) {
     }
 
     // Send email notification to patient
-    if (data.email) {
+    if (patientEmail) {
       try {
         const emailHTML = generateAppointmentEmailHTML({
           doctorName,
@@ -381,7 +406,7 @@ export async function POST(request: Request) {
         });
 
         const emailResult = await sendEmail({
-          to: data.email,
+          to: patientEmail,
           subject: `Your telemedicine appointment with ${doctorName}`,
           html: emailHTML,
         });
@@ -398,10 +423,10 @@ export async function POST(request: Request) {
     }
 
     // Send SMS notification to patient
-    if (data.phone) {
+    if (patientPhone) {
       try {
         const smsResult = await sendSMS({
-          to: data.phone,
+          to: patientPhone,
           message: patientSMSMessage,
         });
 
@@ -426,8 +451,8 @@ export async function POST(request: Request) {
           visitType,
           doctorPanelLink,
           zoomStartUrl,
-          patientEmail: data.email || null,
-          patientPhone: data.phone || null,
+          patientEmail: patientEmail || null,
+          patientPhone: patientPhone || null,
         });
 
         const doctorEmailResult = await sendEmail({

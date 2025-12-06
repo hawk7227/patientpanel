@@ -108,8 +108,89 @@ function IntakeForm() {
 
   useEffect(() => {
     const symptomParam = searchParams.get("symptom");
-    if (symptomParam) {
-      setFormData(prev => ({ ...prev, symptoms: symptomParam }));
+    const emailParam = searchParams.get("email");
+    const skipIntake = searchParams.get("skipIntake") === "true";
+    
+    // Check sessionStorage for chief complaint (combined symptom + patient's own words)
+    const storedData = sessionStorage.getItem('appointmentData');
+    let chiefComplaint = symptomParam || "";
+    
+    if (storedData) {
+      try {
+        const appointmentData = JSON.parse(storedData);
+        if (appointmentData.chiefComplaint) {
+          chiefComplaint = appointmentData.chiefComplaint;
+        } else if (appointmentData.symptom) {
+          chiefComplaint = appointmentData.symptom;
+          if (appointmentData.patientOwnWords) {
+            chiefComplaint = `${appointmentData.symptom} / ${appointmentData.patientOwnWords}`;
+          }
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    
+    if (chiefComplaint) {
+      setFormData(prev => ({ ...prev, symptoms: chiefComplaint }));
+    }
+    
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }));
+    }
+
+    // If skipIntake is true, check sessionStorage for patient data and skip to step 3
+    if (skipIntake) {
+      const storedData = sessionStorage.getItem('appointmentData');
+      if (storedData) {
+        try {
+          const appointmentData = JSON.parse(storedData);
+          if (appointmentData.patientId) {
+            // Fetch patient data and pre-fill form
+            const fetchPatientData = async () => {
+              try {
+                const response = await fetch(`/api/get-patient?patientId=${appointmentData.patientId}`);
+                if (response.ok) {
+                  const result = await response.json();
+                  if (result.patient) {
+                    const patient = result.patient;
+                    
+                    // Convert date from YYYY-MM-DD to MM/DD/YYYY format
+                    let formattedDateOfBirth = "";
+                    if (patient.date_of_birth) {
+                      const dateParts = patient.date_of_birth.split('-');
+                      if (dateParts.length === 3) {
+                        formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+                      }
+                    }
+                    
+                    setFormData(prev => ({
+                      ...prev,
+                      email: patient.email || emailParam || prev.email,
+                      firstName: patient.first_name || prev.firstName,
+                      lastName: patient.last_name || prev.lastName,
+                      phone: patient.phone || prev.phone,
+                      dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
+                      streetAddress: patient.location || prev.streetAddress,
+                      pharmacy: patient.preferred_pharmacy || prev.pharmacy,
+                      pharmacyAddress: patient.pharmacy_address || prev.pharmacyAddress,
+                      symptoms: symptomParam || prev.symptoms,
+                    }));
+                  }
+                }
+              } catch (error) {
+                console.error("Error fetching patient data:", error);
+              }
+            };
+            fetchPatientData();
+            
+            // Skip directly to step 3 (appointment booking)
+            setStep(3);
+          }
+        } catch (error) {
+          console.error("Error parsing stored appointment data:", error);
+        }
+      }
     }
   }, [searchParams]);
 
@@ -594,35 +675,84 @@ function IntakeForm() {
                           
                           setIsProcessingPayment(true);
                           try {
-                            // Check/create patient before proceeding to payment
-                            // Convert date from MM/DD/YYYY to YYYY-MM-DD format for API
-                            const isoDateOfBirth = convertDateToISO(formData.dateOfBirth);
+                            // Check if we're in skipIntake mode (existing user)
+                            const storedData = sessionStorage.getItem('appointmentData');
+                            let patientId: string | null = null;
                             
-                            const response = await fetch('/api/check-create-patient', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                email: formData.email,
-                                firstName: formData.firstName,
-                                lastName: formData.lastName,
-                                phone: formData.phone,
-                                dateOfBirth: isoDateOfBirth,
-                                address: formData.streetAddress,
-                              }),
-                            });
+                            if (storedData) {
+                              try {
+                                const appointmentData = JSON.parse(storedData);
+                                if (appointmentData.skipIntake && appointmentData.patientId) {
+                                  // Use existing patient ID
+                                  patientId = appointmentData.patientId;
+                                }
+                              } catch {
+                                // Ignore parse errors
+                              }
+                            }
 
-                            const result = await response.json();
+                            if (!patientId) {
+                              // Check/create patient before proceeding to payment
+                              // Convert date from MM/DD/YYYY to YYYY-MM-DD format for API
+                              const isoDateOfBirth = convertDateToISO(formData.dateOfBirth);
+                              
+                              const response = await fetch('/api/check-create-patient', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  email: formData.email,
+                                  firstName: formData.firstName,
+                                  lastName: formData.lastName,
+                                  phone: formData.phone,
+                                  dateOfBirth: isoDateOfBirth,
+                                  address: formData.streetAddress,
+                                  pharmacy: formData.pharmacy,
+                                  pharmacyAddress: formData.pharmacyAddress,
+                                }),
+                              });
 
-                            if (!response.ok) {
-                              throw new Error(result.error || 'Failed to process patient information');
+                              const result = await response.json();
+
+                              if (!response.ok) {
+                                throw new Error(result.error || 'Failed to process patient information');
+                              }
+
+                              patientId = result.patientId;
+                            }
+
+                            // If existing patient, update pharmacy info in patients table
+                            if (patientId && storedData) {
+                              try {
+                                const appointmentData = JSON.parse(storedData);
+                                if (appointmentData.skipIntake && formData.pharmacy) {
+                                  // Update pharmacy info for existing patient
+                                  await fetch('/api/check-create-patient', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      email: formData.email,
+                                      firstName: formData.firstName,
+                                      lastName: formData.lastName,
+                                      phone: formData.phone,
+                                      dateOfBirth: convertDateToISO(formData.dateOfBirth),
+                                      address: formData.streetAddress,
+                                      pharmacy: formData.pharmacy,
+                                      pharmacyAddress: formData.pharmacyAddress,
+                                    }),
+                                  });
+                                }
+                              } catch {
+                                // Ignore errors
+                              }
                             }
 
                             // Save form data and patient ID to sessionStorage
                             // Convert dateOfBirth to ISO format (YYYY-MM-DD) before saving
+                            const isoDateOfBirth = convertDateToISO(formData.dateOfBirth);
                             const appointmentData = {
                               ...formData,
                               dateOfBirth: isoDateOfBirth, // Use the already converted ISO format
-                              patientId: result.patientId,
+                              patientId: patientId,
                             };
                             sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
                             
