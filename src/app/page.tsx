@@ -552,6 +552,300 @@ export default function Home() {
             </button>
          </div>
       </section>
+{/* =====================================================
+   FOLD X — FULL LONG-FORM URGENT CARE CONTENT (ZONE 3)
+   WITH COLLAPSIBLE "SEE MORE" BUTTON — 100% COMPLETE VERSION
+   SEO-SAFE · FULL MEDICAL DEPTH · FLORIDA-SPECIFIC
+===================================================== */}
+
+<section className="bg-[#11161c] py-20 border-t border-white/5">
+  <div className="container mx-auto px-4 max-w-3xl">
+
+    {/* SEE MORE BUTTON */}
+    <div className="text-center mb-6">
+      <button
+        id="urgentCareToggle"
+        className="
+          bg-primary-teal text-black font-bold px-8 py-3 rounded-full 
+          hover:bg-teal-400 transition-all shadow-lg shadow-primary-teal/20
+        "
+      >
+        Learn More About Urgent Care
+      </button>
+    </div>
+
+    {/* COLLAPSIBLE CONTENT */}
+    <div
+      id="urgentCareContent"
+      style={{ maxHeight: "0", overflow: "hidden", transition: "max-height .45s ease" }}
+      className="rounded-2xl border border-white/10 bg-[#0d1218]/70 backdrop-blur-sm shadow-2xl p-8 mt-4"
+    >
+
+      {/************* BEGIN FULL LONG-FORM URGENT CARE CONTENT *************/}
+
+      <h2 className="text-3xl font-bold text-primary-teal mb-6 text-center">
+        Florida Virtual Urgent Care — Complete Patient Guide
+      </h2>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        Florida residents often turn to virtual urgent care for fast, private support when experiencing
+        mild symptoms that require timely attention but do not require emergency medical treatment.
+        Telehealth offers the convenience of immediate clinician review from anywhere in Florida,
+        whether you are at home, traveling, or unable to reach an urgent care center in person.
+      </p>
+{/* =====================================================
+   SMART SEARCH — SEO CRAWLABLE KEYWORD INDEX (FOLD 7)
+   For long-form educational section · Fully DOM-visible
+===================================================== */}
+
+<div className="mt-10 mb-8 text-center">
+  <h3 className="text-primary-teal font-semibold text-xl mb-3">
+    Smart Search Symptom Helper
+  </h3>
+  <p className="text-gray-400 text-sm leading-relaxed max-w-2xl mx-auto mb-4">
+    Our Smart Search tool helps guide your urgent care visit by matching common symptoms, 
+    concerns, and reasons for care. The list below is visible to help search engines 
+    understand what types of concerns are typically entered during virtual urgent care visits.
+  </p>
+
+  {/* Crawlable Keyword Index */}
+  <div className="
+    flex flex-wrap justify-center gap-2 
+    text-gray-300 text-xs leading-relaxed 
+    max-w-3xl mx-auto
+  ">
+    {[
+      "UTI",
+      "Urinary discomfort",
+      "Burning urination",
+      "Frequent urination",
+      "Possible STD symptoms",
+      "Exposure concern",
+      "Private / sensitive issue",
+      "Discharge",
+      "Pelvic discomfort",
+      "Rash or irritation",
+      "Cold / flu symptoms",
+      "Sinus infection",
+      "Migraine",
+      "Nausea",
+      "Back pain",
+      "Medication refill",
+      "Follow-up visit",
+      "Birth control",
+      "Asthma / inhaler",
+      "Hair loss",
+      "Anxiety or stress",
+    ].map((keyword) => (
+      <span
+        key={keyword}
+        className="
+          bg-white/5 border border-white/10 
+          px-3 py-1 rounded-full 
+          text-primary-teal/80 font-medium
+        "
+      >
+        {keyword}
+      </span>
+    ))}
+  </div>
+</div>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        This guide provides a detailed overview of what virtual urgent care can help with, what symptoms
+        clinicians commonly evaluate, what limitations exist, and how the Florida telehealth medical system
+        operates under state law. The purpose of this guide is to educate patients and help them understand
+        when virtual urgent care is helpful and when in-person or emergency care is required.
+      </p>
+
+      {/* ============================================= */}
+      {/* WHAT URGENT CARE TELEHEALTH CAN HELP WITH */}
+      {/* ============================================= */}
+      <h3 className="text-primary-teal font-semibold text-2xl mt-12 mb-4">
+        What Virtual Urgent Care Can Help With
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        Clinicians commonly evaluate the following urgent but non-emergency concerns through telehealth.
+        These issues typically involve mild-to-moderate symptoms that can be safely discussed through virtual evaluation:
+      </p>
+
+      <ul className="list-disc ml-6 text-gray-300 space-y-2 leading-relaxed">
+        <li>Mild urinary symptoms or possible urinary tract infection (UTI)</li>
+        <li>STD/STI exposure concerns or mild symptoms</li>
+        <li>Sore throat, cough, or upper respiratory symptoms</li>
+        <li>Common cold, flu-like symptoms, or fever</li>
+        <li>Pink eye, mild eye irritation, tearing, redness</li>
+        <li>Rashes, insect bites, hives, irritation, or skin reactions</li>
+        <li>Sinus congestion, sinus pressure, or allergy flare-ups</li>
+        <li>Mild ear discomfort, ear fullness, or allergy-related symptoms</li>
+        <li>Nausea, vomiting, or stomach irritation</li>
+        <li>Minor headaches or tension headaches</li>
+        <li>Mild anxiety flare-ups or stress-related symptoms</li>
+        <li>Medication refills for stable, ongoing conditions when appropriate</li>
+        <li>Mild musculoskeletal strains or discomfort</li>
+      </ul>
+
+      <p className="text-gray-300 leading-relaxed mt-4 mb-6">
+        These concerns are commonly handled through virtual urgent care because they tend to present with
+        recognizable patterns that allow clinicians to determine whether a patient requires supportive care,
+        an in-person evaluation, or further testing.
+      </p>
+
+      {/* ============================================= */}
+      {/* SYMPTOM EXPLANATIONS */}
+      {/* ============================================= */}
+      <h3 className="text-primary-teal font-semibold text-2xl mt-12 mb-4">
+        Common Symptoms Evaluated Through Telehealth
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        Florida patients frequently seek virtual urgent care for the following mild symptoms:
+      </p>
+
+      <ul className="list-disc ml-6 text-gray-300 space-y-2">
+        <li>Burning urination or urinary frequency</li>
+        <li>Sore throat, nasal congestion, or cough</li>
+        <li>Eye redness or discharge (pink eye)</li>
+        <li>Skin irritation, itching, or mild allergic reactions</li>
+        <li>Nausea or stomach discomfort</li>
+        <li>Mild shortness of breath related to allergies</li>
+        <li>Mild ear pressure or “popping” sensation</li>
+        <li>General fatigue or flu-like symptoms</li>
+      </ul>
+
+      <p className="text-gray-300 leading-relaxed mt-4 mb-8">
+        These symptoms can often be evaluated safely through virtual visits when accompanied by a short
+        patient history to rule out more serious causes.
+      </p>
+
+      {/* ============================================= */}
+      {/* CONDITIONS NOT APPROPRIATE FOR TELEHEALTH */}
+      {/* ============================================= */}
+      <h3 className="text-primary-teal font-semibold text-2xl mt-12 mb-4 text-red-400">
+        When Virtual Urgent Care Is Not Appropriate
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        Telehealth urgent care cannot evaluate life-threatening or rapidly worsening symptoms. Patients
+        should visit an emergency room or call 911 for:
+      </p>
+
+      <ul className="list-disc ml-6 text-red-400 space-y-2">
+        <li>Severe chest pain or difficulty breathing</li>
+        <li>Signs of stroke (slurred speech, weakness, facial drooping)</li>
+        <li>Severe abdominal pain or bleeding</li>
+        <li>Head trauma or loss of consciousness</li>
+        <li>Severe allergic reactions or swelling of the throat</li>
+        <li>Uncontrolled vomiting or dehydration</li>
+        <li>High fever that does not improve</li>
+        <li>Any condition causing confusion, dizziness, or disorientation</li>
+      </ul>
+
+      <p className="text-gray-300 leading-relaxed mt-4 mb-6">
+        Telehealth clinicians will direct patients to in-person care if symptoms exceed safe remote-evaluation thresholds.
+      </p>
+
+      {/* ============================================= */}
+      {/* FLORIDA-SPECIFIC URGENT CARE CONTEXT */}
+      {/* ============================================= */}
+      <h3 className="text-primary-teal font-semibold text-2xl mt-12 mb-4">
+        Florida-Specific Telehealth Urgent Care Information
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        Telehealth in Florida operates under Florida Statute §456.47, which authorizes Florida-licensed
+        clinicians to evaluate patients virtually. This includes secure video or messaging-based assessments
+        for mild, non-emergent symptoms.
+      </p>
+
+      <h4 className="text-primary-teal font-semibold text-xl mt-8 mb-3">
+        Benefits for Florida Residents
+      </h4>
+
+      <ul className="list-disc ml-6 text-gray-300 space-y-2">
+        <li>Statewide access from any Florida county</li>
+        <li>Convenient for rural areas with fewer urgent care centers</li>
+        <li>No commute or wait times</li>
+        <li>Private evaluation for sensitive symptoms</li>
+        <li>Extended hours depending on clinician availability</li>
+      </ul>
+
+      <h4 className="text-primary-teal font-semibold text-xl mt-8 mb-3">
+        Common Florida Regions Using Telehealth
+      </h4>
+
+      <ul className="list-disc ml-6 text-gray-300 space-y-2">
+        <li>South Florida: Miami-Dade, Broward, Palm Beach</li>
+        <li>Central Florida: Orlando, Polk, Seminole</li>
+        <li>Tampa Bay: Hillsborough, Pinellas, Pasco</li>
+        <li>North Florida: Jacksonville, St. Johns, Alachua</li>
+        <li>Panhandle: Escambia, Santa Rosa, Bay</li>
+      </ul>
+
+      {/* ============================================= */}
+      {/* PHARMACY PICKUP & WHAT TO EXPECT */}
+      {/* ============================================= */}
+      <h3 className="text-primary-teal font-semibold text-2xl mt-12 mb-4">
+        Pharmacy Pickup & What to Expect After a Virtual Visit
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        If a clinician determines that medications are appropriate, prescriptions may be electronically
+        sent to most major Florida pharmacies, including:
+      </p>
+
+      <ul className="list-disc ml-6 text-gray-300 space-y-2">
+        <li>Publix Pharmacy</li>
+        <li>CVS</li>
+        <li>Walgreens</li>
+        <li>Walmart</li>
+        <li>Local independent pharmacies</li>
+      </ul>
+
+      <p className="text-gray-300 leading-relaxed mt-4 mb-8">
+        Pharmacy processing varies by location. Telehealth clinicians cannot guarantee medication availability
+        or same-day pickup, but many patients experience quick processing depending on the pharmacy.
+      </p>
+
+      {/* ============================================= */}
+      {/* PRIVACY & SECURITY */}
+      {/* ============================================= */}
+      <h3 className="text-primary-teal font-semibold text-2xl mt-12 mb-4">
+        Privacy, Security & Confidentiality
+      </h3>
+
+      <p className="text-gray-300 leading-relaxed mb-5">
+        All intake information, messages, and communication are encrypted and stored securely. Private health
+        details are not shared externally without patient consent. Telehealth platforms use secured servers
+        and meet common privacy standards for virtual care.
+      </p>
+
+      <p className="text-gray-400 italic text-center mt-10">
+        *This educational content does not replace medical evaluation. Patients should seek emergency care when appropriate.*
+      </p>
+
+      {/************* END FULL LONG-FORM URGENT CARE CONTENT *************/}
+
+    </div>
+  </div>
+</section>
+
+{/* COLLAPSE SCRIPT */}
+<script>
+  const urgentToggle = document.getElementById('urgentCareToggle');
+  const urgentContent = document.getElementById('urgentCareContent');
+
+  urgentToggle?.addEventListener('click', () => {
+    if (urgentContent.style.maxHeight === '0px' || urgentContent.style.maxHeight === '0') {
+      urgentContent.style.maxHeight = urgentContent.scrollHeight + 'px';
+      urgentToggle.textContent = "Hide Information";
+    } else {
+      urgentContent.style.maxHeight = '0';
+      urgentToggle.textContent = "Learn More About Urgent Care";
+    }
+  });
+</script>
 
       {/* Footer */}
       <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-xs bg-black">
