@@ -31,13 +31,14 @@
       "PrimaryCare"
     ],
     "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "2700 NE 62ND Street",
-      "addressLocality": "Fort Lauderdale",
-      "addressRegion": "FL",
-      "postalCode": "33308",
-      "addressCountry": "US"
-    }
+  "@type": "PostalAddress",
+  "streetAddress": "2700 NE 62ND Street",
+  "addressLocality": "Fort Lauderdale",
+  "addressRegion": "FL",
+  "postalCode": "33308",
+  "addressCountry": "US"
+}
+
   }
   `}} />
 
