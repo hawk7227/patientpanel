@@ -830,7 +830,7 @@ export default function Home() {
 </div>     ← closes content wrapper
 </div>     ← closes main wrapper
 </section> ← closes page hero/section
-</main>
+
 </div>     ← closes outermost wrapper (your top <div className="min-h-screen">)
 
 {/* Footer */}
