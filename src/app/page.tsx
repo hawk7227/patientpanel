@@ -554,9 +554,9 @@ export default function Home() {
          </div>
       </section>
 
+</section>  {/* FAQ section closes */}
 
-      
-{/* Footer */}
+      {/* Footer */}
       <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-xs bg-black">
          <h3 className="text-lg font-bold text-white mb-1">Medazon Health</h3>
          <p className="mb-6 text-[10px] uppercase tracking-widest text-primary-teal">Secure. Convenient. Private Medical Care.</p>
@@ -585,6 +585,7 @@ export default function Home() {
          
          <p className="text-[10px] text-gray-600">© 2024 Medazon Health. All rights reserved. <br/> Medazon Health is a private telehealth service.</p>
       </footer>
-    </div>
+
+    </div> {/* CLOSES THE ROOT WRAPPER */}
   );
 }
