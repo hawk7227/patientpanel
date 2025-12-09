@@ -833,6 +833,8 @@ export default function Home() {
 </section>
 
 
+</section>
+</div>
 
       {/* Footer */}
       <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-xs bg-black">
