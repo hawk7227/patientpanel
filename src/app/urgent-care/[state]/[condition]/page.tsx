@@ -10,6 +10,26 @@ interface PageProps {
     condition: string;
   };
 }
+// ------------------------------------------------------
+// Generate ALL 22 states × ALL 28 conditions dynamically
+// ------------------------------------------------------
+export function generateStaticParams() {
+  const stateList = Object.keys(states); 
+  const conditionList = Object.keys(conditionCards);
+
+  const routes = [];
+
+  for (const st of stateList) {
+    for (const cond of conditionList) {
+      routes.push({
+        state: st,
+        condition: cond
+      });
+    }
+  }
+
+  return routes;
+}
 
 export async function generateMetadata({ params }: PageProps) {
   // Validate state + condition
