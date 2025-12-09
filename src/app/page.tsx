@@ -824,19 +824,16 @@ export default function Home() {
 
       <p className="text-gray-400 italic text-center mt-10">
         *This educational content does not replace medical evaluation. Patients should seek emergency care when appropriate.*
-      </p>
+    </p>
 
-      {/************* END FULL LONG-FORM URGENT CARE CONTENT *************/}
+{/************* END FULL LONG-FORM URGENT CARE CONTENT *************/}
+</div>     ← closes content wrapper
+</div>     ← closes main wrapper
+</section> ← closes page hero/section
+</main>
+</div>     ← closes outermost wrapper (your top <div className="min-h-screen">)
 
-    </div>
-  </div>
-</section>
-
-
-</section>
-</div>
-
-      {/* Footer */}
+{/* Footer */}
       <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-xs bg-black">
          <h3 className="text-lg font-bold text-white mb-1">Medazon Health</h3>
          <p className="mb-6 text-[10px] uppercase tracking-widest text-primary-teal">Secure. Convenient. Private Medical Care.</p>
