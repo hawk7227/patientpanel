@@ -21,7 +21,7 @@ export interface LongformCondition {
  * Pure geographic + compliance statements.
  */
 const universalStateNotes = [
-  "Telehealth evaluations follow state-specific telehealth requirements.", 
+  "Telehealth evaluations follow state-specific telehealth requirements.",
   "Adults must be physically located within the state during the evaluation.",
   "Symptom submissions are reviewed securely and privately.",
   "Some concerns may require in-person evaluation depending on severity or duration."
@@ -370,7 +370,8 @@ export const longformContent: Record<string, LongformCondition> = {
       "Routine wellness visits may help identify concerns early."
     ],
     stateNotes: universalStateNotes
-      // ============================================================
+  },
+  // ============================================================
   // 9. YEAST-LIKE SYMPTOMS (GENERAL IRRITATION)
   // ============================================================
   "yeast-infection": {
@@ -701,7 +702,8 @@ export const longformContent: Record<string, LongformCondition> = {
       "Supportive routines may improve emotional balance."
     ],
     stateNotes: universalStateNotes
-      // ============================================================
+  },
+  // ============================================================
   // 17. BURNOUT & FATIGUE (GENERAL WELLNESS)
   // ============================================================
   "burnout": {
@@ -1149,10 +1151,10 @@ export const longformContent: Record<string, LongformCondition> = {
       "Routine wellness tracking may support clearer communication.",
       "Stable daily habits may help identify progress."
     ],
-   
-};  <-- Part 4 closes this
+    stateNotes: universalStateNotes
+  }
 
-}; // ← closes longformContent properly
+};
 
 /**
  * SAFE ACCESSOR FOR LONGFORM CONTENT

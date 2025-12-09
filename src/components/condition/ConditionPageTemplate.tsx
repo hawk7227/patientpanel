@@ -7,7 +7,7 @@ import Fold1Hero from "./Fold1Hero";
 import Fold2Provider from "./Fold2Provider";
 import Fold3ConditionOverview from "./Fold3ConditionOverview";
 import Fold4HowItWorks from "./Fold4HowItWorks";
-import Fold5FAQ from "./Fold5FAQ";
+import Fold5FAQ from "./Fold6FAQ";
 import Fold6Testimonial from "./Fold6Testimonial";
 import Fold7LongForm from "./Fold7LongForm";
 import Fold8Cities from "./Fold8Cities";

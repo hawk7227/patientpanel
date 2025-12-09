@@ -586,6 +586,6 @@ export default function Home() {
          <p className="text-[10px] text-gray-600">© 2024 Medazon Health. All rights reserved. <br/> Medazon Health is a private telehealth service.</p>
       </footer>
 
-    </div> {/* CLOSES THE ROOT WRAPPER */}
+    </div>
   );
 }
