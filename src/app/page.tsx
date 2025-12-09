@@ -24,7 +24,7 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react";
-
+import UrgentCollapse from "@/components/home/UrgentCollapse";
 function SymptomSearch() {
   const router = useRouter();
   const [symptom, setSymptom] = useState("");
@@ -267,6 +267,7 @@ function SymptomSearch() {
 export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans">
+      <UrgentCollapse />
       {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center pt-20 pb-12 px-4 text-center">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-primary-teal/10 blur-[120px] rounded-full -z-10" />
@@ -831,21 +832,7 @@ export default function Home() {
   </div>
 </section>
 
-{/* COLLAPSE SCRIPT */}
-<script>
-  const urgentToggle = document.getElementById('urgentCareToggle');
-  const urgentContent = document.getElementById('urgentCareContent');
 
-  urgentToggle?.addEventListener('click', () => {
-    if (urgentContent.style.maxHeight === '0px' || urgentContent.style.maxHeight === '0') {
-      urgentContent.style.maxHeight = urgentContent.scrollHeight + 'px';
-      urgentToggle.textContent = "Hide Information";
-    } else {
-      urgentContent.style.maxHeight = '0';
-      urgentToggle.textContent = "Learn More About Urgent Care";
-    }
-  });
-</script>
 
       {/* Footer */}
       <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-xs bg-black">
