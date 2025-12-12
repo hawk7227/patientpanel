@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Video, Phone, Edit2, Loader2, Clock } from "lucide-react";
+import { Check, Video, Phone, Edit2, Loader2, Clock, ArrowLeft } from "lucide-react";
 import dynamic from "next/dynamic";
 import AppointmentCalendar from "@/components/AppointmentCalendar";
 
@@ -21,6 +21,7 @@ type FormData = {
   phone: string;
   // Medical history
   symptoms: string;
+  patientOwnWords: string;
   allergies: boolean | null;
   allergiesDetails: string;
   surgeries: boolean | null;
@@ -40,35 +41,42 @@ type FormData = {
 const STEPS = [
   { 
     id: 0, 
+    key: 'patientOwnWords', 
+    title: 'Now Tell us whats going on in your own words', 
+    detailKey: null,
+    placeholder: "Patient types here...(symptoms and when it started)"
+  },
+  { 
+    id: 1, 
     key: 'allergies', 
     title: 'Any Drug Allergies?', 
     detailKey: 'allergiesDetails',
     placeholder: "List any known drug allergies..."
   },
   { 
-    id: 1, 
+    id: 2, 
     key: 'surgeries', 
     title: 'Any Recent Surgeries or Procedures?', 
     detailKey: 'surgeriesDetails',
     placeholder: "List recent surgeries..."
   },
   { 
-    id: 2, 
+    id: 3, 
     key: 'medicalIssues', 
     title: 'Any Ongoing Medical Issues?', 
     detailKey: 'medicalIssuesDetails',
     placeholder: "List ongoing medical issues..."
   },
   { 
-    id: 3, 
+    id: 4, 
     key: 'visitType', 
     title: 'Select Visit Type & Appointment', 
     detailKey: null 
   },
   { 
-    id: 4, 
+    id: 5, 
     key: 'pharmacy', 
-    title: 'Patient Information & Pharmacy', 
+    title: 'Pharmacy Details', 
     detailKey: null 
   }
 ];
@@ -85,6 +93,7 @@ function IntakeForm() {
     lastName: "",
     phone: "",
     symptoms: "",
+    patientOwnWords: "",
     allergies: null,
     allergiesDetails: "",
     surgeries: null,
@@ -184,8 +193,8 @@ function IntakeForm() {
             };
             fetchPatientData();
             
-            // Skip directly to step 3 (appointment booking)
-            setStep(3);
+            // Skip directly to step 4 (appointment booking)
+            setStep(4);
           }
         } catch (error) {
           console.error("Error parsing stored appointment data:", error);
@@ -194,9 +203,9 @@ function IntakeForm() {
     }
   }, [searchParams]);
 
-  // Fetch doctor info when step 3 is active
+  // Fetch doctor info when step 4 is active
   useEffect(() => {
-    if (step === 3) {
+    if (step === 4) {
       const fetchDoctorInfo = async () => {
         try {
           const response = await fetch('/api/get-doctor-availability?date=2025-01-01&doctorId=1fd1af57-5529-4d00-a301-e653b4829efc');
@@ -289,23 +298,13 @@ function IntakeForm() {
   };
 
   const isStepValid = (stepId: number) => {
-    if (stepId === 0) return formData.allergies !== null && (formData.allergies === false || formData.allergiesDetails.trim() !== "");
-    if (stepId === 1) return formData.surgeries !== null && (formData.surgeries === false || formData.surgeriesDetails.trim() !== "");
-    if (stepId === 2) return formData.medicalIssues !== null && (formData.medicalIssues === false || formData.medicalIssuesDetails.trim() !== "");
-    if (stepId === 3) return formData.visitType !== "" && formData.appointmentDate !== "" && formData.appointmentTime !== "";
-    if (stepId === 4) {
-      // Validate date of birth format (MM/DD/YYYY - 10 characters)
-      const isValidDateOfBirth = formData.dateOfBirth.trim() !== "" && 
-        formData.dateOfBirth.length === 10 && 
-        formData.dateOfBirth.match(/^\d{2}\/\d{2}\/\d{4}$/);
-      
-      return formData.email.trim() !== "" && 
-        formData.firstName.trim() !== "" && 
-        formData.lastName.trim() !== "" && 
-        formData.phone.trim() !== "" && 
-        formData.pharmacy.trim() !== "" && 
-        isValidDateOfBirth && 
-        formData.streetAddress.trim() !== "";
+    if (stepId === 0) return formData.patientOwnWords.trim() !== "";
+    if (stepId === 1) return formData.allergies !== null && (formData.allergies === false || formData.allergiesDetails.trim() !== "");
+    if (stepId === 2) return formData.surgeries !== null && (formData.surgeries === false || formData.surgeriesDetails.trim() !== "");
+    if (stepId === 3) return formData.medicalIssues !== null && (formData.medicalIssues === false || formData.medicalIssuesDetails.trim() !== "");
+    if (stepId === 4) return formData.visitType !== "" && formData.appointmentDate !== "" && formData.appointmentTime !== "";
+    if (stepId === 5) {
+      return formData.pharmacy.trim() !== "";
     }
     return false;
   };
@@ -329,15 +328,16 @@ function IntakeForm() {
   };
 
   const getStepSummary = (stepId: number) => {
-    if (stepId === 0) return formData.allergies ? `Yes: ${formData.allergiesDetails}` : "No Allergies";
-    if (stepId === 1) return formData.surgeries ? `Yes: ${formData.surgeriesDetails}` : "No Surgeries";
-    if (stepId === 2) return formData.medicalIssues ? `Yes: ${formData.medicalIssuesDetails}` : "No Medical Issues";
-    if (stepId === 3) return `${formData.visitType} - ${formData.appointmentDate} at ${formData.appointmentTime}`;
-    if (stepId === 4) {
+    if (stepId === 0) return formData.patientOwnWords ? formData.patientOwnWords.substring(0, 50) + (formData.patientOwnWords.length > 50 ? "..." : "") : "Not provided";
+    if (stepId === 1) return formData.allergies ? `Yes: ${formData.allergiesDetails}` : "No Allergies";
+    if (stepId === 2) return formData.surgeries ? `Yes: ${formData.surgeriesDetails}` : "No Surgeries";
+    if (stepId === 3) return formData.medicalIssues ? `Yes: ${formData.medicalIssuesDetails}` : "No Medical Issues";
+    if (stepId === 4) return `${formData.visitType} - ${formData.appointmentDate} at ${formData.appointmentTime}`;
+    if (stepId === 5) {
       const pharmacyInfo = formData.pharmacyAddress 
         ? `${formData.pharmacy} - ${formData.pharmacyAddress}`
         : formData.pharmacy;
-      return `${formData.firstName} ${formData.lastName} - ${pharmacyInfo}`;
+      return pharmacyInfo;
     }
     return "";
   };
@@ -352,8 +352,8 @@ function IntakeForm() {
          </div>
       </div>
 
-      <div className={`flex-1 flex flex-col items-center justify-start pt-20 sm:pt-24 p-3 sm:p-4 w-full mx-auto z-0 gap-3 sm:gap-4 ${
-        step === 3 ? "max-w-5xl" : "max-w-2xl"
+      <div className={`flex-1 flex flex-col items-center justify-start pt-14 sm:pt-20 p-2 sm:p-4 w-full mx-auto z-0 gap-2 sm:gap-4 ${
+        step === 4 ? "max-w-5xl" : "max-w-2xl"
       }`}>
         
         {/* Render Steps */}
@@ -363,9 +363,9 @@ function IntakeForm() {
           
           // If this step is in the future (step < s.id), we don't render it unless we want a "stack" effect from bottom.
           // But usually we only show active and past.
-          // For step 3, hide past steps to make it look like a separate page
+          // For step 4, hide past steps to make it look like a separate page
           if (step < s.id) return null;
-          if (step === 3 && s.id < 3) return null;
+          if (step === 4 && s.id < 4) return null;
 
           return (
             <div 
@@ -391,10 +391,38 @@ function IntakeForm() {
               ) : (
                 /* Active State */
                 <div className="bg-[#0d1218] border border-white/5 rounded-xl p-4 sm:p-6 lg:p-8 shadow-2xl">
-                  <h2 className="text-lg sm:text-xl font-bold text-white mb-4 sm:mb-6">{s.title}</h2>
+                  <h2 className="text-base sm:text-xl font-bold text-white mb-3 sm:mb-6">{s.title}</h2>
                   
-                  {/* Boolean Selection (Steps 0-2) */}
-                  {(s.id === 0 || s.id === 1 || s.id === 2) && (
+                  
+                  {/* Patient's Own Words (Step 0) */}
+                  {s.id === 0 && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-primary-teal font-bold text-lg">YES</span>
+                      </div>
+                      <textarea
+                        value={formData.patientOwnWords}
+                        onChange={(e) => setFormData(prev => ({ ...prev, patientOwnWords: e.target.value }))}
+                        placeholder={s.placeholder}
+                        className="w-full bg-[#11161c] border border-white/10 rounded-lg py-3 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all min-h-[80px] sm:min-h-[100px] resize-y mb-3 sm:mb-4 text-sm sm:text-base"
+                        autoFocus
+                      />
+                      <button 
+                        onClick={nextStep}
+                        disabled={!isStepValid(s.id)}
+                        className={`w-full font-bold py-2.5 sm:py-3 rounded-lg transition-colors shadow-lg text-sm sm:text-base ${
+                          !isStepValid(s.id)
+                            ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
+                            : "bg-white text-black hover:bg-gray-200"
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Boolean Selection (Steps 1-3) */}
+                  {(s.id === 1 || s.id === 2 || s.id === 3) && (
                     <>
                       <div className="flex gap-3 sm:gap-4 mb-4 sm:mb-6">
                         <button
@@ -446,201 +474,139 @@ function IntakeForm() {
                     </>
                   )}
 
-                  {/* Visit Type Selection (Step 3) - Separate Page View */}
-                  {s.id === 3 && (
-                    <div className="w-full max-w-4xl mx-auto bg-[#0d1218] border border-white/5 rounded-xl shadow-2xl overflow-hidden">
-                      {/* Condition Information Header */}
-                      <div className="bg-[#11161c] border-b border-white/10 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-                        <h2 className="text-xl sm:text-2xl font-bold text-white">Condition Information</h2>
-                      </div>
-
-                      {/* Doctor Profile Section */}
-                      <div className="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col items-center border-b border-white/10">
-                        {doctorInfo ? (
-                          <>
-                            {/* Doctor Avatar */}
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden mb-3 sm:mb-4 shadow-lg ring-4 ring-white/10">
-                              <Image
-                                src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg"
-                                alt={doctorInfo.name}
-                                width={96}
-                                height={96}
-                                className="w-full h-full object-cover"
-                                priority
-                              />
-                            </div>
-                            
-                            {/* Doctor Name & Credentials */}
-                            <h3 className="text-lg sm:text-xl font-bold text-white mb-1 text-center">
-                              {doctorInfo.name}
-                            </h3>
-                            <p className="text-xs sm:text-sm font-semibold text-gray-300 mb-1 text-center">
-                              {doctorInfo.credentials}
-                            </p>
-                            <p className="text-xs sm:text-sm text-gray-400 mb-3 text-center">
-                              {doctorInfo.specialty}
-                            </p>
-                            
-                            {/* Appointment Duration */}
-                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-                              <Clock size={14} className="sm:w-4 sm:h-4" />
-                              <span>30 min</span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="animate-pulse">
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#11161c] mb-4"></div>
-                            <div className="h-6 w-48 bg-[#11161c] rounded mb-2"></div>
-                            <div className="h-4 w-32 bg-[#11161c] rounded"></div>
+                  {/* Visit Type Selection (Step 4) - Compact View */}
+                  {s.id === 4 && (
+                    <div className="w-full max-w-4xl mx-auto">
+                      
+                      {!formData.visitType ? (
+                        <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+                          {/* Doctor Profile Section - Horizontal & Compact */}
+                          <div className="flex items-center gap-3 py-1.5 border-b border-white/10 mb-3">
+                            {doctorInfo ? (
+                              <>
+                                {/* Doctor Avatar */}
+                                <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 ring-2 ring-white/10">
+                                  <Image
+                                    src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg"
+                                    alt={doctorInfo.name}
+                                    width={48}
+                                    height={48}
+                                    className="w-full h-full object-cover"
+                                    priority
+                                  />
+                                </div>
+                                
+                                {/* Doctor Name & Credentials */}
+                                <div className="flex-1 min-w-0 text-left">
+                                  <h3 className="text-sm sm:text-base font-bold text-white leading-tight">
+                                    {doctorInfo.name}
+                                  </h3>
+                                  <p className="text-[10px] sm:text-xs font-semibold text-gray-300">
+                                    {doctorInfo.credentials}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] sm:text-xs text-gray-400 truncate">{doctorInfo.specialty}</span>
+                                    <span className="text-gray-600 text-[10px]">•</span>
+                                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-gray-400">
+                                      <Clock size={10} />
+                                      <span>30 min</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="animate-pulse flex items-center gap-3 w-full">
+                                <div className="w-12 h-12 rounded-full bg-[#11161c]"></div>
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-3 w-24 bg-[#11161c] rounded"></div>
+                                    <div className="h-2 w-16 bg-[#11161c] rounded"></div>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Visit Type Selection */}
-                      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b border-white/10">
-                        <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Select Visit Type</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                          {["Video", "Phone"].map((type) => (
-                            <button
-                              key={type}
-                              onClick={() => handleVisitTypeSelection(type)}
-                              className={`border-2 rounded-xl p-3 sm:p-4 flex items-center gap-3 sm:gap-4 transition-all text-left group ${
-                                formData.visitType === type 
-                                  ? "border-primary-teal bg-primary-teal/10" 
-                                  : "border-white/20 hover:border-primary-teal/50 hover:bg-white/5"
-                              }`}
-                            >
-                              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                                formData.visitType === type 
-                                  ? "bg-primary-teal text-black" 
-                                  : "bg-white/5 text-primary-teal group-hover:bg-primary-teal/20 group-hover:text-primary-teal"
-                              }`}>
-                                {type === "Video" && <Video size={18} className="sm:w-5 sm:h-5" />}
-                                {type === "Phone" && <Phone size={18} className="sm:w-5 sm:h-5" />}
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="font-bold text-white text-sm sm:text-base">{type === "Video" ? "Video Call" : "Phone Call"}</h4>
-                                <p className="text-xs text-gray-400">
-                                  {type === "Video" ? "Face-to-face video consultation." : "Audio-only consultation."}
-                                </p>
-                              </div>
-                            </button>
-                          ))}
+                          {/* Visit Type Selection - Compact */}
+                          <div className="mb-3">
+                            <h3 className="text-xs sm:text-sm font-semibold text-white mb-1.5">Select Visit Type</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                              {["Video", "Phone"].map((type) => (
+                                <button
+                                  key={type}
+                                  onClick={() => handleVisitTypeSelection(type)}
+                                  className={`border rounded-lg p-2.5 flex flex-col items-center justify-center gap-1.5 transition-all text-center group ${
+                                    formData.visitType === type 
+                                      ? "border-primary-teal bg-primary-teal/10" 
+                                      : "border-white/20 hover:border-primary-teal/50 hover:bg-white/5"
+                                  }`}
+                                >
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                                    formData.visitType === type 
+                                      ? "bg-primary-teal text-black" 
+                                      : "bg-white/5 text-primary-teal group-hover:bg-primary-teal/20 group-hover:text-primary-teal"
+                                  }`}>
+                                    {type === "Video" && <Video size={14} />}
+                                    {type === "Phone" && <Phone size={14} />}
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-white text-xs sm:text-sm">{type === "Video" ? "Video Call" : "Phone Call"}</h4>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                           {/* Back Button & Selected Type Header */}
+                           <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
+                              <button 
+                                onClick={() => setFormData(prev => ({ ...prev, visitType: "", appointmentDate: "", appointmentTime: "" }))}
+                                className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+                              >
+                                <ArrowLeft size={16} />
+                                <span>Change Visit Type</span>
+                              </button>
+                              <div className="flex items-center gap-2 bg-primary-teal/10 px-3 py-1 rounded-full border border-primary-teal/20">
+                                {formData.visitType === "Video" ? <Video size={14} className="text-primary-teal" /> : <Phone size={14} className="text-primary-teal" />}
+                                <span className="text-xs font-bold text-primary-teal">{formData.visitType} Call</span>
+                              </div>
+                           </div>
 
-                      {/* Calendar & Time Selection */}
-                      {formData.visitType && (
-                        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Select a Date & Time</h3>
-                          <AppointmentCalendar
-                            selectedDate={formData.appointmentDate || null}
-                            selectedTime={formData.appointmentTime || null}
-                            onDateSelect={(date) => setFormData(prev => ({ ...prev, appointmentDate: date }))}
-                            onTimeSelect={(time) => setFormData(prev => ({ ...prev, appointmentTime: time }))}
-                            doctorId="1fd1af57-5529-4d00-a301-e653b4829efc"
-                          />
-                        </div>
-                      )}
+                             {/* Calendar & Time Selection - Compact */}
+                             <div className="mb-4">
+                                <div className="bg-[#11161c]/50 rounded-lg p-2 border border-white/5">
+                                    <AppointmentCalendar
+                                      selectedDate={formData.appointmentDate || null}
+                                      selectedTime={formData.appointmentTime || null}
+                                      onDateSelect={(date) => setFormData(prev => ({ ...prev, appointmentDate: date }))}
+                                      onTimeSelect={(time) => setFormData(prev => ({ ...prev, appointmentTime: time }))}
+                                      doctorId="1fd1af57-5529-4d00-a301-e653b4829efc"
+                                    />
+                                </div>
+                             </div>
 
-                      {/* Confirm Button */}
-                      {formData.visitType && (
-                        <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 bg-[#11161c] border-t border-white/10">
-                          <button 
-                            onClick={nextStep}
-                            disabled={!isStepValid(s.id)}
-                            className={`w-full font-bold py-3 sm:py-4 rounded-lg transition-colors shadow-lg text-sm sm:text-base ${
-                              !isStepValid(s.id)
-                                ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
-                                : "bg-primary-teal text-black hover:bg-primary-teal/90"
-                            }`}
-                          >
-                            Confirm Appointment
-                          </button>
+                            {/* Confirm Button */}
+                            <div className="mt-2">
+                              <button 
+                                onClick={nextStep}
+                                disabled={!isStepValid(s.id)}
+                                className={`w-full font-bold py-3 rounded-lg transition-colors shadow-lg text-sm ${
+                                  !isStepValid(s.id)
+                                    ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
+                                    : "bg-primary-teal text-black hover:bg-primary-teal/90"
+                                }`}
+                              >
+                                Confirm Appointment
+                              </button>
+                            </div>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Patient Information & Pharmacy (Step 4) */}
-                  {s.id === 4 && (
+                  {/* Pharmacy Details (Step 5) */}
+                  {s.id === 5 && (
                     <div className="space-y-3 sm:space-y-4">
-                      {/* Basic Patient Information */}
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-white mb-2">Email Address *</label>
-                        <input
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                          placeholder="your.email@example.com"
-                          className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-                          autoFocus
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-white mb-2">First Name *</label>
-                          <input
-                            type="text"
-                            value={formData.firstName}
-                            onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                            placeholder="John"
-                            className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-white mb-2">Last Name *</label>
-                          <input
-                            type="text"
-                            value={formData.lastName}
-                            onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                            placeholder="Doe"
-                            className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-white mb-2">Phone Number *</label>
-                        <input
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                          placeholder="5551234567"
-                          className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-white mb-2">Date of Birth *</label>
-                        <input
-                          type="text"
-                          value={formData.dateOfBirth}
-                          onChange={(e) => handleDateOfBirthChange(e.target.value)}
-                          placeholder="MM/DD/YYYY"
-                          maxLength={10}
-                          className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs sm:text-sm font-medium text-white mb-2">Street Address *</label>
-                        <GooglePlacesAutocomplete
-                          value={formData.streetAddress}
-                          onChange={(value) => setFormData(prev => ({ ...prev, streetAddress: value }))}
-                          onPlaceSelect={(place) => {
-                            if (place.formatted_address) {
-                              setFormData(prev => ({ ...prev, streetAddress: place.formatted_address || "" }));
-                            }
-                          }}
-                          placeholder="Your street address"
-                          types={["address"]}
-                          componentRestrictions={{ country: "us" }}
-                          className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-                        />
-                      </div>
-
                       <div>
                         <label className="block text-xs sm:text-sm font-medium text-white mb-2">Preferred Pharmacy *</label>
                         <GooglePlacesAutocomplete
@@ -659,6 +625,7 @@ function IntakeForm() {
                           types={["pharmacy", "drugstore"]}
                           componentRestrictions={{ country: "us" }}
                           className="w-full bg-[#11161c] border border-white/20 rounded-lg py-2.5 sm:py-3 px-3 sm:px-4 text-sm sm:text-base text-white placeholder:text-gray-500 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+                          
                         />
                         {formData.pharmacyAddress && (
                           <p className="text-[10px] sm:text-xs text-gray-500 mt-1 ml-1 break-words">{formData.pharmacyAddress}</p>
@@ -670,110 +637,33 @@ function IntakeForm() {
                       </p>
 
                       <button 
-                        onClick={async () => {
-                          if (!isStepValid(s.id) || isProcessingPayment) return;
+                        onClick={() => {
+                          if (!isStepValid(s.id)) return;
                           
-                          setIsProcessingPayment(true);
-                          try {
-                            // Check if we're in skipIntake mode (existing user)
-                            const storedData = sessionStorage.getItem('appointmentData');
-                            let patientId: string | null = null;
-                            
-                            if (storedData) {
-                              try {
-                                const appointmentData = JSON.parse(storedData);
-                                if (appointmentData.skipIntake && appointmentData.patientId) {
-                                  // Use existing patient ID
-                                  patientId = appointmentData.patientId;
-                                }
-                              } catch {
-                                // Ignore parse errors
-                              }
+                          // Save pharmacy data to sessionStorage
+                          const storedData = sessionStorage.getItem('appointmentData');
+                          let appointmentData = formData;
+                          
+                          if (storedData) {
+                            try {
+                              const existingData = JSON.parse(storedData);
+                              appointmentData = { ...existingData, ...formData };
+                            } catch {
+                              // Ignore parse errors
                             }
-
-                            if (!patientId) {
-                              // Check/create patient before proceeding to payment
-                              // Convert date from MM/DD/YYYY to YYYY-MM-DD format for API
-                              const isoDateOfBirth = convertDateToISO(formData.dateOfBirth);
-                              
-                              const response = await fetch('/api/check-create-patient', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  email: formData.email,
-                                  firstName: formData.firstName,
-                                  lastName: formData.lastName,
-                                  phone: formData.phone,
-                                  dateOfBirth: isoDateOfBirth,
-                                  address: formData.streetAddress,
-                                  pharmacy: formData.pharmacy,
-                                  pharmacyAddress: formData.pharmacyAddress,
-                                }),
-                              });
-
-                              const result = await response.json();
-
-                              if (!response.ok) {
-                                throw new Error(result.error || 'Failed to process patient information');
-                              }
-
-                              patientId = result.patientId;
-                            }
-
-                            // If existing patient, update pharmacy info in patients table
-                            if (patientId && storedData) {
-                              try {
-                                const appointmentData = JSON.parse(storedData);
-                                if (appointmentData.skipIntake && formData.pharmacy) {
-                                  // Update pharmacy info for existing patient
-                                  await fetch('/api/check-create-patient', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      email: formData.email,
-                                      firstName: formData.firstName,
-                                      lastName: formData.lastName,
-                                      phone: formData.phone,
-                                      dateOfBirth: convertDateToISO(formData.dateOfBirth),
-                                      address: formData.streetAddress,
-                                      pharmacy: formData.pharmacy,
-                                      pharmacyAddress: formData.pharmacyAddress,
-                                    }),
-                                  });
-                                }
-                              } catch {
-                                // Ignore errors
-                              }
-                            }
-
-                            // Save form data and patient ID to sessionStorage
-                            // Convert dateOfBirth to ISO format (YYYY-MM-DD) before saving
-                            const isoDateOfBirth = convertDateToISO(formData.dateOfBirth);
-                            const appointmentData = {
-                              ...formData,
-                              dateOfBirth: isoDateOfBirth, // Use the already converted ISO format
-                              patientId: patientId,
-                            };
-                            sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
-                            
-                            router.push('/payment');
-                          } catch (error) {
-                            console.error('Error creating patient:', error);
-                            alert(error instanceof Error ? error.message : 'Failed to process patient information. Please try again.');
-                            setIsProcessingPayment(false);
                           }
+                          
+                          sessionStorage.setItem('appointmentData', JSON.stringify(appointmentData));
+                          router.push('/payment');
                         }}
-                        disabled={!isStepValid(s.id) || isProcessingPayment}
-                        className={`w-full font-bold py-2.5 sm:py-3 rounded-lg transition-colors shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base ${
-                          !isStepValid(s.id) || isProcessingPayment
+                        disabled={!isStepValid(s.id)}
+                        className={`w-full font-bold py-2.5 sm:py-3 rounded-lg transition-colors shadow-lg text-sm sm:text-base ${
+                          !isStepValid(s.id)
                             ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
                             : "bg-white text-black hover:bg-gray-200"
                         }`}
                       >
-                        {isProcessingPayment && (
-                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                        )}
-                        {isProcessingPayment ? "Processing..." : "Proceed to Payment"}
+                        Continue to Payment
                       </button>
                     </div>
                   )}
@@ -783,8 +673,8 @@ function IntakeForm() {
           );
         })}
 
-        {/* Success State (Step 5) */}
-        {step === 5 && (
+        {/* Success State (Step 6) */}
+        {step === 6 && (
           <div className="w-full max-w-lg animate-in fade-in zoom-in-95 duration-500 mt-6 sm:mt-10 px-4">
              <div className="bg-[#0d1218] border border-white/5 rounded-xl p-6 sm:p-8 shadow-2xl text-center">
                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary-teal flex items-center justify-center mx-auto mb-4 sm:mb-6 text-black shadow-[0_0_30px_rgba(0,203,169,0.4)]">

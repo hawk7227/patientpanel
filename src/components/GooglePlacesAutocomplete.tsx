@@ -11,6 +11,7 @@ interface GooglePlacesAutocompleteProps {
   types?: string[];
   className?: string;
   componentRestrictions?: { country: string | string[] };
+  disabled?: boolean;
 }
 
 export default function GooglePlacesAutocomplete({
@@ -21,6 +22,7 @@ export default function GooglePlacesAutocomplete({
   types = [],
   className,
   componentRestrictions,
+  disabled = false,
 }: GooglePlacesAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -38,7 +40,7 @@ export default function GooglePlacesAutocomplete({
         if (!inputRef.current) return;
 
         const options: google.maps.places.AutocompleteOptions = {
-          fields: ["formatted_address", "geometry", "name", "place_id"],
+          fields: ["formatted_address", "address_components", "geometry", "name", "place_id"],
           types: types,
           componentRestrictions: componentRestrictions,
         };
@@ -74,6 +76,7 @@ export default function GooglePlacesAutocomplete({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       className={className}
+      disabled={disabled}
     />
   );
 }

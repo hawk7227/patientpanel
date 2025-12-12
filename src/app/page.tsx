@@ -28,11 +28,9 @@ import UrgentCollapse from "@/components/home/UrgentCollapse";
 function SymptomSearch() {
   const router = useRouter();
   const [symptom, setSymptom] = useState("");
-  const [patientOwnWords, setPatientOwnWords] = useState("");
   const [email, setEmail] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPatientWordsSection, setShowPatientWordsSection] = useState(false);
   const [showEmailField, setShowEmailField] = useState(false);
 
   // Smart search function - matches against name and smart_search array
@@ -71,12 +69,12 @@ function SymptomSearch() {
     }).slice(0, 10); // Limit to 10 results for performance
   }, [symptom]);
 
-  // Show patient's own words section when symptom is entered
+  // Show email field when symptom is entered
   const handleSymptomChange = (value: string) => {
     setSymptom(value);
     // Always show dropdown if there's text - filteredSuggestions will handle the actual filtering
     setShowDropdown(value.length > 0);
-    setShowPatientWordsSection(value.trim().length > 0);
+    setShowEmailField(value.trim().length > 0);
   };
   
   // Update dropdown visibility when filteredSuggestions changes
@@ -90,13 +88,7 @@ function SymptomSearch() {
   const handleSuggestionClick = (suggestionName: string) => {
     setSymptom(suggestionName);
     setShowDropdown(false);
-    setShowPatientWordsSection(true);
-  };
-
-  // Show email field when patient's own words are entered (or if they skip it)
-  const handlePatientWordsChange = (value: string) => {
-    setPatientOwnWords(value);
-    setShowEmailField(true); // Show email field once they start typing or section is visible
+    setShowEmailField(true);
   };
 
   const handleBookAppointment = async () => {
@@ -120,10 +112,8 @@ function SymptomSearch() {
     setIsLoading(true);
 
     try {
-      // Combine selected symptom and patient's own words for chief complaint
-      const chiefComplaint = patientOwnWords.trim() 
-        ? `${symptom} / ${patientOwnWords.trim()}`
-        : symptom;
+      // Use symptom as chief complaint
+      const chiefComplaint = symptom;
 
       // Check if user exists
       const response = await fetch('/api/check-user-exists', {
@@ -140,10 +130,9 @@ function SymptomSearch() {
 
       if (result.exists && result.patientId) {
         // User exists - skip to appointment booking
-        // Save symptom, patient's own words, and patient info to sessionStorage
+        // Save symptom and patient info to sessionStorage
         sessionStorage.setItem('appointmentData', JSON.stringify({
           symptom: symptom,
-          patientOwnWords: patientOwnWords.trim(),
           chiefComplaint: chiefComplaint,
           email: email.trim(),
           patientId: result.patientId,
@@ -206,24 +195,7 @@ function SymptomSearch() {
          )}
       </div>
 
-      {/* Patient's Own Words Section - shown after symptom is entered */}
-      {showPatientWordsSection && (
-        <div className="mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-primary-teal font-bold text-lg">YES</span>
-            <span className="text-white font-semibold text-sm">Now Tell us what's going on in your own words</span>
-          </div>
-          <textarea
-            value={patientOwnWords}
-            placeholder="Patient types here...(symptoms and when it started)"
-            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all min-h-[100px] resize-y"
-            onChange={(e) => handlePatientWordsChange(e.target.value)}
-            onFocus={() => setShowEmailField(true)}
-          />
-        </div>
-      )}
-
-      {/* Email field - shown when patient's own words section is visible */}
+      {/* Email field - shown after symptom is entered */}
       {showEmailField && (
         <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <label className="block text-left text-white font-bold mb-3 text-sm ml-1">EMAIL:</label>

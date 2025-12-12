@@ -132,7 +132,7 @@ export async function POST(request: Request) {
     const pi = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: "usd",
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ['card'],
       transfer_group: `pi_split_${Date.now()}`,
       description: "Split payout after Stripe fee",
     });
