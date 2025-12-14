@@ -157,25 +157,43 @@ function SymptomSearch() {
     <div className="bg-[#050b14] p-8 rounded-2xl border border-white/10 shadow-2xl relative">
       <label className="block text-left text-white font-bold mb-3 text-sm ml-1">What brings you in today?</label>
       
-      {!ctaClicked && (
-  <div className="flex justify-center mt-6">
-    <button
-      onClick={() => {
-        setCtaClicked(true);
-        setShowEmailField(true);
-
-        // Preserve flow compatibility
-        if (!symptom) {
-          setSymptom("General Consultation");
-        }
-      }}
-      className="bg-primary-teal text-black px-10 py-4 rounded-full font-bold text-sm hover:scale-105 transition-all"
-    >
-      Start My Visit
-    </button>
-  </div>
-)}
-
+      <div className="relative">
+         <input 
+            type="text" 
+            value={symptom}
+            placeholder="Type your symptoms here..."
+            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+            onChange={(e) => handleSymptomChange(e.target.value)}
+            onFocus={() => {
+               if (symptom.length > 0) {
+                 setShowDropdown(true);
+               }
+            }}
+            onBlur={() => {
+               // Delay hiding dropdown to allow clicks
+               setTimeout(() => setShowDropdown(false), 200);
+            }}
+         />
+         
+         {/* Auto-suggestion Dropdown */}
+         {showDropdown && filteredSuggestions.length > 0 && (
+           <div className="absolute top-full left-0 w-full bg-[#0d1218] border border-primary-teal/30 rounded-b-lg shadow-2xl z-50 overflow-hidden mt-1 max-h-[300px] overflow-y-auto">
+              {filteredSuggestions.map((item) => (
+                 <div 
+                    key={item.name}
+                    className="px-4 py-3 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-left border-b border-white/5 last:border-0 transition-colors font-medium"
+                    onMouseDown={(e) => {
+                       // Prevent blur event
+                       e.preventDefault();
+                    }}
+                    onClick={() => handleSuggestionClick(item.name)}
+                 >
+                    {item.name}
+                 </div>
+              ))}
+           </div>
+         )}
+      </div>
 
       {/* Email field - shown after symptom is entered */}
       {showEmailField && (
