@@ -235,8 +235,127 @@ function SymptomSearch() {
     </div>
   );
 }
+const STEPS = [
+   { 
+     id: 0, 
+     key: 'appointmentDetails', 
+     title: 'Step 1 of 2',
+     detailKey: null 
+   },
+   { 
+     id: 1, 
+     key: 'checkout', 
+     title: 'Step 2 of 2', 
+     detailKey: null 
+   }
+ ];
+function SubmitEmailForExpressBooking() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleEmailSubmission = async () => {
+
+    if (!email.trim()) {
+      alert("Please enter your email address to continue.");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Check if user exists
+      setEmailSubmitted(true);
+      const response = await fetch('/api/check-user-exists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setIsLoading(false);
+        alert("error in API")
+      //   throw new Error(result.error || 'Failed to check user');
+      }
+      
+
+      // if (result.exists && result.patientId) {
+      //   // User exists - skip to appointment booking
+      //   // Save symptom and patient info to sessionStorage
+      //   sessionStorage.setItem('appointmentData', JSON.stringify({
+      //     email: email.trim(),
+      //     patientId: result.patientId,
+      //     skipIntake: true, // Flag to skip intake questions
+      //   }));
+        
+      //   // Navigate directly to appointment booking (step 3 in intake flow)
+      //   router.push(`/intake?email=${encodeURIComponent(email.trim())}&skipIntake=true`);
+      // } else {
+      //   // User doesn't exist - go to full intake flow
+      //   // Pass the combined chief complaint
+      //   router.push(`/intake?email=${encodeURIComponent(email.trim())}`);
+      // }
+    } catch (error) {
+      console.error('Error checking user:', error);
+      alert(error instanceof Error ? error.message : 'Failed to process request. Please try again.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleBookAppointment = async () => {
+
+  }
+
+  return (
+    <div className="bg-[#050b14] p-8 rounded-2xl border border-white/10 shadow-2xl relative w-full">
+
+        {!emailSubmitted && <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <label className="block text-left text-white font-bold mb-3 text-sm ml-1">EMAIL:</label>
+          <input 
+            type="email" 
+            value={email}
+            placeholder="your.email@example.com"
+            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && email.trim()) {
+                handleBookAppointment();
+              }
+            }}
+          />
+        </div>}
+
+        <div className="flex justify-center gap-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+          <button 
+            onClick={!emailSubmitted ? handleEmailSubmission : handleBookAppointment}
+            disabled={!email.trim() || isLoading}
+            className={`bg-primary-orange text-white px-8 py-3 rounded-lg transition-all text-sm font-bold shadow-lg shadow-orange-900/20 flex items-center gap-2 ${
+               !email.trim() || isLoading
+               ? "opacity-50 cursor-not-allowed grayscale" 
+               : "hover:bg-orange-600"
+            }`}
+         >
+            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {!isLoading && <Calendar size={18} />}
+            Book My Appointment
+         </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
+   const [showEmailForExpressBooking, setShowEmailForExpressBooking] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans">
       <UrgentCollapse />
@@ -255,12 +374,12 @@ export default function Home() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <button 
+              {/* <button 
                 onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="bg-primary-teal hover:bg-teal-500 text-black font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
               >
                 Start an Instant Visit <Video size={18} />
-              </button>
+              </button> */}
               <button 
                 onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
                 className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
@@ -392,15 +511,23 @@ export default function Home() {
 
       {/* Symptoms Input Section */}
       <section id="symptoms-section" className="bg-[#11161c] py-20 border-y border-white/5">
-         <div className="container mx-auto px-4 text-center max-w-2xl">
+         <div className="container mx-auto px-4 text-center max-w-4xl flex flex-col items-center justify-center">
            <h2 className="text-3xl md:text-4xl font-bold text-primary-teal mb-2">
-              Tell Us Your Symptoms
+              {/* Tell Us Your Symptoms */}
+              60 Seconds Express Booking
            </h2>
-           <p className="text-gray-400 mb-8 text-sm uppercase tracking-wider">
-              OUR AI ASSISTANT HELPS FIND THE RIGHT CARE QUICKLY
+           <p className="text-gray-400 mb-8 text-xl tracking-wider">
+              {/* OUR AI ASSISTANT HELPS FIND THE RIGHT CARE QUICKLY */}
+              No Account Needed
            </p>
-
-           <SymptomSearch />
+           {showEmailForExpressBooking && <SubmitEmailForExpressBooking />}
+           
+            {!showEmailForExpressBooking && <button 
+               onClick={() => setShowEmailForExpressBooking(true)}
+               className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
+            >
+               Book My Appointment <Calendar size={18} />
+            </button>}
          </div>
       </section>
 
