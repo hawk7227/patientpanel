@@ -253,6 +253,7 @@ function SubmitEmailForExpressBooking() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEmailSubmission = async () => {
@@ -284,27 +285,28 @@ function SubmitEmailForExpressBooking() {
 
       if (!response.ok) {
         setIsLoading(false);
-        alert("error in API")
-      //   throw new Error(result.error || 'Failed to check user');
+        throw new Error(result.error || 'Failed to check user');
       }
       
-
-      // if (result.exists && result.patientId) {
-      //   // User exists - skip to appointment booking
-      //   // Save symptom and patient info to sessionStorage
-      //   sessionStorage.setItem('appointmentData', JSON.stringify({
-      //     email: email.trim(),
-      //     patientId: result.patientId,
-      //     skipIntake: true, // Flag to skip intake questions
-      //   }));
+      if (result.exists && result.patientId) {
+        // User exists - skip to appointment booking
+        // Save symptom and patient info to sessionStorage
+        setEmailExists(true);
+        sessionStorage.setItem('appointmentData', JSON.stringify({
+          email: email.trim(),
+          patientId: result.patientId,
+          skipIntake: true, // Flag to skip intake questions
+        }));
+        setIsLoading(false);
         
-      //   // Navigate directly to appointment booking (step 3 in intake flow)
+        // Navigate directly to appointment booking (step 3 in intake flow)
       //   router.push(`/intake?email=${encodeURIComponent(email.trim())}&skipIntake=true`);
-      // } else {
-      //   // User doesn't exist - go to full intake flow
-      //   // Pass the combined chief complaint
+      } else {
+         setIsLoading(false);
+        // User doesn't exist - go to full intake flow
+        // Pass the combined chief complaint
       //   router.push(`/intake?email=${encodeURIComponent(email.trim())}`);
-      // }
+      }
     } catch (error) {
       console.error('Error checking user:', error);
       alert(error instanceof Error ? error.message : 'Failed to process request. Please try again.');
@@ -317,9 +319,9 @@ function SubmitEmailForExpressBooking() {
   }
 
   return (
-    <div className="bg-[#050b14] p-8 rounded-2xl border border-white/10 shadow-2xl relative w-full">
+    <div className="bg-[#050b14] p-4 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative w-full">
 
-        {!emailSubmitted && <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        {!emailSubmitted && <div className="mt-2 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <label className="block text-left text-white font-bold mb-3 text-sm ml-1">EMAIL:</label>
           <input 
             type="email" 
@@ -335,6 +337,12 @@ function SubmitEmailForExpressBooking() {
           />
         </div>}
 
+        {emailSubmitted && !isLoading && <>
+         <div className="mt-2 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            Step-1 of 2
+         </div>
+        </>}
+
         <div className="flex justify-center gap-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
           <button 
             onClick={!emailSubmitted ? handleEmailSubmission : handleBookAppointment}
@@ -347,7 +355,7 @@ function SubmitEmailForExpressBooking() {
          >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             {!isLoading && <Calendar size={18} />}
-            Book My Appointment
+            {emailSubmitted && !isLoading ? "Continue" : "Submit Email"}
          </button>
       </div>
     </div>
@@ -510,14 +518,12 @@ export default function Home() {
       </section>
 
       {/* Symptoms Input Section */}
-      <section id="symptoms-section" className="bg-[#11161c] py-20 border-y border-white/5">
+      <section id="symptoms-section" className="bg-[#11161c] py-6 md:py-20 border-y border-white/5">
          <div className="container mx-auto px-4 text-center max-w-4xl flex flex-col items-center justify-center">
-           <h2 className="text-3xl md:text-4xl font-bold text-primary-teal mb-2">
-              {/* Tell Us Your Symptoms */}
+           <h2 className="text-2xl md:text-4xl font-bold text-primary-teal mb-2">
               60 Seconds Express Booking
            </h2>
-           <p className="text-gray-400 mb-8 text-xl tracking-wider">
-              {/* OUR AI ASSISTANT HELPS FIND THE RIGHT CARE QUICKLY */}
+           <p className="hidden md:block text-gray-400 mb-8 text-xl tracking-wider">
               No Account Needed
            </p>
            {showEmailForExpressBooking && <SubmitEmailForExpressBooking />}
