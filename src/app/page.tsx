@@ -77,7 +77,7 @@ function SubmitEmailForExpressBooking() {
     surgeries: "",
     medicalIssues: "",
   });
-  const [paymentComplete] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [highlightedField, setHighlightedField] = useState<string | null>("reason");
 
@@ -190,14 +190,33 @@ function SubmitEmailForExpressBooking() {
   const filteredReasons = useMemo(() => {
     if (!reasonQuery.trim()) return [];
     const searchTerm = reasonQuery.toLowerCase().trim();
-    return symptomSuggestions
-      .filter((item) => {
-        const nameMatch = item.name.toLowerCase().startsWith(searchTerm);
-        const smartMatch = item.smart_search.some((keyword) =>
-          keyword.toLowerCase().startsWith(searchTerm)
-        );
-        return nameMatch || smartMatch;
-      })
+    
+    // First, get all name matches
+    const nameMatches = symptomSuggestions
+      .filter((item) => item.name.toLowerCase().startsWith(searchTerm))
+      .map((item) => ({ item, priority: 1 }));
+    
+    // Then, get smart_search matches (only if search term is at least 3 chars to avoid too broad matches)
+    const smartMatches = searchTerm.length >= 3
+      ? symptomSuggestions
+          .filter((item) => {
+            const nameLower = item.name.toLowerCase();
+            // Only include if name doesn't already match
+            if (nameLower.startsWith(searchTerm)) return false;
+            
+            return item.smart_search.some((keyword) => {
+              const keywordLower = keyword.toLowerCase();
+              // Only match shorter keywords to avoid partial matches in long words like "hyperpigmentation"
+              return keywordLower.startsWith(searchTerm) && keywordLower.length <= 15;
+            });
+          })
+          .map((item) => ({ item, priority: 2 }))
+      : [];
+    
+    // Combine and sort by priority, then limit results
+    return [...nameMatches, ...smartMatches]
+      .sort((a, b) => a.priority - b.priority)
+      .map((result) => result.item)
       .slice(0, 8);
   }, [reasonQuery]);
 
@@ -232,6 +251,9 @@ function SubmitEmailForExpressBooking() {
             ...prev,
             firstName: result.user.first_name || prev.firstName,
             lastName: result.user.last_name || prev.lastName,
+            phone: result.user.mobile_phone || prev.phone,
+            dateOfBirth: result.user.date_of_birth || prev.dateOfBirth,
+            streetAddress: result.user.address || prev.streetAddress,
           }));
         }
         if (result.patientId) {
@@ -345,8 +367,8 @@ function SubmitEmailForExpressBooking() {
       )}
 
       {emailSubmitted && !paymentComplete && (
-        <div className="space-y-6 mt-2 md:mt-4">
-          <div className="font-bold text-sm text-primary-orange">Step {step} of 2</div>
+        <div className="space-y-6">
+          <div className="font-bold text-xl text-primary-orange">Step {step} of 2</div>
 
           {doctorInfo && appointmentData.visitType && (
             <div className="border border-white/10 rounded-xl p-3 flex items-center gap-3 bg-[#0d1218]">
@@ -382,7 +404,7 @@ function SubmitEmailForExpressBooking() {
                 <div className="relative">
                   <button
                     onClick={() => setReasonDialogOpen(true)}
-                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between min-h-[52px] text-sm transition-all ${
+                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between min-h-[52px] text-xs transition-all ${
                       highlightedField === "reason" 
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
                         : appointmentData.reason 
@@ -405,13 +427,13 @@ function SubmitEmailForExpressBooking() {
                           value={reasonQuery}
                           onChange={(e) => setReasonQuery(e.target.value)}
                           placeholder="Search symptoms..."
-                          className="w-full bg-[#11161c] border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-teal"
+                          className="w-full bg-[#11161c] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-primary-teal"
                         />
                         <div className="max-h-72 overflow-y-auto border border-white/5 rounded-lg">
                           {filteredReasons.map((item) => (
                             <div
                               key={item.name}
-                              className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-sm border-b border-white/5 last:border-0"
+                              className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0"
                               onClick={() => {
                                 setAppointmentData((prev) => ({ ...prev, reason: item.name }));
                                 setReasonDialogOpen(false);
@@ -430,7 +452,7 @@ function SubmitEmailForExpressBooking() {
                 <div className="relative">
                   <button
                     onClick={() => setVisitTypeDialogOpen(true)}
-                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between min-h-[52px] text-sm transition-all ${
+                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between min-h-[52px] text-xs transition-all ${
                       highlightedField === "visitType" 
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
                         : appointmentData.visitType 
@@ -482,7 +504,7 @@ function SubmitEmailForExpressBooking() {
                 <div className="relative">
                   <button
                     onClick={() => setDateTimeDialogOpen(true)}
-                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between text-sm transition-all ${
+                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between text-xs transition-all ${
                       highlightedField === "dateTime" 
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
                         : appointmentData.appointmentDate && appointmentData.appointmentTime
@@ -536,7 +558,9 @@ function SubmitEmailForExpressBooking() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email"
-                    className="bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal col-span-2"
+                    className={`bg-[#11161c] border rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal col-span-2 transition-all ${
+                      email.trim() ? "border-primary-teal" : "border-white/10"
+                    }`}
                     disabled
                   />
                   <input
@@ -661,6 +685,10 @@ function SubmitEmailForExpressBooking() {
                       onTermsChange={setAcceptedTerms}
                       isFormValid={() => !!personalDetailsValid && acceptedTerms}
                       convertDateToISO={convertDateToISO}
+                      onSuccess={() => {
+                        setPaymentComplete(true);
+                        setStep(3);
+                      }}
                     />
                   </Elements>
                 )}

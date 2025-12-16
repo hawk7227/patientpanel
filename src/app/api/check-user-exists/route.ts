@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     // Check if user exists by email in users table
     const { data: existingUser, error: userSearchError } = await supabase
       .from("users")
-      .select("id, email, first_name, last_name")
+      .select("id, email, first_name, last_name, mobile_phone, date_of_birth, address")
       .eq("email", email.toLowerCase().trim())
       .single();
 

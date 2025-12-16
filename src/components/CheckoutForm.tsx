@@ -20,6 +20,7 @@ interface CheckoutFormProps {
   onTermsChange: (accepted: boolean) => void;
   isFormValid: () => boolean | null;
   convertDateToISO: (dateStr: string) => string;
+  onSuccess?: () => void;
 }
 
 export default function CheckoutForm({ 
@@ -27,7 +28,8 @@ export default function CheckoutForm({
   acceptedTerms,
   onTermsChange,
   isFormValid,
-  convertDateToISO 
+  convertDateToISO,
+  onSuccess
 }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -122,8 +124,9 @@ export default function CheckoutForm({
       sessionStorage.setItem('appointmentData', JSON.stringify(updatedAppointmentData));
 
       // Process payment
-      const { error } = await stripe.confirmPayment({
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
+        redirect: "if_required",
         confirmParams: {
           return_url: `${window.location.origin}/success`,
           payment_method_data: {
@@ -136,10 +139,57 @@ export default function CheckoutForm({
         },
       });
 
-      if (error.type === "card_error" || error.type === "validation_error") {
-        setMessage(error.message || "An error occurred.");
-      } else {
-        setMessage("An unexpected error occurred.");
+      if (error) {
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setMessage(error.message || "An error occurred.");
+        } else {
+          setMessage("An unexpected error occurred.");
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Payment successful - create appointment
+      if (paymentIntent && paymentIntent.status === "succeeded") {
+        try {
+          const appointmentDataStr = sessionStorage.getItem("appointmentData");
+          const appointmentData = appointmentDataStr ? JSON.parse(appointmentDataStr) : {};
+
+          const response = await fetch("/api/create-appointment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              payment_intent_id: paymentIntent.id,
+              appointmentData: {
+                ...appointmentData,
+                ...formData,
+                dateOfBirth: isoDateOfBirth,
+                patientId: patientId,
+              },
+            }),
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error || "Failed to create appointment");
+          }
+
+          // Store access token if provided
+          if (result.accessToken) {
+            sessionStorage.setItem(`appointment_token_${paymentIntent.id}`, result.accessToken);
+          }
+
+          // Call success callback
+          if (onSuccess) {
+            onSuccess();
+          }
+        } catch (appointmentError) {
+          console.error("Error creating appointment:", appointmentError);
+          setMessage(appointmentError instanceof Error ? appointmentError.message : "Payment succeeded but failed to create appointment. Please contact support.");
+        }
       }
     } catch (error) {
       console.error('Error processing payment:', error);
