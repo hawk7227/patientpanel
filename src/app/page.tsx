@@ -1,240 +1,29 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import symptomSuggestions from "@/data/symptom-suggestions.json";
 import { 
-  Search, 
   Video, 
   Calendar, 
   MessageSquare, 
   FileText, 
   ShieldCheck, 
   ChevronRight,
-  Droplets,
-  Smile,
-  AlertCircle,
-  ShieldAlert,
-  Wind,
-  Eye,
-  Ear,
-  Stethoscope,
+  Phone,
   ArrowRight,
   Loader2,
 } from "lucide-react";
+import AppointmentCalendar from "@/components/AppointmentCalendar";
 import UrgentCollapse from "@/components/home/UrgentCollapse";
-function SymptomSearch() {
-  const router = useRouter();
-  const [symptom, setSymptom] = useState("");
-  const [email, setEmail] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showEmailField, setShowEmailField] = useState(false);
+import CheckoutForm from "@/components/CheckoutForm";
+import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 
-  // Smart search function - matches against name and smart_search array
-  const filteredSuggestions = useMemo(() => {
-    if (!symptom.trim()) return [];
-    
-    const searchTerm = symptom.toLowerCase().trim();
-    
-    // For single character, show suggestions that start with that letter or have keywords starting with it
-    if (searchTerm.length === 1) {
-      return symptomSuggestions.filter(item => {
-        // Check if name starts with the letter
-        const nameStartsWith = item.name.toLowerCase().startsWith(searchTerm);
-        
-        // Check if any keyword starts with the letter
-        const keywordStartsWith = item.smart_search.some(keyword => 
-          keyword.toLowerCase().startsWith(searchTerm)
-        );
-        
-        return nameStartsWith || keywordStartsWith;
-      }).slice(0, 10);
-    }
-    
-    // For multiple characters, use full search
-    return symptomSuggestions.filter(item => {
-      // Check if search term matches the name
-      const nameMatch = item.name.toLowerCase().includes(searchTerm);
-      
-      // Check if search term matches any smart_search keywords
-      const smartMatch = item.smart_search.some(keyword => 
-        keyword.toLowerCase().includes(searchTerm) || 
-        searchTerm.includes(keyword.toLowerCase())
-      );
-      
-      return nameMatch || smartMatch;
-    }).slice(0, 10); // Limit to 10 results for performance
-  }, [symptom]);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
-  // Show email field when symptom is entered
-  const handleSymptomChange = (value: string) => {
-    setSymptom(value);
-    // Always show dropdown if there's text - filteredSuggestions will handle the actual filtering
-    setShowDropdown(value.length > 0);
-    setShowEmailField(value.trim().length > 0);
-  };
-  
-  // Update dropdown visibility when filteredSuggestions changes
-  useEffect(() => {
-    if (symptom.length > 0) {
-      setShowDropdown(filteredSuggestions.length > 0);
-    }
-  }, [filteredSuggestions, symptom.length]);
-
-  // Handle suggestion selection - just set the text, don't navigate
-  const handleSuggestionClick = (suggestionName: string) => {
-    setSymptom(suggestionName);
-    setShowDropdown(false);
-    setShowEmailField(true);
-  };
-
-  const handleBookAppointment = async () => {
-    if (!symptom.trim()) {
-      alert("Please enter or select a symptom to continue.");
-      return;
-    }
-
-    if (!email.trim()) {
-      alert("Please enter your email address to continue.");
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      alert("Please enter a valid email address.");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Use symptom as chief complaint
-      const chiefComplaint = symptom;
-
-      // Check if user exists
-      const response = await fetch('/api/check-user-exists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to check user');
-      }
-
-      if (result.exists && result.patientId) {
-        // User exists - skip to appointment booking
-        // Save symptom and patient info to sessionStorage
-        sessionStorage.setItem('appointmentData', JSON.stringify({
-          symptom: symptom,
-          chiefComplaint: chiefComplaint,
-          email: email.trim(),
-          patientId: result.patientId,
-          skipIntake: true, // Flag to skip intake questions
-        }));
-        
-        // Navigate directly to appointment booking (step 3 in intake flow)
-        router.push(`/intake?symptom=${encodeURIComponent(symptom)}&email=${encodeURIComponent(email.trim())}&skipIntake=true`);
-      } else {
-        // User doesn't exist - go to full intake flow
-        // Pass the combined chief complaint
-        router.push(`/intake?symptom=${encodeURIComponent(chiefComplaint)}&email=${encodeURIComponent(email.trim())}`);
-      }
-    } catch (error) {
-      console.error('Error checking user:', error);
-      alert(error instanceof Error ? error.message : 'Failed to process request. Please try again.');
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="bg-[#050b14] p-8 rounded-2xl border border-white/10 shadow-2xl relative">
-      <label className="block text-left text-white font-bold mb-3 text-sm ml-1">What brings you in today?</label>
-      
-      <div className="relative">
-         <input 
-            type="text" 
-            value={symptom}
-            placeholder="Type your symptoms here..."
-            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-            onChange={(e) => handleSymptomChange(e.target.value)}
-            onFocus={() => {
-               if (symptom.length > 0) {
-                 setShowDropdown(true);
-               }
-            }}
-            onBlur={() => {
-               // Delay hiding dropdown to allow clicks
-               setTimeout(() => setShowDropdown(false), 200);
-            }}
-         />
-         
-         {/* Auto-suggestion Dropdown */}
-         {showDropdown && filteredSuggestions.length > 0 && (
-           <div className="absolute top-full left-0 w-full bg-[#0d1218] border border-primary-teal/30 rounded-b-lg shadow-2xl z-50 overflow-hidden mt-1 max-h-[300px] overflow-y-auto">
-              {filteredSuggestions.map((item) => (
-                 <div 
-                    key={item.name}
-                    className="px-4 py-3 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-left border-b border-white/5 last:border-0 transition-colors font-medium"
-                    onMouseDown={(e) => {
-                       // Prevent blur event
-                       e.preventDefault();
-                    }}
-                    onClick={() => handleSuggestionClick(item.name)}
-                 >
-                    {item.name}
-                 </div>
-              ))}
-           </div>
-         )}
-      </div>
-
-      {/* Email field - shown after symptom is entered */}
-      {showEmailField && (
-        <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <label className="block text-left text-white font-bold mb-3 text-sm ml-1">EMAIL:</label>
-          <input 
-            type="email" 
-            value={email}
-            placeholder="your.email@example.com"
-            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && symptom.trim() && email.trim()) {
-                handleBookAppointment();
-              }
-            }}
-          />
-        </div>
-      )}
-
-      {/* Book Appointment button - shown when email field is visible */}
-      {showEmailField && (
-        <div className="flex justify-center gap-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
-          <button 
-            onClick={handleBookAppointment}
-            disabled={!symptom.trim() || !email.trim() || isLoading}
-            className={`bg-primary-orange text-white px-8 py-3 rounded-lg transition-all text-sm font-bold shadow-lg shadow-orange-900/20 flex items-center gap-2 ${
-               !symptom.trim() || !email.trim() || isLoading
-               ? "opacity-50 cursor-not-allowed grayscale" 
-               : "hover:bg-orange-600"
-            }`}
-         >
-            {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {!isLoading && <Calendar size={18} />}
-            Book My Appointment
-         </button>
-      </div>
-      )}
-    </div>
-  );
-}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STEPS = [
    { 
      id: 0, 
@@ -250,20 +39,173 @@ const STEPS = [
    }
  ];
 function SubmitEmailForExpressBooking() {
-  const router = useRouter();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [emailExists, setEmailExists] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [visitTypeDialogOpen, setVisitTypeDialogOpen] = useState(false);
+  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
+  const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
+  const [doctorInfo, setDoctorInfo] = useState<{
+    id: string;
+    name: string;
+    credentials: string;
+    specialty: string;
+  } | null>(null);
+  const [reasonQuery, setReasonQuery] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [appointmentData, setAppointmentData] = useState({
+    reason: "",
+    visitType: "",
+    appointmentDate: "",
+    appointmentTime: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    dateOfBirth: "",
+    streetAddress: "",
+    postalCode: "",
+    placeId: "",
+    pharmacy: "",
+    pharmacyAddress: "",
+    cardNumber: "",
+    cardExpiry: "",
+    cardCvc: "",
+    patientOwnWords: "",
+    allergies: "",
+    surgeries: "",
+    medicalIssues: "",
+  });
+  const [paymentComplete] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [highlightedField, setHighlightedField] = useState<string | null>("reason");
+
+  const appearance = {
+    theme: "night" as const,
+    variables: {
+      colorPrimary: "#00cba9",
+      colorBackground: "#0a1219",
+      colorText: "#ffffff",
+      colorDanger: "#ef4444",
+      fontFamily: "ui-sans-serif, system-ui, sans-serif",
+      spacingUnit: "4px",
+      borderRadius: "8px",
+    },
+  };
+
+  const options = {
+    clientSecret,
+    appearance,
+  };
+  const convertDateToISO = (dateStr: string): string => {
+    if (dateStr && dateStr.includes("/")) {
+      const parts = dateStr.split("/");
+      if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+        const month = parts[0].padStart(2, "0");
+        const day = parts[1].padStart(2, "0");
+        const year = parts[2];
+        return `${year}-${month}-${day}`;
+      }
+    }
+    if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      return dateStr;
+    }
+    return "";
+  };
+
+
+  useEffect(() => {
+    const fetchDoctorInfo = async () => {
+      try {
+        const response = await fetch('/api/get-doctor-availability?date=2025-01-01&doctorId=1fd1af57-5529-4d00-a301-e653b4829efc');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.doctor) {
+            setDoctorInfo({
+              id: data.doctor.id,
+              name: data.doctor.name,
+              credentials: "MSN, APRN, FNP-C",
+              specialty: data.doctor.specialty || "A Private Practice Provider",
+            });
+          }
+        }
+      } catch {
+        setDoctorInfo({
+          id: "1fd1af57-5529-4d00-a301-e653b4829efc",
+          name: "LaMonica A. Hodges",
+          credentials: "MSN, APRN, FNP-C",
+          specialty: "A Private Practice Provider",
+        });
+      }
+    };
+    fetchDoctorInfo();
+  }, []);
+
+  useEffect(() => {
+    if (step === 2 && !clientSecret) {
+      const initPaymentIntent = async () => {
+        try {
+          const res = await fetch("/api/create-payment-intent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount: 18900 }),
+          });
+          const data = await res.json();
+          if (data.clientSecret) {
+            setClientSecret(data.clientSecret);
+          }
+        } catch (error) {
+          console.error("Error creating payment intent:", error);
+        }
+      };
+      void initPaymentIntent();
+    }
+  }, [step, clientSecret]);
+
+  useEffect(() => {
+    if (step === 1) {
+      if (!appointmentData.reason) {
+        setHighlightedField("reason");
+      } else if (!appointmentData.visitType) {
+        setHighlightedField("visitType");
+      } else if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) {
+        setHighlightedField("dateTime");
+      } else if (!appointmentData.firstName) {
+        setHighlightedField("firstName");
+      } else if (!appointmentData.lastName) {
+        setHighlightedField("lastName");
+      } else if (!appointmentData.phone) {
+        setHighlightedField("phone");
+      } else if (!appointmentData.dateOfBirth) {
+        setHighlightedField("dateOfBirth");
+      } else if (!appointmentData.streetAddress || !appointmentData.placeId) {
+        setHighlightedField("streetAddress");
+      } else {
+        setHighlightedField(null);
+      }
+    }
+  }, [step, appointmentData]);
+
+  const filteredReasons = useMemo(() => {
+    if (!reasonQuery.trim()) return [];
+    const searchTerm = reasonQuery.toLowerCase().trim();
+    return symptomSuggestions
+      .filter((item) => {
+        const nameMatch = item.name.toLowerCase().startsWith(searchTerm);
+        const smartMatch = item.smart_search.some((keyword) =>
+          keyword.toLowerCase().startsWith(searchTerm)
+        );
+        return nameMatch || smartMatch;
+      })
+      .slice(0, 8);
+  }, [reasonQuery]);
 
   const handleEmailSubmission = async () => {
-
     if (!email.trim()) {
       alert("Please enter your email address to continue.");
       return;
     }
-
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       alert("Please enter a valid email address.");
@@ -271,57 +213,108 @@ function SubmitEmailForExpressBooking() {
     }
 
     setIsLoading(true);
-
     try {
-      // Check if user exists
-      setEmailSubmitted(true);
       const response = await fetch('/api/check-user-exists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
-        setIsLoading(false);
         throw new Error(result.error || 'Failed to check user');
       }
-      
-      if (result.exists && result.patientId) {
-        // User exists - skip to appointment booking
-        // Save symptom and patient info to sessionStorage
+      setEmailSubmitted(true);
+
+      if (result.exists) {
         setEmailExists(true);
+        if (result.user) {
+          setAppointmentData((prev) => ({
+            ...prev,
+            firstName: result.user.first_name || prev.firstName,
+            lastName: result.user.last_name || prev.lastName,
+          }));
+        }
+        if (result.patientId) {
         sessionStorage.setItem('appointmentData', JSON.stringify({
           email: email.trim(),
           patientId: result.patientId,
-          skipIntake: true, // Flag to skip intake questions
-        }));
-        setIsLoading(false);
-        
-        // Navigate directly to appointment booking (step 3 in intake flow)
-      //   router.push(`/intake?email=${encodeURIComponent(email.trim())}&skipIntake=true`);
-      } else {
-         setIsLoading(false);
-        // User doesn't exist - go to full intake flow
-        // Pass the combined chief complaint
-      //   router.push(`/intake?email=${encodeURIComponent(email.trim())}`);
+            skipIntake: true,
+            user: result.user,
+          }));
+        } else if (result.user) {
+          sessionStorage.setItem('appointmentData', JSON.stringify({
+            email: email.trim(),
+            user: result.user,
+          }));
+        }
       }
     } catch (error) {
       console.error('Error checking user:', error);
       alert(error instanceof Error ? error.message : 'Failed to process request. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleBookAppointment = async () => {
+  const handleDateOfBirthChange = (value: string) => {
+    const numbers = value.replace(/\D/g, "").slice(0, 8);
+    let formatted = "";
+    if (numbers.length > 0) {
+      formatted = numbers.slice(0, 2);
+      if (numbers.length > 2) {
+        formatted += "/" + numbers.slice(2, 4);
+      }
+      if (numbers.length > 4) {
+        formatted += "/" + numbers.slice(4, 8);
+      }
+    }
+    setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
+  };
 
-  }
+  const formatDateTime = (date: string, time: string): string => {
+    if (!date || !time) return "";
+    try {
+      // Handle YYYY-MM-DD format
+      const dateObj = new Date(date + "T00:00:00");
+      if (isNaN(dateObj.getTime())) {
+        return `${date} • ${time}`;
+      }
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dayName = days[dateObj.getDay()];
+      const month = months[dateObj.getMonth()];
+      const day = dateObj.getDate();
+      const year = dateObj.getFullYear();
+      
+      // Format time (assuming time is in HH:MM format)
+      const [hours, minutes] = time.split(":");
+      const hour24 = parseInt(hours, 10);
+      const hour12 = hour24 % 12 || 12;
+      const ampm = hour24 >= 12 ? "pm" : "am";
+      const formattedTime = `${hour12.toString().padStart(2, "0")}:${minutes}${ampm}`;
+      
+      return `${dayName} - ${month}-${day}-${year} ${formattedTime}`;
+    } catch {
+      return `${date} • ${time}`;
+    }
+  };
+
+  const personalDetailsValid =
+    appointmentData.reason &&
+    appointmentData.visitType &&
+    appointmentData.appointmentDate &&
+    appointmentData.appointmentTime &&
+    appointmentData.firstName.trim() &&
+    appointmentData.lastName.trim() &&
+    appointmentData.phone.trim() &&
+    appointmentData.dateOfBirth.trim() &&
+    appointmentData.streetAddress.trim() &&
+    appointmentData.placeId.trim();
 
   return (
     <div className="bg-[#050b14] p-4 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative w-full">
-
-        {!emailSubmitted && <div className="mt-2 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+      {!emailSubmitted && (
+        <div className="mt-2 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <label className="block text-left text-white font-bold mb-3 text-sm ml-1">EMAIL:</label>
           <input 
             type="email" 
@@ -330,34 +323,429 @@ function SubmitEmailForExpressBooking() {
             className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && email.trim()) {
-                handleBookAppointment();
+              if (e.key === "Enter" && email.trim()) {
+                handleEmailSubmission();
               }
             }}
           />
-        </div>}
-
-        {emailSubmitted && !isLoading && <>
-         <div className="mt-2 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            Step-1 of 2
-         </div>
-        </>}
-
         <div className="flex justify-center gap-4 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
           <button 
-            onClick={!emailSubmitted ? handleEmailSubmission : handleBookAppointment}
+              onClick={handleEmailSubmission}
             disabled={!email.trim() || isLoading}
             className={`bg-primary-orange text-white px-8 py-3 rounded-lg transition-all text-sm font-bold shadow-lg shadow-orange-900/20 flex items-center gap-2 ${
-               !email.trim() || isLoading
-               ? "opacity-50 cursor-not-allowed grayscale" 
-               : "hover:bg-orange-600"
+                !email.trim() || isLoading ? "opacity-50 cursor-not-allowed grayscale" : "hover:bg-orange-600"
             }`}
          >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
             {!isLoading && <Calendar size={18} />}
-            {emailSubmitted && !isLoading ? "Continue" : "Submit Email"}
+              Submit Email
          </button>
       </div>
+    </div>
+      )}
+
+      {emailSubmitted && !paymentComplete && (
+        <div className="space-y-6 mt-2 md:mt-4">
+          <div className="font-bold text-sm text-primary-orange">Step {step} of 2</div>
+
+          {doctorInfo && appointmentData.visitType && (
+            <div className="border border-white/10 rounded-xl p-3 flex items-center gap-3 bg-[#0d1218]">
+              <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-primary-teal/40">
+                <Image
+                  src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg"
+                  alt={doctorInfo.name}
+                  width={48}
+                  height={48}
+                  className="object-cover w-full h-full"
+                />
+              </div>
+              <div className="text-left flex-1">
+                <div className="text-white font-semibold text-sm">{doctorInfo.name}</div>
+                <div className="text-gray-400 text-xs">{doctorInfo.credentials}</div>
+                <div className="text-primary-teal text-xs">{doctorInfo.specialty}</div>
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                <div className="text-gray-400 text-[10px]">Visit Type</div>
+                <div className="bg-primary-teal/10 text-primary-teal text-xs font-bold px-3 py-1 rounded-full">
+                  {appointmentData.visitType}
+                </div>
+                {step === 2 && (
+                  <div className="text-white font-bold text-sm mt-1">$189</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="relative">
+                  <button
+                    onClick={() => setReasonDialogOpen(true)}
+                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between min-h-[52px] text-sm transition-all ${
+                      highlightedField === "reason" 
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
+                        : appointmentData.reason 
+                        ? "border-primary-teal" 
+                        : "border-white/10"
+                    }`}
+                  >
+                    <span className="truncate">{appointmentData.reason ? appointmentData.reason : "Reason For Visit"}</span>
+                    <ChevronRight size={16} className="text-primary-teal" />
+                  </button>
+
+                  {reasonDialogOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                      <div className="bg-[#0d1218] border border-white/10 rounded-xl p-6 w-full max-w-lg space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div className="text-white font-bold text-lg">Select Reason for Visit</div>
+                          <button onClick={() => setReasonDialogOpen(false)} className="text-gray-400 hover:text-white">✕</button>
+                        </div>
+                        <input
+                          value={reasonQuery}
+                          onChange={(e) => setReasonQuery(e.target.value)}
+                          placeholder="Search symptoms..."
+                          className="w-full bg-[#11161c] border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-teal"
+                        />
+                        <div className="max-h-72 overflow-y-auto border border-white/5 rounded-lg">
+                          {filteredReasons.map((item) => (
+                            <div
+                              key={item.name}
+                              className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-sm border-b border-white/5 last:border-0"
+                              onClick={() => {
+                                setAppointmentData((prev) => ({ ...prev, reason: item.name }));
+                                setReasonDialogOpen(false);
+                                setReasonQuery("");
+                              }}
+                            >
+                              {item.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setVisitTypeDialogOpen(true)}
+                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between min-h-[52px] text-sm transition-all ${
+                      highlightedField === "visitType" 
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
+                        : appointmentData.visitType 
+                        ? "border-primary-teal" 
+                        : "border-white/10"
+                    }`}
+                  >
+                    <span className="truncate">{appointmentData.visitType ? appointmentData.visitType + " Visit" : "Visit Type"}</span>
+                    <ChevronRight size={16} className="text-primary-teal" />
+                  </button>
+
+                  {visitTypeDialogOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                      <div className="bg-[#0d1218] border border-white/10 rounded-xl p-6 w-full max-w-sm space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div className="text-white font-bold text-lg">Select Visit Type</div>
+                          <button onClick={() => setVisitTypeDialogOpen(false)} className="text-gray-400 hover:text-white">
+                            ✕
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {["Video", "Audio"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                setAppointmentData((prev) => ({ ...prev, visitType: type }));
+                                setVisitTypeDialogOpen(false);
+                              }}
+                              className={`border rounded-lg p-4 flex flex-col items-center gap-2 text-white font-semibold transition-all ${
+                                appointmentData.visitType === type
+                                  ? "border-primary-teal bg-primary-teal/10"
+                                  : "border-white/10 hover:border-primary-teal"
+                              }`}
+                            >
+                              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
+                                {type === "Video" ? <Video size={18} /> : <Phone size={18} />}
+                              </div>
+                              <span>{type} Call</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 text-sm">
+                <div className="relative">
+                  <button
+                    onClick={() => setDateTimeDialogOpen(true)}
+                    className={`w-full bg-[#0d1218] border rounded-lg px-4 py-3 text-left text-white font-semibold flex items-center justify-between text-sm transition-all ${
+                      highlightedField === "dateTime" 
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
+                        : appointmentData.appointmentDate && appointmentData.appointmentTime
+                        ? "border-primary-teal" 
+                        : "border-white/10"
+                    }`}
+                  >
+                    <span>
+                      {appointmentData.appointmentDate && appointmentData.appointmentTime
+                        ? formatDateTime(appointmentData.appointmentDate, appointmentData.appointmentTime)
+                        : "Appointment Day / Time"}
+                    </span>
+                    <ChevronRight size={16} className="text-primary-teal" />
+                  </button>
+                </div>
+              </div>
+
+              {dateTimeDialogOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                  <div className="bg-[#0d1218] border border-white/10 rounded-xl p-6 w-full max-w-3xl space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="text-white font-bold text-lg">Select Appointment</div>
+                      <button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white">✕</button>
+                    </div>
+                    <div className="bg-[#11161c]/60 rounded-lg p-2 border border-white/5">
+                      <AppointmentCalendar
+                        selectedDate={appointmentData.appointmentDate || null}
+                        selectedTime={appointmentData.appointmentTime || null}
+                        onDateSelect={(date) => setAppointmentData((prev) => ({ ...prev, appointmentDate: date }))}
+                        onTimeSelect={(time) => setAppointmentData((prev) => ({ ...prev, appointmentTime: time }))}
+                        doctorId="1fd1af57-5529-4d00-a301-e653b4829efc"
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setDateTimeDialogOpen(false)}
+                        className="bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-sm hover:bg-primary-teal/90 w-full md:w-auto"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 space-y-3">
+                <div className="text-white font-semibold text-sm">Patient Details</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
+                    className="bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal col-span-2"
+                    disabled
+                  />
+                  <input
+                    value={appointmentData.firstName}
+                    onChange={(e) => setAppointmentData((prev) => ({ ...prev, firstName: e.target.value }))}
+                    placeholder="First Name"
+                    className={`bg-[#11161c] border rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                      highlightedField === "firstName"
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
+                        : appointmentData.firstName.trim()
+                        ? "border-primary-teal"
+                        : "border-white/10"
+                    }`}
+                  />
+                  <input
+                    value={appointmentData.lastName}
+                    onChange={(e) => setAppointmentData((prev) => ({ ...prev, lastName: e.target.value }))}
+                    placeholder="Last Name"
+                    className={`bg-[#11161c] border rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                      highlightedField === "lastName"
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
+                        : appointmentData.lastName.trim()
+                        ? "border-primary-teal"
+                        : "border-white/10"
+                    }`}
+                  />
+                  <input
+                    value={appointmentData.phone}
+                    onChange={(e) => setAppointmentData((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Phone"
+                    className={`bg-[#11161c] border rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                      highlightedField === "phone"
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
+                        : appointmentData.phone.trim()
+                        ? "border-primary-teal"
+                        : "border-white/10"
+                    }`}
+                  />
+                  <input
+                    value={appointmentData.dateOfBirth}
+                    onChange={(e) => handleDateOfBirthChange(e.target.value)}
+                    placeholder="Date of Birth (MM/DD/YYYY)"
+                    className={`bg-[#11161c] border rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                      highlightedField === "dateOfBirth"
+                        ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
+                        : appointmentData.dateOfBirth.trim()
+                        ? "border-primary-teal"
+                        : "border-white/10"
+                    }`}
+                  />
+                  <div className="col-span-2">
+                    <GooglePlacesAutocomplete
+                      value={appointmentData.streetAddress}
+                      onChange={(value) => setAppointmentData((prev) => ({ ...prev, streetAddress: value }))}
+                      onPlaceSelect={(place) => {
+                        if (place.formatted_address) {
+                          let postalCode = "";
+                          const addressComponents = place.address_components;
+                          if (addressComponents) {
+                            const postalCodeComponent = addressComponents.find(
+                              (component) => component.types?.includes("postal_code")
+                            );
+                            if (postalCodeComponent) {
+                              postalCode = postalCodeComponent.long_name || "";
+                            }
+                          }
+                          setAppointmentData((prev) => ({
+                            ...prev,
+                            streetAddress: place.formatted_address || "",
+                            postalCode: postalCode,
+                            placeId: place.place_id || "",
+                          }));
+                        }
+                      }}
+                      placeholder="Street Address"
+                      types={["address"]}
+                      componentRestrictions={{ country: "us" }}
+                      className={`w-full bg-[#11161c] border rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                        highlightedField === "streetAddress"
+                          ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
+                          : appointmentData.streetAddress.trim() && appointmentData.placeId.trim()
+                          ? "border-primary-teal"
+                          : "border-white/10"
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setStep(2)}
+                  disabled={!personalDetailsValid}
+                  className={`w-full md:w-auto bg-primary-orange text-white px-6 py-3 rounded-lg font-bold text-sm shadow-lg ${
+                    personalDetailsValid ? "hover:bg-orange-600" : "opacity-50 cursor-not-allowed grayscale"
+                  }`}
+                >
+                  Proceed Next
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="text-center text-primary-teal font-semibold text-sm">When Your Privacy Matters</div>
+              <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 space-y-3">
+                <div className="text-white font-semibold text-sm">Checkout</div>
+                {clientSecret && (
+                  <Elements options={options} stripe={stripePromise}>
+                    <CheckoutForm
+                      formData={{
+                        email: email.trim(),
+                        firstName: appointmentData.firstName,
+                        lastName: appointmentData.lastName,
+                        phone: appointmentData.phone,
+                        dateOfBirth: appointmentData.dateOfBirth,
+                        streetAddress: appointmentData.streetAddress,
+                        postalCode: appointmentData.postalCode || "",
+                      }}
+                      acceptedTerms={acceptedTerms}
+                      onTermsChange={setAcceptedTerms}
+                      isFormValid={() => !!personalDetailsValid && acceptedTerms}
+                      convertDateToISO={convertDateToISO}
+                    />
+                  </Elements>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {paymentComplete && (
+        <div className="space-y-4 mt-4">
+          <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4">
+            <div className="text-white font-bold text-lg mb-2">Appointment Confirmed</div>
+            {doctorInfo && (
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-primary-teal/40">
+                  <Image
+                    src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg"
+                    alt={doctorInfo.name}
+                    width={48}
+                    height={48}
+                    className="object-cover w-full h-full"
+                  />
+         </div>
+                <div className="text-left flex-1">
+                  <div className="text-white font-semibold text-sm">{doctorInfo.name}</div>
+                  <div className="text-gray-400 text-xs">{doctorInfo.credentials}</div>
+                  <div className="text-primary-teal text-xs">{doctorInfo.specialty}</div>
+                </div>
+              </div>
+            )}
+            <div className="text-gray-300 text-sm mt-3">
+              Thank you for scheduling. We&apos;ve reserved your spot and sent a confirmation to {email}.
+            </div>
+          </div>
+
+          {!emailExists && (
+            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 space-y-3">
+              <div className="text-white font-semibold text-sm">A few quick questions</div>
+              <textarea
+                value={appointmentData.patientOwnWords}
+                onChange={(e) => setAppointmentData((prev) => ({ ...prev, patientOwnWords: e.target.value }))}
+                placeholder="Describe what&apos;s going on..."
+                className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal min-h-[80px]"
+              />
+              <input
+                value={appointmentData.allergies}
+                onChange={(e) => setAppointmentData((prev) => ({ ...prev, allergies: e.target.value }))}
+                placeholder="Any drug allergies?"
+                className="bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal"
+              />
+              <input
+                value={appointmentData.surgeries}
+                onChange={(e) => setAppointmentData((prev) => ({ ...prev, surgeries: e.target.value }))}
+                placeholder="Any recent surgeries or procedures?"
+                className="bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal"
+              />
+              <input
+                value={appointmentData.medicalIssues}
+                onChange={(e) => setAppointmentData((prev) => ({ ...prev, medicalIssues: e.target.value }))}
+                placeholder="Any ongoing medical issues?"
+                className="bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal"
+              />
+              <input
+                value={appointmentData.pharmacy}
+                onChange={(e) => setAppointmentData((prev) => ({ ...prev, pharmacy: e.target.value }))}
+                placeholder="Preferred Pharmacy"
+                className="bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal"
+              />
+          <button 
+                onClick={() => {
+                  const payload = {
+                    email: email.trim(),
+                    ...appointmentData,
+                  };
+                  sessionStorage.setItem("appointmentData", JSON.stringify(payload));
+                }}
+                className="w-full bg-primary-teal text-black font-bold py-3 rounded-lg text-sm hover:bg-primary-teal/90"
+              >
+                Save Responses
+         </button>
+      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

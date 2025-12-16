@@ -17,13 +17,15 @@ interface FormData {
 interface CheckoutFormProps {
   formData: FormData;
   acceptedTerms: boolean;
+  onTermsChange: (accepted: boolean) => void;
   isFormValid: () => boolean | null;
   convertDateToISO: (dateStr: string) => string;
 }
 
 export default function CheckoutForm({ 
   formData, 
-  acceptedTerms, 
+  acceptedTerms,
+  onTermsChange,
   isFormValid,
   convertDateToISO 
 }: CheckoutFormProps) {
@@ -42,6 +44,11 @@ export default function CheckoutForm({
     // Validate patient form before payment
     if (!isFormValid()) {
       setMessage("Please fill in all required patient information fields.");
+      return;
+    }
+
+    if (!acceptedTerms) {
+      setMessage("Please accept the terms to continue.");
       return;
     }
 
@@ -179,6 +186,19 @@ export default function CheckoutForm({
           {message}
         </div>
       )}
+
+      <div className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          id="paymentTerms"
+          checked={acceptedTerms}
+          onChange={(e) => onTermsChange(e.target.checked)}
+          className="mt-1 w-4 h-4 rounded border-primary-teal/50 bg-[#0d1218] text-primary-teal focus:ring-primary-teal focus:ring-offset-0"
+        />
+        <label htmlFor="paymentTerms" className="text-xs text-gray-400 leading-relaxed text-justify">
+          By confirming, I agree to the <span className="text-primary-teal">Terms of Service</span>, <span className="text-primary-teal">Privacy Policy</span>, and <span className="text-primary-teal">Cancellation Policy</span>. By requesting a provider appointment, I acknowledge that my card will not be charged until a provider accepts my appointment request. Once accepted, I authorize a one-time charge of $189.00 (flat, non-refundable) for this visit.
+        </label>
+      </div>
 
       <button
         disabled={isLoading || !stripe || !elements || !isFormValid()}
