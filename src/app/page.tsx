@@ -1217,7 +1217,7 @@ function SubmitEmailForExpressBooking() {
         </div>
       )}
 
-      {intakeComplete || (emailExists && paymentComplete) && (
+      {(intakeComplete || (emailExists && paymentComplete)) && (
         <div className="space-y-3 md:space-y-4 mt-3 md:mt-4">
           <div className="bg-[#0a0f1a] border-2 border-primary-teal/50 rounded-xl p-4 md:p-6 shadow-[0_0_30px_rgba(0,203,169,0.2)]">
             <div className="mb-4 md:mb-6">

@@ -35,6 +35,8 @@ export default function CheckoutForm({
   const elements = useElements();
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,9 +58,13 @@ export default function CheckoutForm({
 
     setIsLoading(true);
     setMessage(null);
+    setProgress(5);
+    setStatusText("Starting payment process...");
 
     try {
       // Create or update patient record
+      setProgress(15);
+      setStatusText("Checking patient record...");
       const storedData = sessionStorage.getItem('appointmentData');
       let patientId: string | null = null;
       
@@ -88,6 +94,8 @@ export default function CheckoutForm({
           }
         }
         
+        setProgress(30);
+        setStatusText("Creating patient...");
         const response = await fetch('/api/check-create-patient', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -124,6 +132,8 @@ export default function CheckoutForm({
       sessionStorage.setItem('appointmentData', JSON.stringify(updatedAppointmentData));
 
       // Process payment
+      setProgress(55);
+      setStatusText("Confirming payment...");
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
@@ -152,6 +162,8 @@ export default function CheckoutForm({
       // Payment successful - create appointment
       if (paymentIntent && paymentIntent.status === "succeeded") {
         try {
+          setProgress(75);
+          setStatusText("Finalizing appointment...");
           const appointmentDataStr = sessionStorage.getItem("appointmentData");
           const appointmentData = appointmentDataStr ? JSON.parse(appointmentDataStr) : {};
 
@@ -184,6 +196,8 @@ export default function CheckoutForm({
 
           // Call success callback
           if (onSuccess) {
+            setProgress(100);
+            setStatusText("Completed");
             onSuccess();
           }
         } catch (appointmentError) {
@@ -251,19 +265,29 @@ export default function CheckoutForm({
         </label>
       </div>
 
-      <button
-        disabled={isLoading || !stripe || !elements || !isFormValid()}
-        className="w-full bg-white text-black font-bold py-3 sm:py-4 rounded-lg hover:bg-gray-200 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
-      >
-        {isLoading ? (
-          <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-        ) : (
-          <>
-            <span>Pay Now</span>
-            <Lock size={14} className="sm:w-4 sm:h-4" />
-          </>
-        )}
-      </button>
+      {!isLoading && (
+        <button
+          disabled={!stripe || !elements || !isFormValid()}
+          className="w-full bg-white text-black font-bold py-3 sm:py-4 rounded-lg hover:bg-gray-200 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
+        >
+          <span>Pay Now</span>
+          <Lock size={14} className="sm:w-4 sm:h-4" />
+        </button>
+      )}
+
+      {isLoading && (
+        <div className="space-y-2">
+          <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-primary-teal transition-all duration-300"
+              style={{ width: `${Math.min(progress, 100)}%` }}
+            />
+          </div>
+          <div className="text-xs sm:text-sm text-gray-300 text-center">
+            {statusText || "Processing..."}
+          </div>
+        </div>
+      )}
     </form>
   );
 }
