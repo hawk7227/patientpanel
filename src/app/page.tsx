@@ -657,7 +657,7 @@ function SubmitEmailForExpressBooking() {
                         onChange={(e) => setAppointmentData((prev) => ({ ...prev, chiefComplaint: e.target.value }))}
                         placeholder="Describe symptoms"
                         rows={2}
-                        className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal min-h-[60px]"
+                        className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal min-h-[60px]"
                       />
                     </div>
                     <div className="flex justify-end">
