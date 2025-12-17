@@ -1297,10 +1297,10 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans">
       <UrgentCollapse />
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center pt-20 pb-12 px-4 text-center">
+      <section className="relative flex flex-col items-center justify-center pt-20 pb-12 md:px-4 px-2 text-center">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-primary-teal/10 blur-[120px] rounded-full -z-10" />
         
-        <div className="border border-white/10 bg-card-bg/50 backdrop-blur-sm rounded-3xl p-8 max-w-3xl w-full shadow-2xl shadow-primary-teal/10 relative overflow-hidden">
+        <div className="border border-white/10 bg-card-bg/50 backdrop-blur-sm rounded-3xl md:p-8 py-8 px-2 max-w-3xl w-full shadow-2xl shadow-primary-teal/10 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-teal to-transparent opacity-50"></div>
             <p className="text-xs md:text-sm text-gray-400 mb-2 uppercase tracking-wider font-semibold">Online Telehealth Services</p>
             <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white tracking-tight">
@@ -1310,27 +1310,24 @@ export default function Home() {
               Get medical advice, prescriptions, and sick notes from the comfort of your home.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              {/* <button 
-                onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-primary-teal hover:bg-teal-500 text-black font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
-              >
-                Start an Instant Visit <Video size={18} />
-              </button> */}
-              <button 
-                onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
-              >
-                Book My Appointment <Calendar size={18} />
-              </button>
-            </div>
+            {showEmailForExpressBooking && <div className="mb-2 md:mb-4 w-full"><SubmitEmailForExpressBooking /></div>}
+            {!showEmailForExpressBooking && <div>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <button 
+                  onClick={() => setShowEmailForExpressBooking(true)}
+                  className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
+                >
+                  Book My Appointment <Calendar size={18} />
+                </button>
+              </div>
 
-            <div className="text-primary-teal font-bold mb-4 text-sm md:text-base">
-               No Waiting. No Sign ups. No Account Needed
-            </div>
-            <div className="text-xs text-primary-teal mb-6">
-               $59 per visit — Traditional Insurances Accepted
-            </div>
+              <div className="text-primary-teal font-bold mb-4 text-sm md:text-base">
+                No Waiting. No Sign ups. No Account Needed
+              </div>
+              <div className="text-xs text-primary-teal mb-6">
+                $59 per visit — Traditional Insurances Accepted
+              </div>
+            </div>}
             
             <div className="flex flex-wrap justify-center gap-4 text-[10px] md:text-xs text-gray-300 font-medium">
                <span className="flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-full border border-white/5"><ShieldCheck size={12} className="text-primary-teal"/> HIPAA Secure</span>
@@ -1455,7 +1452,7 @@ export default function Home() {
            <p className="hidden md:block text-gray-400 mb-8 text-xl tracking-wider">
               No Account Needed
            </p>
-           {showEmailForExpressBooking && <SubmitEmailForExpressBooking />}
+           {showEmailForExpressBooking && <div className="mb-2 md:mb-4 w-full"><SubmitEmailForExpressBooking /></div>}
            
             {!showEmailForExpressBooking && <button 
                onClick={() => setShowEmailForExpressBooking(true)}
