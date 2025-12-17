@@ -75,6 +75,7 @@ function SubmitEmailForExpressBooking() {
     streetAddress: "",
     postalCode: "",
     placeId: "",
+    chiefComplaint: "",
     pharmacy: "",
     pharmacyAddress: "",
     cardNumber: "",
@@ -91,6 +92,7 @@ function SubmitEmailForExpressBooking() {
   const [clientSecret, setClientSecret] = useState("");
   const [highlightedField, setHighlightedField] = useState<string | null>("reason");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
+  const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
 
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -131,6 +133,9 @@ function SubmitEmailForExpressBooking() {
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
     return emailRegex.test(trimmed);
   };
+
+  // Require at least two words (each 2+ letters) separated by space (e.g., "it is")
+  const hasOneWord = useCallback((value: string) => /\b[A-Za-z]{2,}\b(?:\s+\b[A-Za-z]{2,}\b)+/.test(value.trim()), []);
 
   const appearance = {
     theme: "night" as const,
@@ -506,12 +511,13 @@ function SubmitEmailForExpressBooking() {
                           {filteredReasons.map((item) => (
                  <div 
                     key={item.name}
-                              className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0"
-                              onClick={() => {
-                                setAppointmentData((prev) => ({ ...prev, reason: item.name }));
-                                setReasonDialogOpen(false);
-                                setReasonQuery("");
-                              }}
+                                  className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0"
+                                  onClick={() => {
+                                    setAppointmentData((prev) => ({ ...prev, reason: item.name }));
+                                    setReasonDialogOpen(false);
+                                    setReasonQuery("");
+                                    setChiefComplaintDialogOpen(true);
+                                  }}
                  >
                     {item.name}
                  </div>
@@ -572,6 +578,38 @@ function SubmitEmailForExpressBooking() {
                   )}
                 </div>
               </div>
+
+              {chiefComplaintDialogOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
+                  <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div className="text-white font-bold text-base md:text-lg">Describe symptoms</div>
+                      <button onClick={() => setChiefComplaintDialogOpen(false)} className="text-gray-400 hover:text-white">✕</button>
+                    </div>
+                    <div className="space-y-2">
+                      <textarea
+                        value={appointmentData.chiefComplaint}
+                        onChange={(e) => setAppointmentData((prev) => ({ ...prev, chiefComplaint: e.target.value }))}
+                        placeholder="Describe symptoms"
+                        className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal min-h-[100px]"
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setChiefComplaintDialogOpen(false)}
+                        disabled={!hasOneWord(appointmentData.chiefComplaint)}
+                        className={`bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-sm md:text-base ${
+                          hasOneWord(appointmentData.chiefComplaint)
+                            ? "hover:bg-primary-teal/90"
+                            : "opacity-50 cursor-not-allowed"
+                        }`}
+                      >
+                        OK
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 text-sm">
                 <div className="relative">
