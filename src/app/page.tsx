@@ -15,6 +15,7 @@ import {
   Phone,
   ArrowRight,
   Loader2,
+  Check,
 } from "lucide-react";
 import AppointmentCalendar from "@/components/AppointmentCalendar";
 import UrgentCollapse from "@/components/home/UrgentCollapse";
@@ -23,18 +24,19 @@ import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const STEPS = [
    { 
      id: 0, 
      key: 'appointmentDetails', 
-     title: 'Step 1 of 2',
+    //  title: 'Step 1 of 2',
+     title: '1st Step',
      detailKey: null 
    },
    { 
      id: 1, 
      key: 'checkout', 
-     title: 'Step 2 of 2', 
+    //  title: 'Step 2 of 2', 
+     title: 'Final Step', 
      detailKey: null 
    }
  ];
@@ -416,6 +418,37 @@ function SubmitEmailForExpressBooking() {
     appointmentData.streetAddress.trim() &&
     appointmentData.placeId.trim();
 
+  const totalStepFields = 9;
+  const completedFields = useMemo(() => {
+    let count = 0;
+    if (email.trim()) count += 1; // email entered before step 1
+    if (appointmentData.reason && hasOneWord(appointmentData.chiefComplaint)) count += 1; // reason + chiefComplaint
+    if (appointmentData.visitType) count += 1;
+    if (appointmentData.appointmentDate && appointmentData.appointmentTime) count += 1;
+    if (appointmentData.firstName.trim()) count += 1;
+    if (appointmentData.lastName.trim()) count += 1;
+    if (isPhoneValid(appointmentData.phone)) count += 1;
+    if (isDobValid(appointmentData.dateOfBirth)) count += 1;
+    if (appointmentData.streetAddress.trim() && appointmentData.placeId.trim()) count += 1;
+    return Math.min(count, totalStepFields);
+  }, [
+    email,
+    appointmentData.reason,
+    appointmentData.visitType,
+    appointmentData.appointmentDate,
+    appointmentData.appointmentTime,
+    appointmentData.firstName,
+    appointmentData.lastName,
+    appointmentData.phone,
+    appointmentData.dateOfBirth,
+    appointmentData.streetAddress,
+    appointmentData.placeId,
+    isPhoneValid,
+    isDobValid,
+    appointmentData.chiefComplaint,
+    hasOneWord,
+  ]);
+
   return (
     <div className="bg-[#050b14] p-3 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative w-full">
       {!emailSubmitted && (
@@ -451,7 +484,32 @@ function SubmitEmailForExpressBooking() {
 
       {emailSubmitted && !paymentComplete && (
         <div className="space-y-3 md:space-y-6">
-          <div className="font-bold text-lg md:text-xl text-primary-orange">Step {step} of 2</div>
+          {/* <div className="font-bold text-lg md:text-xl text-primary-orange">Step {step} of 2</div> */}
+          <div className="font-bold text-lg md:text-xl text-primary-orange">{STEPS[step - 1].title}</div>
+          {/* <div className={`font-bold text-lg md:text-xl ${step === 1 ? "text-primary-orange" : "text-primary-teal"}`}>{STEPS[step - 1].title}</div> */}
+
+          {/* Progress bar for 9 fields */}
+          {step === 1 && (
+            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-2 md:p-3 space-y-2">
+              <div className="text-center text-white font-bold text-xs md:text-sm">Priority Queue Assigned</div>
+              <div className="flex items-center justify-center gap-1">
+                {Array.from({ length: totalStepFields }).map((_, idx) => {
+                  const filled = idx < completedFields;
+                  const isLastFilled = filled && completedFields === totalStepFields && idx === totalStepFields - 1;
+                  return (
+                    <div
+                      key={idx}
+                      className={`h-2 w-6 md:h-3 w-full rounded-xs border ${
+                        filled ? "bg-green-500 border-green-500" : "bg-transparent border-primary-teal/60"
+                      } flex items-center justify-center text-white`}
+                    >
+                      {isLastFilled ? <Check size={10} /> : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {doctorInfo && appointmentData.visitType && (
             <div className="border border-white/10 rounded-xl p-2.5 md:p-3 flex items-center gap-2 md:gap-3 bg-[#0d1218]">
@@ -469,13 +527,16 @@ function SubmitEmailForExpressBooking() {
                 <div className="text-gray-400 text-[10px] md:text-xs">{doctorInfo.credentials}</div>
                 <div className="text-primary-teal text-[10px] md:text-xs truncate">{doctorInfo.specialty}</div>
               </div>
-              <div className="flex flex-col items-center gap-0.5 md:gap-1 flex-shrink-0">
+              <div className="flex flex-col items-end gap-0.5 md:gap-1 flex-shrink-0">
                 <div className="text-gray-400 text-[9px] md:text-[10px]">Visit Type</div>
                 <div className="bg-primary-teal/10 text-primary-teal text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full">
                   {appointmentData.visitType}
                 </div>
                 {step === 2 && (
-                  <div className="text-white font-bold text-xs md:text-sm mt-0.5 md:mt-1">$189</div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <div className="text-white font-bold text-xs md:text-sm mt-0.5 md:mt-1">$189</div>
+                    <div className="text-center text-primary-teal font-md text-xs md:text-sm">{`"When Your Privacy Matters"`}</div>
+                  </div>
                 )}
               </div>
             </div>
@@ -623,12 +684,12 @@ function SubmitEmailForExpressBooking() {
                       setDateTimeMode("date");
                       setDateTimeDialogOpen(true);
                     }}
-                    className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between text-xs transition-all ${
+                    className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between transition-all ${
                       highlightedField === "dateTime" 
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
                         : appointmentData.appointmentDate && appointmentData.appointmentTime
-                        ? "border-primary-teal" 
-                        : "border-white/10"
+                        ? "border-primary-teal py-2 text-lg" 
+                        : "border-white/10 text-xs"
                     }`}
                   >
                     <span>
@@ -863,33 +924,32 @@ function SubmitEmailForExpressBooking() {
 
           {step === 2 && (
             <div className="space-y-3 md:space-y-4">
-              <div className="text-center text-primary-teal font-semibold text-xs md:text-sm">When Your Privacy Matters</div>
-              <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
-                <div className="text-white font-semibold text-xs md:text-sm">Checkout</div>
-                {clientSecret && (
-                  <Elements options={options} stripe={stripePromise}>
-                    <CheckoutForm
-                      formData={{
-                        email: email.trim(),
-                        firstName: appointmentData.firstName,
-                        lastName: appointmentData.lastName,
-                        phone: appointmentData.phone,
-                        dateOfBirth: appointmentData.dateOfBirth,
-                        streetAddress: appointmentData.streetAddress,
-                        postalCode: appointmentData.postalCode || "",
-                      }}
-                      acceptedTerms={acceptedTerms}
-                      onTermsChange={setAcceptedTerms}
-                      isFormValid={() => !!personalDetailsValid && acceptedTerms}
-                      convertDateToISO={convertDateToISO}
-                      onSuccess={() => {
-                        setPaymentComplete(true);
-                        setStep(3);
-                      }}
-                    />
-                  </Elements>
-                )}
-              </div>
+              {/* <div className="text-center text-primary-teal font-semibold text-xs md:text-sm">When Your Privacy Matters</div> */}
+              {/* <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3"> */}
+              <div className="text-white font-semibold text-sm"><span className="text-primary-orange">Confirm Appointment Request:</span> {appointmentData.appointmentDate} {appointmentData.appointmentTime}</div>
+              {clientSecret && (
+                <Elements options={options} stripe={stripePromise}>
+                  <CheckoutForm
+                    formData={{
+                      email: email.trim(),
+                      firstName: appointmentData.firstName,
+                      lastName: appointmentData.lastName,
+                      phone: appointmentData.phone,
+                      dateOfBirth: appointmentData.dateOfBirth,
+                      streetAddress: appointmentData.streetAddress,
+                      postalCode: appointmentData.postalCode || "",
+                    }}
+                    acceptedTerms={acceptedTerms}
+                    onTermsChange={setAcceptedTerms}
+                    isFormValid={() => !!personalDetailsValid && acceptedTerms}
+                    convertDateToISO={convertDateToISO}
+                    onSuccess={() => {
+                      setPaymentComplete(true);
+                      setStep(3);
+                    }}
+                  />
+                </Elements>
+              )}
             </div>
           )}
         </div>
