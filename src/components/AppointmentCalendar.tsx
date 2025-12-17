@@ -9,6 +9,7 @@ interface AppointmentCalendarProps {
   onDateSelect: (date: string) => void;
   onTimeSelect: (time: string) => void;
   doctorId?: string;
+  mode?: "both" | "date" | "time";
 }
 
 export default function AppointmentCalendar({
@@ -17,6 +18,7 @@ export default function AppointmentCalendar({
   onDateSelect,
   onTimeSelect,
   doctorId,
+  mode = "both",
 }: AppointmentCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
@@ -25,8 +27,15 @@ export default function AppointmentCalendar({
   const [loading, setLoading] = useState(false);
   const [loadingTimes, setLoadingTimes] = useState(false);
   const [timezone, setTimezone] = useState("America/New_York");
-  const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
   const [autoNavigateCount, setAutoNavigateCount] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const updateIsMobile = () => setIsMobile(window.innerWidth < 768);
+    updateIsMobile();
+    window.addEventListener("resize", updateIsMobile);
+    return () => window.removeEventListener("resize", updateIsMobile);
+  }, []);
 
   // Get first day of month and number of days
   const firstDayOfMonth = new Date(
@@ -137,30 +146,7 @@ export default function AppointmentCalendar({
   }, [currentMonth, doctorId, timezone, autoNavigateCount]);
 
   // Fetch booked appointments for current and next month
-  useEffect(() => {
-    const fetchBookedAppointments = async () => {
-      try {
-        const currentMonthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const nextMonthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
-        
-        const startDate = currentMonthStart.toISOString().split("T")[0];
-        const endDate = nextMonthEnd.toISOString().split("T")[0];
-
-        const response = await fetch(
-          `/api/get-booked-appointments?startDate=${startDate}&endDate=${endDate}&doctorId=${doctorId || ""}`
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setBookedSlots(data.bookedSlots || {});
-        }
-      } catch (error) {
-        console.error("Error fetching booked appointments:", error);
-      }
-    };
-
-    fetchBookedAppointments();
-  }, [currentMonth, doctorId]);
+  // Fetch booked appointments was previously here; removed unused state to reduce bundle size and warnings.
 
   // Fetch available times when date is selected
   useEffect(() => {
@@ -202,9 +188,9 @@ export default function AppointmentCalendar({
           setAvailableTimes([]);
           setBookedTimes([]);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Ignore abort errors
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
         console.error("Error fetching available times:", error);
@@ -294,11 +280,15 @@ export default function AppointmentCalendar({
   });
 
   const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
+  const effectiveMode = isMobile ? mode : "both";
+  const showCalendar = effectiveMode !== "time";
+  const showTimes = effectiveMode !== "date";
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className={`grid grid-cols-1 ${showCalendar && showTimes ? "lg:grid-cols-2" : ""} gap-4 sm:gap-6`}>
         {/* Calendar */}
+        {showCalendar && (
         <div className="bg-[#11161c] border border-white/10 rounded-lg p-4 sm:p-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <button
@@ -384,8 +374,10 @@ export default function AppointmentCalendar({
             Times shown in your timezone: {timezone.replace("_", " ")}
           </p>
         </div>
+        )}
 
         {/* Time slots */}
+        {showTimes && (
         <div className="bg-[#11161c] border border-white/10 rounded-lg p-4 sm:p-6">
           {selectedDate ? (
             <>
@@ -475,6 +467,7 @@ export default function AppointmentCalendar({
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );

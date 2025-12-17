@@ -219,6 +219,7 @@ export default function CheckoutForm({
             wallets: {
               applePay: 'never',
               googlePay: 'never',
+              link: 'never',
             },
             fields: {
               billingDetails: {

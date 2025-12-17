@@ -90,6 +90,7 @@ function SubmitEmailForExpressBooking() {
   const [intakeComplete, setIntakeComplete] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [highlightedField, setHighlightedField] = useState<string | null>("reason");
+  const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
 
   const appearance = {
     theme: "night" as const,
@@ -381,10 +382,10 @@ function SubmitEmailForExpressBooking() {
         <div className="mt-1 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <label className="block text-left text-white font-bold mb-2 text-sm ml-1">EMAIL:</label>
          <input 
-            type="email" 
-            value={email}
-            placeholder="your.email@example.com"
-            className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all"
+          type="email" 
+          value={email}
+          placeholder="your.email@example.com"
+          className="w-full bg-[#11161c] border border-white/10 rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal transition-all text-[16px]"
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && email.trim()) {
@@ -469,7 +470,7 @@ function SubmitEmailForExpressBooking() {
                           value={reasonQuery}
                           onChange={(e) => setReasonQuery(e.target.value)}
                           placeholder="Search symptoms..."
-                          className="w-full bg-[#11161c] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-primary-teal"
+                          className="w-full bg-[#11161c] border border-white/10 rounded px-3 py-2 text-[16px] text-white focus:outline-none focus:border-primary-teal"
                         />
                         <div className="max-h-72 overflow-y-auto border border-white/5 rounded-lg">
                           {filteredReasons.map((item) => (
@@ -545,7 +546,10 @@ function SubmitEmailForExpressBooking() {
               <div className="grid grid-cols-1 text-sm">
                 <div className="relative">
                   <button
-                    onClick={() => setDateTimeDialogOpen(true)}
+                    onClick={() => {
+                      setDateTimeMode("date");
+                      setDateTimeDialogOpen(true);
+                    }}
                     className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between text-xs transition-all ${
                       highlightedField === "dateTime" 
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]" 
@@ -568,22 +572,41 @@ function SubmitEmailForExpressBooking() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
                   <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-6 w-full max-w-3xl space-y-3 md:space-y-4">
                     <div className="flex justify-between items-center">
-                      <div className="text-white font-bold text-base md:text-lg">Select Appointment</div>
+                      <div className="text-white font-bold text-base md:text-lg">
+                        {dateTimeMode === "date" ? "Select Appointment Day" : "Select Appointment Time"}
+                      </div>
                       <button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white">✕</button>
                     </div>
+
+                    {dateTimeMode === "time" && (
+                      <div className="flex justify-start">
+                        <button
+                          onClick={() => setDateTimeMode("date")}
+                          className="text-xs md:text-sm text-primary-teal hover:text-primary-teal/80 underline"
+                        >
+                          Change day
+                        </button>
+                      </div>
+                    )}
+
                     <div className="bg-[#11161c]/60 rounded-lg p-2 border border-white/5">
                       <AppointmentCalendar
                         selectedDate={appointmentData.appointmentDate || null}
                         selectedTime={appointmentData.appointmentTime || null}
-                        onDateSelect={(date) => setAppointmentData((prev) => ({ ...prev, appointmentDate: date }))}
+                        onDateSelect={(date) => {
+                          setAppointmentData((prev) => ({ ...prev, appointmentDate: date, appointmentTime: "" }));
+                          setDateTimeMode("time");
+                        }}
                         onTimeSelect={(time) => setAppointmentData((prev) => ({ ...prev, appointmentTime: time }))}
                         doctorId="1fd1af57-5529-4d00-a301-e653b4829efc"
+                        mode={dateTimeMode === "date" ? "date" : "time"}
                       />
                     </div>
                     <div className="flex justify-end">
                       <button
                         onClick={() => setDateTimeDialogOpen(false)}
                         className="bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-xs md:text-sm hover:bg-primary-teal/90 w-full md:w-auto"
+                        disabled={!appointmentData.appointmentDate || !appointmentData.appointmentTime}
                       >
                         Done
                       </button>
@@ -600,7 +623,7 @@ function SubmitEmailForExpressBooking() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email"
-                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal col-span-2 transition-all ${
+                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal col-span-2 transition-all ${
                       email.trim() ? "border-primary-teal" : "border-white/10"
                     }`}
                     disabled
@@ -609,7 +632,7 @@ function SubmitEmailForExpressBooking() {
                     value={appointmentData.firstName}
                     onChange={(e) => setAppointmentData((prev) => ({ ...prev, firstName: e.target.value }))}
                     placeholder="First Name"
-                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "firstName"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
                         : appointmentData.firstName.trim()
@@ -621,7 +644,7 @@ function SubmitEmailForExpressBooking() {
                     value={appointmentData.lastName}
                     onChange={(e) => setAppointmentData((prev) => ({ ...prev, lastName: e.target.value }))}
                     placeholder="Last Name"
-                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "lastName"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
                         : appointmentData.lastName.trim()
@@ -633,7 +656,7 @@ function SubmitEmailForExpressBooking() {
                     value={appointmentData.phone}
                     onChange={(e) => setAppointmentData((prev) => ({ ...prev, phone: e.target.value }))}
                     placeholder="Phone"
-                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "phone"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
                         : appointmentData.phone.trim()
@@ -645,7 +668,7 @@ function SubmitEmailForExpressBooking() {
                     value={appointmentData.dateOfBirth}
                     onChange={(e) => handleDateOfBirthChange(e.target.value)}
                     placeholder="Date of Birth (MM/DD/YYYY)"
-                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                    className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "dateOfBirth"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
                         : appointmentData.dateOfBirth.trim()
@@ -680,7 +703,7 @@ function SubmitEmailForExpressBooking() {
                       placeholder="Street Address"
                       types={["address"]}
                       componentRestrictions={{ country: "us" }}
-                      className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal transition-all ${
+                      className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                         highlightedField === "streetAddress"
                           ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
                           : appointmentData.streetAddress.trim() && appointmentData.placeId.trim()
@@ -830,7 +853,7 @@ function SubmitEmailForExpressBooking() {
                       value={intakeAnswers.allergiesDetails}
                       onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, allergiesDetails: e.target.value }))}
                       placeholder="List any known drug allergies..."
-                      className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal"
+                      className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
                     />
       )}
     </div>
@@ -864,7 +887,7 @@ function SubmitEmailForExpressBooking() {
                       value={intakeAnswers.surgeriesDetails}
                       onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, surgeriesDetails: e.target.value }))}
                       placeholder="List recent surgeries..."
-                      className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal"
+                      className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
                     />
                   )}
                 </div>
@@ -898,7 +921,7 @@ function SubmitEmailForExpressBooking() {
                       value={intakeAnswers.medicationsDetails}
                       onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, medicationsDetails: e.target.value }))}
                       placeholder="List ongoing medical issues..."
-                      className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal"
+                      className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
                     />
                   )}
                 </div>
@@ -920,7 +943,7 @@ function SubmitEmailForExpressBooking() {
                     placeholder="Pharmacy name (City or ZIP)"
                     types={["pharmacy", "drugstore"]}
                     componentRestrictions={{ country: "us" }}
-                    className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal"
+                    className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
                   />
                   {appointmentData.pharmacyAddress && (
                     <div className="text-gray-500 text-[10px] md:text-xs mt-1">{appointmentData.pharmacyAddress}</div>
