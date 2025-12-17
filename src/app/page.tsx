@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import symptomSuggestions from "@/data/symptom-suggestions.json";
@@ -91,6 +91,38 @@ function SubmitEmailForExpressBooking() {
   const [clientSecret, setClientSecret] = useState("");
   const [highlightedField, setHighlightedField] = useState<string | null>("reason");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 10);
+    const filled = digits.padEnd(10, "_");
+    const formatted = `(${filled.slice(0, 3)})-${filled.slice(3, 6)}-${filled.slice(6, 10)}`;
+    return { digits, formatted };
+  };
+
+  const isPhoneValid = useCallback((value: string) => formatPhone(value).digits.length === 10, []);
+
+  const formatDob = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    const filled = digits.padEnd(8, "_");
+    const formatted = `${filled.slice(0, 2)}/${filled.slice(2, 4)}/${filled.slice(4, 8)}`;
+    return { digits, formatted };
+  };
+
+  const isDobValid = useCallback((value: string) => {
+    const { digits } = formatDob(value);
+    if (digits.length !== 8) return false;
+    const mm = Number(digits.slice(0, 2));
+    const dd = Number(digits.slice(2, 4));
+    const yyyy = Number(digits.slice(4, 8));
+    if (mm < 1 || mm > 12) return false;
+    const dt = new Date(yyyy, mm - 1, dd);
+    if (dt.getMonth() !== mm - 1 || dt.getDate() !== dd || dt.getFullYear() !== yyyy) return false;
+    const today = new Date();
+    dt.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    if (dt > today) return false;
+    return true;
+  }, []);
 
   const isValidEmail = (value: string) => {
     const trimmed = value.trim();
@@ -190,13 +222,13 @@ function SubmitEmailForExpressBooking() {
         setHighlightedField("visitType");
       } else if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) {
         setHighlightedField("dateTime");
-      } else if (!appointmentData.firstName) {
+      } else if (!appointmentData.firstName.trim()) {
         setHighlightedField("firstName");
-      } else if (!appointmentData.lastName) {
+      } else if (!appointmentData.lastName.trim()) {
         setHighlightedField("lastName");
-      } else if (!appointmentData.phone) {
+      } else if (!isPhoneValid(appointmentData.phone)) {
         setHighlightedField("phone");
-      } else if (!appointmentData.dateOfBirth) {
+      } else if (!isDobValid(appointmentData.dateOfBirth)) {
         setHighlightedField("dateOfBirth");
       } else if (!appointmentData.streetAddress || !appointmentData.placeId) {
         setHighlightedField("streetAddress");
@@ -204,7 +236,7 @@ function SubmitEmailForExpressBooking() {
         setHighlightedField(null);
       }
     }
-  }, [step, appointmentData]);
+  }, [step, appointmentData, isPhoneValid, isDobValid]);
 
   useEffect(() => {
     if ((paymentComplete || intakeComplete) && appointmentData.appointmentDate && appointmentData.appointmentTime) {
@@ -286,17 +318,20 @@ function SubmitEmailForExpressBooking() {
             // Convert date_of_birth from YYYY-MM-DD to MM/DD/YYYY format
             let formattedDateOfBirth = prev.dateOfBirth;
             if (result.user.date_of_birth) {
-              const dateParts = result.user.date_of_birth.split('-');
+              const dateParts = result.user.date_of_birth.split("-");
               if (dateParts.length === 3) {
                 formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
               }
             }
+            // Format phone with mask
+            const phoneDigits = (result.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
+            const phoneFormatted = formatPhone(phoneDigits).formatted;
             
             return {
               ...prev,
               firstName: result.user.first_name || prev.firstName,
               lastName: result.user.last_name || prev.lastName,
-              phone: result.user.mobile_phone || prev.phone,
+              phone: phoneDigits ? phoneFormatted : prev.phone,
               dateOfBirth: formattedDateOfBirth,
               streetAddress: result.user.address || prev.streetAddress,
             };
@@ -325,17 +360,7 @@ function SubmitEmailForExpressBooking() {
   };
 
   const handleDateOfBirthChange = (value: string) => {
-    const numbers = value.replace(/\D/g, "").slice(0, 8);
-    let formatted = "";
-    if (numbers.length > 0) {
-      formatted = numbers.slice(0, 2);
-      if (numbers.length > 2) {
-        formatted += "/" + numbers.slice(2, 4);
-      }
-      if (numbers.length > 4) {
-        formatted += "/" + numbers.slice(4, 8);
-      }
-    }
+    const { formatted } = formatDob(value);
     setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
   };
 
@@ -374,8 +399,8 @@ function SubmitEmailForExpressBooking() {
     appointmentData.appointmentTime &&
     appointmentData.firstName.trim() &&
     appointmentData.lastName.trim() &&
-    appointmentData.phone.trim() &&
-    appointmentData.dateOfBirth.trim() &&
+    isPhoneValid(appointmentData.phone) &&
+    isDobValid(appointmentData.dateOfBirth) &&
     appointmentData.streetAddress.trim() &&
     appointmentData.placeId.trim();
 
@@ -657,12 +682,32 @@ function SubmitEmailForExpressBooking() {
                   />
                   <input
                     value={appointmentData.phone}
-                    onChange={(e) => setAppointmentData((prev) => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Phone"
+                    onChange={(e) => {
+                      const { formatted } = formatPhone(e.target.value);
+                      setAppointmentData((prev) => ({ ...prev, phone: formatted }));
+                    }}
+                    placeholder="Phone Number"
+                    onFocus={(e) => {
+                      if (!appointmentData.phone.trim()) {
+                        const { formatted } = formatPhone("");
+                        setAppointmentData((prev) => ({ ...prev, phone: formatted }));
+                        // Move caret to after "("
+                        requestAnimationFrame(() => {
+                          e.target.setSelectionRange(1, 1);
+                        });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const digits = formatPhone(e.target.value).digits;
+                      if (!digits.length) {
+                        setAppointmentData((prev) => ({ ...prev, phone: "" }));
+                      }
+                    }}
+                    inputMode="numeric"
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "phone"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                        : appointmentData.phone.trim()
+                        : isPhoneValid(appointmentData.phone)
                         ? "border-primary-teal"
                         : "border-white/10"
                     }`}
@@ -670,11 +715,34 @@ function SubmitEmailForExpressBooking() {
                   <input
                     value={appointmentData.dateOfBirth}
                     onChange={(e) => handleDateOfBirthChange(e.target.value)}
-                    placeholder="Date of Birth (MM/DD/YYYY)"
+                    placeholder="Date of Birth"
+                    onFocus={(e) => {
+                      if (!appointmentData.dateOfBirth.trim()) {
+                        const { formatted } = formatDob("");
+                        setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
+                        // Move caret to start
+                        requestAnimationFrame(() => {
+                          e.target.setSelectionRange(0, 0);
+                        });
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const { digits } = formatDob(e.target.value);
+                      if (!digits.length) {
+                        setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
+                        return;
+                      }
+                      // If future date, alert and reset
+                      if (!isDobValid(e.target.value)) {
+                        alert("Date of birth can't be in the future or invalid.");
+                        setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
+                      }
+                    }}
+                    inputMode="numeric"
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "dateOfBirth"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                        : appointmentData.dateOfBirth.trim()
+                        : isDobValid(appointmentData.dateOfBirth)
                         ? "border-primary-teal"
                         : "border-white/10"
                     }`}
