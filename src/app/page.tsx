@@ -1309,7 +1309,9 @@ export default function Home() {
             <p className="text-gray-400 mb-8 max-w-xl mx-auto text-sm md:text-base">
               Get medical advice, prescriptions, and sick notes from the comfort of your home.
             </p>
-            
+            {showEmailForExpressBooking && <h2 className="text-xl md:text-4xl font-bold text-primary-teal mb-2">
+              <span className="text-white">Medazon Health</span> Express Booking
+           </h2>}
             {showEmailForExpressBooking && <div className="mb-2 md:mb-4 w-full"><SubmitEmailForExpressBooking /></div>}
             {!showEmailForExpressBooking && <div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
@@ -1446,8 +1448,8 @@ export default function Home() {
       {/* Symptoms Input Section */}
       <section id="symptoms-section" className="bg-[#11161c] py-6 md:py-20 border-y border-white/5">
          <div className="container mx-auto px-4 text-center max-w-4xl flex flex-col items-center justify-center">
-           <h2 className="text-2xl md:text-4xl font-bold text-primary-teal mb-2">
-              60 Seconds Express Booking
+           <h2 className="text-xl md:text-4xl font-bold text-primary-teal mb-2">
+              <span className="text-white">Medazon Health</span> Express Booking
            </h2>
            <p className="hidden md:block text-gray-400 mb-8 text-xl tracking-wider">
               No Account Needed
