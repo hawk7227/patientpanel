@@ -93,6 +93,7 @@ function SubmitEmailForExpressBooking() {
   const [highlightedField, setHighlightedField] = useState<string | null>("reason");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
   const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
+  const prefillHighlight = emailExists && appointmentData.appointmentDate && appointmentData.appointmentTime;
 
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -136,6 +137,10 @@ function SubmitEmailForExpressBooking() {
 
   // Require at least two words (each 2+ letters) separated by space (e.g., "it is")
   const hasOneWord = useCallback((value: string) => /\b[A-Za-z]{2,}\b(?:\s+\b[A-Za-z]{2,}\b)+/.test(value.trim()), []);
+
+  const markTouched = (..._args: unknown[]) => {
+    void _args;
+  };
 
   const appearance = {
     theme: "night" as const,
@@ -692,30 +697,38 @@ function SubmitEmailForExpressBooking() {
             onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email"
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal col-span-2 transition-all ${
-                      email.trim() ? "border-primary-teal" : "border-white/10"
+                      appointmentData.appointmentDate && appointmentData.appointmentTime ? "border-primary-teal" : "border-white/10"
                     }`}
                     disabled
                   />
                   <input
                     value={appointmentData.firstName}
-                    onChange={(e) => setAppointmentData((prev) => ({ ...prev, firstName: e.target.value }))}
+                    onFocus={() => markTouched("firstName")}
+                    onChange={(e) => {
+                      markTouched("firstName");
+                      setAppointmentData((prev) => ({ ...prev, firstName: e.target.value }));
+                    }}
                     placeholder="First Name"
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "firstName"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                        : appointmentData.firstName.trim()
+                        : appointmentData.firstName.trim() && (!emailExists || prefillHighlight)
                         ? "border-primary-teal"
                         : "border-white/10"
                     }`}
                   />
                   <input
                     value={appointmentData.lastName}
-                    onChange={(e) => setAppointmentData((prev) => ({ ...prev, lastName: e.target.value }))}
+                    onFocus={() => markTouched("lastName")}
+                    onChange={(e) => {
+                      markTouched("lastName");
+                      setAppointmentData((prev) => ({ ...prev, lastName: e.target.value }));
+                    }}
                     placeholder="Last Name"
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "lastName"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                        : appointmentData.lastName.trim()
+                        : appointmentData.lastName.trim() && (!emailExists || prefillHighlight)
                         ? "border-primary-teal"
                         : "border-white/10"
                     }`}
@@ -723,11 +736,13 @@ function SubmitEmailForExpressBooking() {
                   <input
                     value={appointmentData.phone}
                     onChange={(e) => {
+                      markTouched("phone");
                       const { formatted } = formatPhone(e.target.value);
                       setAppointmentData((prev) => ({ ...prev, phone: formatted }));
                     }}
                     placeholder="Phone Number"
                     onFocus={(e) => {
+                      markTouched("phone");
                       if (!appointmentData.phone.trim()) {
                         const { formatted } = formatPhone("");
                         setAppointmentData((prev) => ({ ...prev, phone: formatted }));
@@ -747,7 +762,7 @@ function SubmitEmailForExpressBooking() {
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "phone"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                        : isPhoneValid(appointmentData.phone)
+                        : isPhoneValid(appointmentData.phone) && (!emailExists || prefillHighlight)
                         ? "border-primary-teal"
                         : "border-white/10"
                     }`}
@@ -757,6 +772,7 @@ function SubmitEmailForExpressBooking() {
                     onChange={(e) => handleDateOfBirthChange(e.target.value)}
                     placeholder="Date of Birth"
                     onFocus={(e) => {
+                      markTouched("dateOfBirth");
                       if (!appointmentData.dateOfBirth.trim()) {
                         const { formatted } = formatDob("");
                         setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
@@ -767,6 +783,7 @@ function SubmitEmailForExpressBooking() {
                       }
                     }}
                     onBlur={(e) => {
+                      markTouched("dateOfBirth");
                       const { digits } = formatDob(e.target.value);
                       if (!digits.length) {
                         setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
@@ -782,7 +799,7 @@ function SubmitEmailForExpressBooking() {
                     className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                       highlightedField === "dateOfBirth"
                         ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                        : isDobValid(appointmentData.dateOfBirth)
+                        : isDobValid(appointmentData.dateOfBirth) && (!emailExists || prefillHighlight)
                         ? "border-primary-teal"
                         : "border-white/10"
                     }`}
@@ -790,7 +807,10 @@ function SubmitEmailForExpressBooking() {
                   <div className="col-span-2">
                     <GooglePlacesAutocomplete
                       value={appointmentData.streetAddress}
-                      onChange={(value) => setAppointmentData((prev) => ({ ...prev, streetAddress: value }))}
+                      onChange={(value) => {
+                        markTouched("streetAddress");
+                        setAppointmentData((prev) => ({ ...prev, streetAddress: value }));
+                      }}
                       onPlaceSelect={(place) => {
                         if (place.formatted_address) {
                           let postalCode = "";
@@ -809,6 +829,7 @@ function SubmitEmailForExpressBooking() {
                             postalCode: postalCode,
                             placeId: place.place_id || "",
                           }));
+                          markTouched("streetAddress");
                         }
                       }}
                       placeholder="Street Address"
@@ -817,7 +838,7 @@ function SubmitEmailForExpressBooking() {
                       className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
                         highlightedField === "streetAddress"
                           ? "border-primary-teal animate-pulse shadow-[0_0_10px_rgba(0,203,169,0.5)]"
-                          : appointmentData.streetAddress.trim() && appointmentData.placeId.trim()
+                          : appointmentData.streetAddress.trim() && appointmentData.placeId.trim() && (!emailExists || prefillHighlight)
                           ? "border-primary-teal"
                           : "border-white/10"
                       }`}
