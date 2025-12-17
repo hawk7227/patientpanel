@@ -92,6 +92,14 @@ function SubmitEmailForExpressBooking() {
   const [highlightedField, setHighlightedField] = useState<string | null>("reason");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
 
+  const isValidEmail = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    // RFC5322-like, pragmatic validation: local@domain.tld (2+ TLD chars), allows dots/hyphens
+    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    return emailRegex.test(trimmed);
+  };
+
   const appearance = {
     theme: "night" as const,
     variables: {
@@ -253,13 +261,8 @@ function SubmitEmailForExpressBooking() {
   }, [reasonQuery]);
 
   const handleEmailSubmission = async () => {
-    if (!email.trim()) {
+    if (!isValidEmail(email)) {
       alert("Please enter your email address to continue.");
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      alert("Please enter a valid email address.");
       return;
     }
 
@@ -395,10 +398,10 @@ function SubmitEmailForExpressBooking() {
           />
         <div className="flex justify-center gap-4 mt-4 md:mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
           <button 
-              onClick={handleEmailSubmission}
-            disabled={!email.trim() || isLoading}
+            onClick={handleEmailSubmission}
+            disabled={!isValidEmail(email) || isLoading}
             className={`bg-primary-orange text-white px-8 py-3 rounded-lg transition-all text-sm font-bold shadow-lg shadow-orange-900/20 flex items-center gap-2 ${
-                !email.trim() || isLoading ? "opacity-50 cursor-not-allowed grayscale" : "hover:bg-orange-600"
+                !isValidEmail(email) || isLoading ? "opacity-50 cursor-not-allowed grayscale" : "hover:bg-orange-600"
             }`}
          >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
