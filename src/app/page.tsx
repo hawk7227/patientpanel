@@ -326,6 +326,7 @@ function SubmitEmailForExpressBooking() {
             // Format phone with mask
             const phoneDigits = (result.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
             const phoneFormatted = formatPhone(phoneDigits).formatted;
+            const addressIncoming = result.user.address || "";
             
             return {
               ...prev,
@@ -333,7 +334,8 @@ function SubmitEmailForExpressBooking() {
               lastName: result.user.last_name || prev.lastName,
               phone: phoneDigits ? phoneFormatted : prev.phone,
               dateOfBirth: formattedDateOfBirth,
-              streetAddress: result.user.address || prev.streetAddress,
+              streetAddress: addressIncoming || prev.streetAddress,
+              placeId: addressIncoming ? prev.placeId || "api-prefill-address" : prev.placeId,
             };
           });
         }
@@ -782,7 +784,7 @@ function SubmitEmailForExpressBooking() {
                           : "border-white/10"
                       }`}
                     />
-         </div>
+                  </div>
                 </div>
               </div>
 
