@@ -955,11 +955,11 @@ function SubmitEmailForExpressBooking() {
         </div>
       )}
 
-      {paymentComplete && !intakeComplete && (
+      {paymentComplete && !intakeComplete && !emailExists && (
         <div className="space-y-3 md:space-y-4 mt-3 md:mt-4">
           <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4">
             <div className="text-primary-teal font-bold text-base md:text-lg mb-2">Appointment Confirmed</div>
-            {doctorInfo && (
+            {/* {doctorInfo && (
               <div className="flex items-center gap-2 md:gap-3 mb-3">
                 <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden ring-2 ring-primary-teal/40 flex-shrink-0">
                   <Image
@@ -976,14 +976,14 @@ function SubmitEmailForExpressBooking() {
                   <div className="text-primary-teal text-[10px] md:text-xs">{doctorInfo.specialty}</div>
                 </div>
               </div>
-            )}
+            )} */}
             <div className="text-gray-300 text-xs md:text-sm">
               {appointmentData.appointmentDate && appointmentData.appointmentTime && (
                 <div className="font-semibold mb-1">
                   Date & Time: {formatDateTime(appointmentData.appointmentDate, appointmentData.appointmentTime)}
                 </div>
               )}
-              Thank you for scheduling. We&apos;ve reserved your spot and sent a confirmation to {email}.
+              {/* Thank you for scheduling. We&apos;ve reserved your spot and sent a confirmation to {email}. */}
             </div>
           </div>
 
@@ -993,7 +993,7 @@ function SubmitEmailForExpressBooking() {
                 <div className="text-red-500 font-bold text-xs md:text-sm mb-2">REQUIRED BEFORE VISIT</div>
                 <div className="text-white font-bold text-base md:text-xl mb-3">Complete Your Intake</div>
                 
-                <div className="flex justify-center gap-4 md:gap-8 mb-4">
+                {/* <div className="flex justify-center gap-4 md:gap-8 mb-4">
                   <div className="text-center">
                     <div className="text-primary-teal font-bold text-2xl md:text-3xl">{timeUntilAppointment.days.toString().padStart(2, '0')}</div>
                     <div className="text-gray-400 text-[10px] md:text-xs uppercase">Days</div>
@@ -1006,7 +1006,7 @@ function SubmitEmailForExpressBooking() {
                     <div className="text-primary-teal font-bold text-2xl md:text-3xl">{timeUntilAppointment.minutes.toString().padStart(2, '0')}</div>
                     <div className="text-gray-400 text-[10px] md:text-xs uppercase">Minutes</div>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               <div className="bg-[#1a2128] border border-primary-orange/30 rounded-lg p-3 md:p-4">
@@ -1217,7 +1217,7 @@ function SubmitEmailForExpressBooking() {
         </div>
       )}
 
-      {intakeComplete && (
+      {intakeComplete || (emailExists && paymentComplete) && (
         <div className="space-y-3 md:space-y-4 mt-3 md:mt-4">
           <div className="bg-[#0a0f1a] border-2 border-primary-teal/50 rounded-xl p-4 md:p-6 shadow-[0_0_30px_rgba(0,203,169,0.2)]">
             <div className="mb-4 md:mb-6">
