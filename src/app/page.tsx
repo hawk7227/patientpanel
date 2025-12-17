@@ -582,16 +582,16 @@ function SubmitEmailForExpressBooking() {
               {chiefComplaintDialogOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
                   <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-center items-center">
                       <div className="text-white font-bold text-base md:text-lg">Describe symptoms</div>
-                      <button onClick={() => setChiefComplaintDialogOpen(false)} className="text-gray-400 hover:text-white">✕</button>
                     </div>
                     <div className="space-y-2">
                       <textarea
                         value={appointmentData.chiefComplaint}
                         onChange={(e) => setAppointmentData((prev) => ({ ...prev, chiefComplaint: e.target.value }))}
                         placeholder="Describe symptoms"
-                        className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal min-h-[100px]"
+                        rows={2}
+                        className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-3 text-white text-sm focus:outline-none focus:border-primary-teal min-h-[60px]"
                       />
                     </div>
                     <div className="flex justify-end">
