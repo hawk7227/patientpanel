@@ -1,0 +1,30 @@
+{
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "nodeVersion": "20.x",
+  "installCommand": "pnpm install",
+  "env": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_KEY",
+    "STRIPE_SECRET_KEY",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY",
+    "OPENAI_API_KEY",
+    "CLICKSEND_USERNAME",
+    "CLICKSEND_API_KEY",
+    "NODEMAILER_EMAIL",
+    "NODEMAILER_PASSWORD",
+    "ZOOM_CLIENT_ID",
+    "ZOOM_CLIENT_SECRET"
+  ],
+  "regions": ["iad1"],
+  "functions": {
+    "src/app/api/**": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}
