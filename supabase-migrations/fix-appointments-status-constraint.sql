@@ -2,8 +2,7 @@
 -- Run this in your Supabase SQL Editor
 
 -- Step 1: Drop the existing constraint
-ALTER TABLE appointments 
-DROP CONSTRAINT IF EXISTS appointments_status_check;
+
 
 -- Step 2: Add the new constraint that includes 'approved'
 -- Adjust the list of statuses based on what your application needs
