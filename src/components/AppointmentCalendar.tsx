@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 
 interface AppointmentCalendarProps {
@@ -36,11 +36,35 @@ export default function AppointmentCalendar({
     try {
       return Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch {
-      return "America/New_York";
+      // Fallback to Phoenix timezone if detection fails
+      return "America/Phoenix";
     }
   });
   const [autoNavigateCount, setAutoNavigateCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Helper function to convert patient local date to Phoenix date
+  const convertLocalDateToPhoenixDate = useCallback((localDateStr: string): string => {
+    // Parse local date string (YYYY-MM-DD) - this is patient's local date
+    const [year, month, day] = localDateStr.split('-').map(Number);
+    // Create date in patient's local timezone (noon to avoid DST issues)
+    const localDate = new Date(year, month - 1, day, 12, 0, 0);
+    
+    // Get what this date is in Phoenix timezone
+    const phoenixFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Phoenix',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    
+    const parts = phoenixFormatter.formatToParts(localDate);
+    const phoenixYear = parts.find(p => p.type === 'year')?.value || '0';
+    const phoenixMonth = parts.find(p => p.type === 'month')?.value || '0';
+    const phoenixDay = parts.find(p => p.type === 'day')?.value || '0';
+    
+    return `${phoenixYear}-${phoenixMonth.padStart(2, '0')}-${phoenixDay.padStart(2, '0')}`;
+  }, []);
 
   useEffect(() => {
     const updateIsMobile = () => setIsMobile(window.innerWidth < 768);
@@ -220,8 +244,12 @@ export default function AppointmentCalendar({
 
     const fetchAvailableTimes = async () => {
       try {
+        // Convert patient local date to Phoenix date for API
+        // This ensures API receives correct Phoenix date for comparison
+        const phoenixDateStr = convertLocalDateToPhoenixDate(selectedDate);
+        
         const response = await fetch(
-          `/api/get-doctor-availability?date=${selectedDate}&doctorId=${doctorId || ""}`,
+          `/api/get-doctor-availability?date=${phoenixDateStr}&doctorId=${doctorId || ""}`,
           { signal: abortController.signal }
         );
         
@@ -238,15 +266,16 @@ export default function AppointmentCalendar({
           setProviderTimezone(providerTZ);
           
           // Convert times from provider timezone to patient timezone
+          // IMPORTANT: Pass Phoenix date (phoenixDateStr) for correct time conversion
           const convertedAvailableTimes = convertTimesToPatientTimezone(
             data.availableSlots || [],
-            selectedDate,
+            phoenixDateStr, // Phoenix date for conversion
             providerTZ,
             patientTimezone
           );
           const convertedBookedTimes = convertTimesToPatientTimezone(
             data.bookedSlots || [],
-            selectedDate,
+            phoenixDateStr, // Phoenix date for conversion
             providerTZ,
             patientTimezone
           );
@@ -281,7 +310,7 @@ export default function AppointmentCalendar({
     return () => {
       abortController.abort();
     };
-  }, [selectedDate, doctorId]);
+  }, [selectedDate, doctorId, convertLocalDateToPhoenixDate]);
 
   const handleDateClick = (day: number) => {
     const year = currentMonth.getFullYear();
@@ -528,11 +557,17 @@ export default function AppointmentCalendar({
           {selectedDate ? (
             <>
               <h3 className="mb-2 text-base font-semibold text-white sm:text-lg">
-                Selected: {new Date(selectedDate).toLocaleDateString("en-US", {
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                Selected: {(() => {
+                  // Parse date string (YYYY-MM-DD) as local date, not UTC
+                  // This prevents off-by-one day errors in timezones behind UTC
+                  const [year, month, day] = selectedDate.split('-').map(Number);
+                  const localDate = new Date(year, month - 1, day); // Create in local timezone
+                  return localDate.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                })()}
               </h3>
               {loadingTimes ? (
                 <div className="flex flex-col gap-2 sm:gap-3">
@@ -551,25 +586,89 @@ export default function AppointmentCalendar({
                   <p className="mb-3 text-xs text-gray-400 sm:text-sm sm:mb-4">Times Available</p>
                   <div className="grid grid-cols-2 gap-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto pr-1 sm:pr-2">
                     {(() => {
-                      // Combine available and booked times, then sort
-                      const allTimes = new Set([...availableTimes, ...bookedTimes]);
+                      // Filter out past booked slots in patient's timezone
+                      const now = new Date();
+                      const patientFormatter = new Intl.DateTimeFormat('en-US', {
+                        timeZone: patientTimezone,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      });
+                      
+                      const nowParts = patientFormatter.formatToParts(now);
+                      const todayYear = parseInt(nowParts.find(p => p.type === 'year')?.value || '0');
+                      const todayMonth = parseInt(nowParts.find(p => p.type === 'month')?.value || '0');
+                      const todayDay = parseInt(nowParts.find(p => p.type === 'day')?.value || '0');
+                      const todayHour = parseInt(nowParts.find(p => p.type === 'hour')?.value || '0');
+                      const todayMinute = parseInt(nowParts.find(p => p.type === 'minute')?.value || '0');
+                      
+                      const todayStr = `${todayYear}-${String(todayMonth).padStart(2, '0')}-${String(todayDay).padStart(2, '0')}`;
+                      const isToday = selectedDate === todayStr;
+                      
+                      // Filter booked slots to exclude past times in patient's timezone
+                      const filteredBookedTimes = bookedTimes.filter((time) => {
+                        if (!selectedDate) return true; // Show all if no date selected
+                        
+                        // If it's today, filter out past times
+                        if (isToday) {
+                          const [hours, minutes] = time.split(":").map(Number);
+                          const timeSlotMinutes = hours * 60 + minutes;
+                          const nowMinutes = todayHour * 60 + todayMinute;
+                          // Don't show booked slots that are in the past
+                          return timeSlotMinutes >= nowMinutes;
+                        }
+                        
+                        // For future dates, show all booked slots
+                        return true;
+                      });
+                      
+                      // Combine available and filtered booked times, then sort
+                      const allTimes = new Set([...availableTimes, ...filteredBookedTimes]);
                       const sortedTimes = Array.from(allTimes).sort();
                       
                       return sortedTimes.map((time) => {
-                        const isBooked = bookedTimes.includes(time);
+                        const isBooked = filteredBookedTimes.includes(time);
                         const isPast = (() => {
                           if (!selectedDate) return false;
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                          
+                          // Get current time in patient's timezone (not browser timezone)
+                          const now = new Date();
+                          const patientFormatter = new Intl.DateTimeFormat('en-US', {
+                            timeZone: patientTimezone,
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          });
+                          
+                          const nowParts = patientFormatter.formatToParts(now);
+                          const todayYear = parseInt(nowParts.find(p => p.type === 'year')?.value || '0');
+                          const todayMonth = parseInt(nowParts.find(p => p.type === 'month')?.value || '0');
+                          const todayDay = parseInt(nowParts.find(p => p.type === 'day')?.value || '0');
+                          const todayHour = parseInt(nowParts.find(p => p.type === 'hour')?.value || '0');
+                          const todayMinute = parseInt(nowParts.find(p => p.type === 'minute')?.value || '0');
+                          
+                          const todayStr = `${todayYear}-${String(todayMonth).padStart(2, '0')}-${String(todayDay).padStart(2, '0')}`;
                           const isToday = selectedDate === todayStr;
                           
                           if (isToday) {
                             const [hours, minutes] = time.split(":").map(Number);
-                            const now = new Date();
-                            const timeSlot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
-                            const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-                            return timeSlot < threeHoursFromNow;
+                            
+                            // Compare times in patient's timezone (same timezone as the time slots)
+                            // Convert both to minutes for easy comparison
+                            const timeSlotMinutes = hours * 60 + minutes;
+                            const nowMinutes = todayHour * 60 + todayMinute;
+                            const threeHoursFromNowMinutes = nowMinutes + (3 * 60); // 3 hours = 180 minutes
+                            
+                            // Disable if time slot is less than 3 hours from now
+                            return timeSlotMinutes < threeHoursFromNowMinutes;
                           }
                           return false;
                         })();

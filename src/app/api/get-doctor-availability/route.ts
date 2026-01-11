@@ -117,7 +117,9 @@ export async function GET(request: Request) {
       );
     }
 
-    const doctorTimezone = doctor.timezone || "America/New_York";
+    // CRITICAL: Provider timezone is ALWAYS America/Phoenix per requirements
+    // This must match the calendar and appointment storage logic
+    const doctorTimezone = "America/Phoenix";
 
     // Handle batch request (date range)
     if (startDate && endDate) {
@@ -179,14 +181,27 @@ export async function GET(request: Request) {
     }
 
     // Extract booked time slots
-    // Note: requested_date_time is stored in UTC, but we need to convert it to the doctor's timezone
+    // Note: requested_date_time is stored in UTC, but we need to convert it to Phoenix timezone
     const bookedTimes = new Set<string>();
+    
+    // Helper function to round time to nearest 30-minute slot
+    const roundToNearestSlot = (hour: number, minute: number): { hour: number; minute: number } => {
+      if (minute < 15) {
+        return { hour, minute: 0 };
+      } else if (minute < 45) {
+        return { hour, minute: 30 };
+      } else {
+        // Handle hour overflow
+        const newHour = hour + 1;
+        return { hour: newHour >= 24 ? 0 : newHour, minute: 0 };
+      }
+    };
     
     if (existingAppointments) {
       existingAppointments.forEach((apt) => {
         const utcDate = new Date(apt.requested_date_time);
         
-        // Convert UTC time to doctor's timezone using Intl.DateTimeFormat
+        // Convert UTC time to Phoenix timezone using Intl.DateTimeFormat
         const formatter = new Intl.DateTimeFormat("en-US", {
           timeZone: doctorTimezone,
           year: "numeric",
@@ -207,9 +222,11 @@ export async function GET(request: Request) {
         if (year && month && day && hour && minute) {
           const localDateStr = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
           
-          // Only consider appointments on the requested date (in doctor's timezone)
+          // Only consider appointments on the requested date (in Phoenix timezone)
           if (localDateStr === date) {
-            const timeStr = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+            // Round to nearest 30-minute slot to match calendar display
+            const rounded = roundToNearestSlot(parseInt(hour), parseInt(minute));
+            const timeStr = `${String(rounded.hour).padStart(2, "0")}:${String(rounded.minute).padStart(2, "0")}`;
             bookedTimes.add(timeStr);
           }
         }
@@ -363,7 +380,7 @@ export async function GET(request: Request) {
         id: doctor.id,
         name: `${doctor.first_name} ${doctor.last_name}`,
         specialty: doctor.specialty,
-        timezone: doctor.timezone || "America/New_York",
+        timezone: "America/Phoenix", // Always Phoenix per requirements
       },
       date,
       availableSlots,
@@ -431,9 +448,24 @@ async function handleBatchRequest(
 
   // Group appointments by date
   const appointmentsByDate: Record<string, Set<string>> = {};
+  
+  // Helper function to round time to nearest 30-minute slot
+  const roundToNearestSlot = (hour: number, minute: number): { hour: number; minute: number } => {
+    if (minute < 15) {
+      return { hour, minute: 0 };
+    } else if (minute < 45) {
+      return { hour, minute: 30 };
+    } else {
+      // Handle hour overflow
+      const newHour = hour + 1;
+      return { hour: newHour >= 24 ? 0 : newHour, minute: 0 };
+    }
+  };
+  
   if (existingAppointments) {
     existingAppointments.forEach((apt) => {
       const utcDate = new Date(apt.requested_date_time);
+      // Convert UTC time to Phoenix timezone
       const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: doctorTimezone,
         year: "numeric",
@@ -457,7 +489,9 @@ async function handleBatchRequest(
           if (!appointmentsByDate[localDateStr]) {
             appointmentsByDate[localDateStr] = new Set();
           }
-          const timeStr = `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+          // Round to nearest 30-minute slot to match calendar display
+          const rounded = roundToNearestSlot(parseInt(hour), parseInt(minute));
+          const timeStr = `${String(rounded.hour).padStart(2, "0")}:${String(rounded.minute).padStart(2, "0")}`;
           appointmentsByDate[localDateStr].add(timeStr);
         }
       }

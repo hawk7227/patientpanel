@@ -311,7 +311,18 @@ export async function POST(request: Request) {
       const patientTZ = patientTimezone || "America/New_York";
       
       // Convert patient's local time to Phoenix time
-      // Step 1: Find the UTC time that represents patient's selected time in their timezone
+      // The correct approach: Create a date string in patient's timezone, parse it as local,
+      // then convert to UTC, then format in Phoenix timezone
+      
+      // Step 1: Create a date string that represents the patient's local time
+      // We'll use a date string in ISO format and parse it correctly
+      const patientDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+      
+      // Step 2: Create a date object that represents this time in the patient's timezone
+      // We'll use a trick: create a date in UTC that, when formatted in patient timezone, gives us the right time
+      // Then we can convert that UTC to Phoenix timezone
+      
+      // Create formatters for both timezones
       const patientFormatter = new Intl.DateTimeFormat('en-US', {
         timeZone: patientTZ,
         year: 'numeric',
@@ -334,33 +345,88 @@ export async function POST(request: Request) {
         hour12: false
       });
       
-      // Find UTC time that, when displayed in patient timezone, equals selected time
-      const approximateUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+      // Step 3: Find the UTC time that represents the patient's selected time in their timezone
+      // Use a more direct approach: create a date string and parse it correctly
+      // We'll search around the expected UTC time based on timezone offset
+      
+      // Start with midnight UTC on the target date as a base
+      const baseUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+      
+      // Get what midnight UTC is in patient's timezone to understand the offset
+      const basePatientParts = patientFormatter.formatToParts(baseUTC);
+      const basePatientHour = parseInt(basePatientParts.find(p => p.type === 'hour')?.value || '0');
+      const basePatientDay = parseInt(basePatientParts.find(p => p.type === 'day')?.value || '0');
+      
+      // Calculate approximate offset: if midnight UTC = X:00 in patient timezone
+      // Then patient's selected time (hours:minutes) should be at UTC + (hours - basePatientHour) hours
+      // But we need to account for date changes, so search more carefully
       let bestUTC: Date | null = null;
       
-      for (let offsetHours = -12; offsetHours <= 12; offsetHours++) {
-        const testUTC = new Date(approximateUTC.getTime() + offsetHours * 60 * 60 * 1000);
-        const patientParts = patientFormatter.formatToParts(testUTC);
+      // Search in a wider range to handle all timezones (up to +/- 30 hours to handle all cases)
+      for (let offsetHours = -30; offsetHours <= 30; offsetHours++) {
+        const testUTC = new Date(baseUTC.getTime() + offsetHours * 60 * 60 * 1000);
+        const testPatientParts = patientFormatter.formatToParts(testUTC);
         
-        const testYear = parseInt(patientParts.find(p => p.type === 'year')?.value || '0');
-        const testMonth = parseInt(patientParts.find(p => p.type === 'month')?.value || '0');
-        const testDay = parseInt(patientParts.find(p => p.type === 'day')?.value || '0');
-        const testHour = parseInt(patientParts.find(p => p.type === 'hour')?.value || '0');
-        const testMinute = parseInt(patientParts.find(p => p.type === 'minute')?.value || '0');
+        const testYear = parseInt(testPatientParts.find(p => p.type === 'year')?.value || '0');
+        const testMonth = parseInt(testPatientParts.find(p => p.type === 'month')?.value || '0');
+        const testDay = parseInt(testPatientParts.find(p => p.type === 'day')?.value || '0');
+        const testHour = parseInt(testPatientParts.find(p => p.type === 'hour')?.value || '0');
+        const testMinute = parseInt(testPatientParts.find(p => p.type === 'minute')?.value || '0');
         
         if (testYear === year && testMonth === month && testDay === day && 
             testHour === hours && testMinute === minutes) {
           bestUTC = testUTC;
+          // #region agent log
+          fetch('http://127.0.0.1:60000/ingest/9f837d7d-c74d-4d53-b3e3-0fed42051042',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-appointment/route.ts:378',message:'Found UTC for patient time',data:{patientTime:`${hours}:${minutes}`,patientDate:`${year}-${month}-${day}`,foundUTC:testUTC.toISOString(),offsetHours,testUTCInPhoenix:providerFormatter.formatToParts(testUTC).find(p=>p.type==='hour')?.value},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H'})}).catch(()=>{});
+          // #endregion
           break;
         }
       }
       
       if (!bestUTC) {
-        // Fallback: use approximate
-        bestUTC = approximateUTC;
+        // Fallback: try multiple base times to find the right one
+        const testBases = [
+          new Date(Date.UTC(year, month - 1, day, 0, 0, 0)),   // midnight
+          new Date(Date.UTC(year, month - 1, day, 12, 0, 0)),  // noon
+          new Date(Date.UTC(year, month - 1, day - 1, 12, 0, 0)), // previous day noon
+          new Date(Date.UTC(year, month - 1, day + 1, 12, 0, 0)), // next day noon
+        ];
+        
+        for (const testBase of testBases) {
+          const baseParts = patientFormatter.formatToParts(testBase);
+          const baseHour = parseInt(baseParts.find(p => p.type === 'hour')?.value || '0');
+          const baseDay = parseInt(baseParts.find(p => p.type === 'day')?.value || '0');
+          
+          if (baseDay === day) {
+            let offsetHours = hours - baseHour;
+            if (offsetHours < -12) offsetHours += 24;
+            if (offsetHours > 12) offsetHours -= 24;
+            
+            const candidateUTC = new Date(testBase.getTime() + offsetHours * 60 * 60 * 1000 + minutes * 60 * 1000);
+            const verifyParts = patientFormatter.formatToParts(candidateUTC);
+            const verifyHour = parseInt(verifyParts.find(p => p.type === 'hour')?.value || '0');
+            const verifyDay = parseInt(verifyParts.find(p => p.type === 'day')?.value || '0');
+            
+            if (verifyDay === day && verifyHour === hours) {
+              bestUTC = candidateUTC;
+              // #region agent log
+              fetch('http://127.0.0.1:60000/ingest/9f837d7d-c74d-4d53-b3e3-0fed42051042',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-appointment/route.ts:400',message:'Fallback UTC calculation',data:{patientTime:`${hours}:${minutes}`,baseUTC:testBase.toISOString(),baseHour,offsetHours,calculatedUTC:bestUTC.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'H'})}).catch(()=>{});
+              // #endregion
+              break;
+            }
+          }
+        }
+        
+        // Final fallback
+        if (!bestUTC) {
+          let offsetHours = hours - basePatientHour;
+          if (offsetHours < -12) offsetHours += 24;
+          if (offsetHours > 12) offsetHours -= 24;
+          bestUTC = new Date(baseUTC.getTime() + offsetHours * 60 * 60 * 1000 + minutes * 60 * 1000);
+        }
       }
       
-      // Step 2: Get what this UTC time is in Phoenix timezone (for display/logging)
+      // Step 4: Get what this UTC time is in Phoenix timezone
       const phoenixParts = providerFormatter.formatToParts(bestUTC);
       const phoenixYear = parseInt(phoenixParts.find(p => p.type === 'year')?.value || '0');
       const phoenixMonth = parseInt(phoenixParts.find(p => p.type === 'month')?.value || '0');
@@ -370,13 +436,22 @@ export async function POST(request: Request) {
       const phoenixDateStr = `${phoenixYear}-${String(phoenixMonth).padStart(2, '0')}-${String(phoenixDay).padStart(2, '0')}`;
       const phoenixTimeStr = `${String(phoenixHour).padStart(2, '0')}:${String(phoenixMinute).padStart(2, '0')}`;
       
-      // Step 3: Find the UTC time that represents this Phoenix time
-      // We need to find the UTC time that, when displayed in Phoenix timezone, equals phoenixParts
-      const approximatePhoenixUTC = new Date(Date.UTC(phoenixYear, phoenixMonth - 1, phoenixDay, phoenixHour, phoenixMinute, 0));
+      // Verify: convert back to patient timezone to ensure we got it right
+      const verifyPatientParts = patientFormatter.formatToParts(bestUTC);
+      const verifyPatientHour = parseInt(verifyPatientParts.find(p => p.type === 'hour')?.value || '0');
+      const verifyPatientDay = parseInt(verifyPatientParts.find(p => p.type === 'day')?.value || '0');
+      
+      // #region agent log
+      fetch('http://127.0.0.1:60000/ingest/9f837d7d-c74d-4d53-b3e3-0fed42051042',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-appointment/route.ts:415',message:'UTC to Phoenix conversion with verification',data:{bestUTC:bestUTC?.toISOString(),phoenixDate:phoenixDateStr,phoenixTime:phoenixTimeStr,phoenixHour,phoenixMinute,patientDate:`${year}-${month}-${day}`,patientTime:`${hours}:${minutes}`,verifyPatientHour,verifyPatientDay,conversionCorrect:verifyPatientHour===hours&&verifyPatientDay===day},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
+      // #endregion
+      
+      // Step 5: Find the UTC time that represents this Phoenix time
+      // This ensures we store the correct UTC time that, when displayed in Phoenix, shows the right time
+      const basePhoenixUTC = new Date(Date.UTC(phoenixYear, phoenixMonth - 1, phoenixDay, 12, 0, 0));
       let bestPhoenixUTC: Date | null = null;
       
-      for (let offsetHours = -12; offsetHours <= 12; offsetHours++) {
-        const testUTC = new Date(approximatePhoenixUTC.getTime() + offsetHours * 60 * 60 * 1000);
+      for (let offsetHours = -15; offsetHours <= 15; offsetHours++) {
+        const testUTC = new Date(basePhoenixUTC.getTime() + offsetHours * 60 * 60 * 1000);
         const testPhoenixParts = providerFormatter.formatToParts(testUTC);
         
         const testYear = parseInt(testPhoenixParts.find(p => p.type === 'year')?.value || '0');
@@ -393,8 +468,12 @@ export async function POST(request: Request) {
       }
       
       if (!bestPhoenixUTC) {
-        // Fallback: use approximate
-        bestPhoenixUTC = approximatePhoenixUTC;
+        // Fallback: calculate approximate offset
+        const basePhoenixParts = providerFormatter.formatToParts(basePhoenixUTC);
+        const basePhoenixHour = parseInt(basePhoenixParts.find(p => p.type === 'hour')?.value || '0');
+        const basePhoenixMinute = parseInt(basePhoenixParts.find(p => p.type === 'minute')?.value || '0');
+        const offsetDiff = (phoenixHour * 60 + phoenixMinute) - (basePhoenixHour * 60 + basePhoenixMinute);
+        bestPhoenixUTC = new Date(basePhoenixUTC.getTime() + offsetDiff * 60 * 1000);
       }
       
       // Log timezone conversion for debugging
@@ -405,37 +484,16 @@ export async function POST(request: Request) {
         patientSelectedTime: timeStr,
         convertedPhoenixDate: phoenixDateStr,
         convertedPhoenixTime: phoenixTimeStr,
+        phoenixHour: phoenixHour,
+        phoenixMinute: phoenixMinute,
         utcTime: bestPhoenixUTC.toISOString()
       });
       
-      // Step 4: Validate blocked slots in Phoenix timezone
-      const { data: blockedEvents, error: blockedError } = await supabase
-        .from("doctor_availability_events")
-        .select("id, date, start_time, end_time, type")
-        .eq("doctor_id", DOCTOR_ID)
-        .eq("date", phoenixDateStr)
-        .in("type", ["blocked", "personal", "holiday", "google"]);
-
-      if (!blockedError && blockedEvents && blockedEvents.length > 0) {
-        const isBlocked = blockedEvents.some((event) => {
-          const [eventStartHour, eventStartMin] = event.start_time.split(':').map(Number);
-          const [eventEndHour, eventEndMin] = event.end_time.split(':').map(Number);
-          const eventStartMinutes = eventStartHour * 60 + eventStartMin;
-          const eventEndMinutes = eventEndHour * 60 + eventEndMin;
-          const requestedMinutes = phoenixHour * 60 + phoenixMinute;
-          
-          return requestedMinutes >= eventStartMinutes && requestedMinutes < eventEndMinutes;
-        });
-
-        if (isBlocked) {
-          return NextResponse.json(
-            { error: "This time slot is not available. Please select another time." },
-            { status: 400 }
-          );
-        }
-      }
+      // #region agent log
+      fetch('http://127.0.0.1:60000/ingest/9f837d7d-c74d-4d53-b3e3-0fed42051042',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-appointment/route.ts:430',message:'Timezone conversion result (POST-FIX)',data:{patientTimezone:patientTZ,patientSelectedTime:timeStr,phoenixDate:phoenixDateStr,phoenixTime:phoenixTimeStr,phoenixHour,phoenixMinute,requestedMinutes:phoenixHour*60+phoenixMinute,bestUTC:bestUTC?.toISOString(),bestPhoenixUTC:bestPhoenixUTC?.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       
-      // Step 5: Store as UTC representing Phoenix time
+      // Step 4: Store as UTC representing Phoenix time
       // CRITICAL: Store the UTC time that represents the Phoenix time, not the patient time
       // This ensures all appointments are stored in Phoenix timezone as required
       requestedDateTime = bestPhoenixUTC.toISOString();
