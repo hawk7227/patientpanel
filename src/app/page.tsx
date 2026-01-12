@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Calendar, 
@@ -11,133 +11,11 @@ import {
   ShieldCheck, 
   ChevronRight,
   ArrowRight,
-  Loader2,
 } from "lucide-react";
 import UrgentCollapse from "@/components/home/UrgentCollapse";
 
-function SubmitEmailForExpressBooking({ show, focus = false }: { show: boolean, focus: boolean }) {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (show) {
-      // Small delay ensures DOM is painted (prevents race conditions)
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-    }
-  }, [show]);
-
-  const isValidEmail = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return false;
-    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-    return emailRegex.test(trimmed);
-  };
-
-  const handleEmailSubmission = async () => {
-    if (!isValidEmail(email)) {
-      alert("Please enter a valid email address to continue.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/check-user-exists', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to check user');
-      }
-
-      // Save email check response to sessionStorage
-      sessionStorage.setItem('emailCheckResponse', JSON.stringify({
-          email: email.trim(),
-        exists: result.exists,
-        user: result.user,
-          patientId: result.patientId,
-      }));
-
-      // Navigate to appointment page
-      router.push('/appointment');
-    } catch (error) {
-      console.error('Error checking user:', error);
-      alert(error instanceof Error ? error.message : 'Failed to process request. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-      // <div className="bg-[#050b14] p-3 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative w-full">
-    <div className="mt-10">
-      <style jsx>{`
-        @keyframes fastPulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.7;
-          }
-        }
-        .animate-fast-pulse {
-          animation: fastPulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-      `}</style>
-      <div className="mt-1 md:mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-          <input 
-            ref={focus ? inputRef : null}
-            type="email" 
-            value={email}
-            placeholder="your.email@example.com"
-            autoComplete="email"
-            className={`w-full bg-[#11161c] border rounded-lg py-4 px-4 text-white placeholder:text-gray-600 focus:outline-none transition-all text-[16px] ${
-              isValidEmail(email)
-                ? "border-primary-teal focus:ring-1 focus:ring-primary-teal"
-                : "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-            }`}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => {
-            if (e.key === "Enter" && isValidEmail(email) && !isLoading) {
-              handleEmailSubmission();
-              }
-            }}
-          />
-        <div className="flex justify-center gap-4 mt-4 md:mt-6 animate-in fade-in-from-top-2 duration-300">
-          <button 
-            onClick={handleEmailSubmission}
-            disabled={!isValidEmail(email) || isLoading}
-            suppressHydrationWarning
-            className={`text-white px-8 py-3 rounded-lg transition-all text-sm font-bold shadow-lg flex items-center gap-2 ${
-              !isValidEmail(email)
-               ? "bg-primary-orange cursor-not-allowed opacity-75" 
-                : isLoading
-                ? "bg-primary-teal cursor-not-allowed opacity-75"
-                : "bg-primary-teal hover:bg-primary-teal/90 animate-fast-pulse shadow-primary-teal/20"
-            }`}
-         >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                Check Availability
-                <ArrowRight size={18} />
-              </>
-            )}
-         </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
-   const [showEmailForExpressBooking, setShowEmailForExpressBooking] = useState(true);
+   const router = useRouter();
    
    // Scroll to top on page load and prevent hash scrolling
    useEffect(() => {
@@ -159,6 +37,10 @@ export default function Home() {
      
      return () => clearTimeout(timer);
    }, []);
+
+   const handleBookAppointment = () => {
+     router.push('/appointment');
+   };
    
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans">
@@ -176,25 +58,24 @@ export default function Home() {
             <p className="text-gray-400 mb-8 max-w-xl mx-auto text-sm md:text-base">
               Get medical advice, prescriptions, and sick notes from the comfort of your home.
             </p>
-            {showEmailForExpressBooking && <h2 className="text-xl md:text-4xl font-bold text-primary-teal mb-2">
+            
+            <h2 className="text-xl md:text-4xl font-bold text-primary-teal mb-6">
               <span className="text-white">Medazon Health</span> Express Booking
-           </h2>}
-            {showEmailForExpressBooking && <div className="mb-2 md:mb-4 w-full"><SubmitEmailForExpressBooking show={showEmailForExpressBooking} focus={true} /></div>}
-            {!showEmailForExpressBooking && <div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            </h2>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
               <button 
-                  onClick={() => setShowEmailForExpressBooking(true)}
-                className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
+                onClick={handleBookAppointment}
+                className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-4 px-10 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-base shadow-lg"
                 suppressHydrationWarning
               >
-                Book My Appointment <Calendar size={18} />
+                Book My Appointment <Calendar size={20} />
               </button>
             </div>
 
             <div className="text-xs text-primary-teal mb-6">
                $59 per visit — Traditional Insurances Accepted
             </div>
-            </div>}
             
             <div className="flex flex-wrap justify-center gap-4 text-[10px] md:text-xs text-gray-300 font-medium">
                <span className="flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-full border border-white/5"><ShieldCheck size={12} className="text-primary-teal"/> HIPAA Secure</span>
@@ -327,7 +208,7 @@ export default function Home() {
                   <div 
                      key={index} 
                      className="relative h-48 rounded-2xl overflow-hidden border border-white/20 group cursor-pointer"
-                     onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
+                     onClick={handleBookAppointment}
                   >
                      {content}
                </div>
@@ -336,21 +217,20 @@ export default function Home() {
          </div>
       </section>
 
-      {/* Symptoms Input Section */}
-      <section id="symptoms-section" className="bg-[#11161c] py-6 md:py-20 border-y border-white/5">
+      {/* Express Booking Section */}
+      <section id="symptoms-section" className="bg-[#11161c] py-10 md:py-20 border-y border-white/5">
          <div className="container mx-auto px-4 text-center max-w-4xl flex flex-col items-center justify-center">
-           <h2 className="text-xl md:text-4xl font-bold text-primary-teal mb-2">
+           <h2 className="text-xl md:text-4xl font-bold text-primary-teal mb-6">
               <span className="text-white">Medazon Health</span> Express Booking
            </h2>
-           {showEmailForExpressBooking && <div className="mb-2 md:mb-4 w-full"><SubmitEmailForExpressBooking show={showEmailForExpressBooking} focus={false} /></div>}
            
-            {!showEmailForExpressBooking && <button 
-               onClick={() => setShowEmailForExpressBooking(true)}
-               className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm"
-               suppressHydrationWarning
-            >
-               Book My Appointment <Calendar size={18} />
-            </button>}
+           <button 
+             onClick={handleBookAppointment}
+             className="bg-primary-orange hover:bg-orange-600 text-white font-bold py-4 px-10 rounded-full transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-base shadow-lg"
+             suppressHydrationWarning
+           >
+             Book My Appointment <Calendar size={20} />
+           </button>
          </div>
       </section>
 
@@ -413,8 +293,8 @@ export default function Home() {
                   <h3 className="text-2xl font-bold text-white mb-1">Book an Appointment</h3>
                   <p className="text-primary-teal mb-6 text-sm font-medium">Book for Later</p>
                   <button 
-                     onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
-                     className="border border-white text-white px-8 py-2.5 rounded-full font-bold hover:bg-white hover:text-black transition-colors text-sm"
+                     onClick={handleBookAppointment}
+                     className="bg-primary-orange text-white px-8 py-2.5 rounded-full font-bold hover:bg-orange-600 transition-colors text-sm"
                      suppressHydrationWarning
                   >
                      Book for Later →
@@ -472,8 +352,8 @@ export default function Home() {
                Talk to a Doctor Now <ArrowRight size={16} />
             </Link>
             <button 
-               onClick={() => document.getElementById('symptoms-section')?.scrollIntoView({ behavior: 'smooth' })}
-               className="border border-white/20 text-white px-8 py-3 rounded-lg hover:bg-white/5 text-sm flex items-center justify-center gap-2 transition-all whitespace-nowrap"
+               onClick={handleBookAppointment}
+               className="bg-primary-orange text-white px-8 py-3 rounded-lg hover:bg-orange-600 font-bold text-sm flex items-center justify-center gap-2 transition-all whitespace-nowrap"
                suppressHydrationWarning
             >
                Book for Later <ArrowRight size={16} />
@@ -516,3 +396,4 @@ export default function Home() {
     </div>
   );
 }
+
