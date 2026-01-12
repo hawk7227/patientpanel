@@ -15,7 +15,8 @@ export async function POST(request: Request) {
     const supabase = createServerClient();
 
     // Find the appointment
-    let appointment;
+    let appointment: { id: string; intake_data: Record<string, unknown> | null } | null = null;
+    
     if (appointmentId) {
       const { data, error } = await supabase
         .from("appointments")
@@ -44,6 +45,14 @@ export async function POST(request: Request) {
         );
       }
       appointment = data;
+    }
+
+    // At this point appointment should be defined, but TypeScript needs reassurance
+    if (!appointment) {
+      return NextResponse.json(
+        { error: "Appointment not found" },
+        { status: 404 }
+      );
     }
 
     // Merge existing intake data with new intake data
@@ -91,3 +100,4 @@ export async function POST(request: Request) {
     );
   }
 }
+
