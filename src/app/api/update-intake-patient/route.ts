@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { createServerClient } from "@/lib/supabase";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
@@ -32,12 +32,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email: email.trim().toLowerCase() },
-    });
+    const supabase = createServerClient();
 
-    if (!user) {
+    // Find user by email
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email.trim().toLowerCase())
+      .single();
+
+    if (userError || !user) {
       console.log("⚠️ [UPDATE-INTAKE-PATIENT] User not found for email:", email);
       return NextResponse.json(
         { error: "User not found" },
@@ -46,11 +50,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Find patient record by user_id
-    const patient = await prisma.patient.findFirst({
-      where: { user_id: user.id },
-    });
+    const { data: patient, error: patientError } = await supabase
+      .from("patients")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
 
-    if (!patient) {
+    if (patientError || !patient) {
       console.log("⚠️ [UPDATE-INTAKE-PATIENT] Patient not found for user:", user.id);
       // Patient doesn't exist yet - return success anyway
       return NextResponse.json({
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Build update data - only include fields that are provided
     const updateData: Record<string, unknown> = {
-      updated_at: new Date(),
+      updated_at: new Date().toISOString(),
     };
 
     if (has_drug_allergies !== undefined) {
@@ -93,16 +99,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Update patient record
-    const updatedPatient = await prisma.patient.update({
-      where: { id: patient.id },
-      data: updateData,
-    });
+    const { error: updateError } = await supabase
+      .from("patients")
+      .update(updateData)
+      .eq("id", patient.id);
 
-    console.log("✅ [UPDATE-INTAKE-PATIENT] Updated patient:", updatedPatient.id);
+    if (updateError) {
+      console.error("❌ [UPDATE-INTAKE-PATIENT] Error updating patient:", updateError);
+      return NextResponse.json(
+        { error: "Failed to update patient" },
+        { status: 500 }
+      );
+    }
+
+    console.log("✅ [UPDATE-INTAKE-PATIENT] Updated patient:", patient.id);
 
     return NextResponse.json({
       success: true,
-      patientId: updatedPatient.id,
+      patientId: patient.id,
     });
 
   } catch (error) {
@@ -113,4 +127,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
 
