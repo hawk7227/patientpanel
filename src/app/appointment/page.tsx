@@ -55,16 +55,6 @@ export default function AppointmentProcess() {
   const [reasonQuery, setReasonQuery] = useState("");
   const [reasonInputFocused, setReasonInputFocused] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [intakeAnswers, setIntakeAnswers] = useState({
-    allergies: null as boolean | null,
-    allergiesDetails: "",
-    surgeries: null as boolean | null,
-    surgeriesDetails: "",
-    medicalIssues: null as boolean | null,
-    medicalIssuesDetails: "",
-    medications: null as boolean | null,
-    medicationsDetails: "",
-  });
   const [appointmentData, setAppointmentData] = useState({
     symptoms: "",
     visitType: "",
@@ -81,8 +71,6 @@ export default function AppointmentProcess() {
     pharmacy: "",
     pharmacyAddress: "",
   });
-  const [paymentComplete, setPaymentComplete] = useState(false);
-  const [intakeComplete, setIntakeComplete] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [highlightedField, setHighlightedField] = useState<string | null>("email");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
@@ -512,7 +500,6 @@ export default function AppointmentProcess() {
 
   // Handle payment success
   const handlePaymentSuccess = async () => {
-    setPaymentComplete(true);
     setIsLoading(true);
     
     try {
@@ -534,14 +521,6 @@ export default function AppointmentProcess() {
         email: patientEmail,
         patientTimezone: patientTZ,
         skipIntake: emailExists,
-        allergies: emailExists ? null : intakeAnswers.allergies,
-        allergiesDetails: emailExists ? "" : intakeAnswers.allergiesDetails,
-        surgeries: emailExists ? null : intakeAnswers.surgeries,
-        surgeriesDetails: emailExists ? "" : intakeAnswers.surgeriesDetails,
-        medicalIssues: emailExists ? null : intakeAnswers.medicalIssues,
-        medicalIssuesDetails: emailExists ? "" : intakeAnswers.medicalIssuesDetails,
-        medications: emailExists ? null : intakeAnswers.medications,
-        medicationsDetails: emailExists ? "" : intakeAnswers.medicationsDetails,
       };
       
       console.log('📤 [PAYMENT SUCCESS] Creating appointment:', {
@@ -576,127 +555,19 @@ export default function AppointmentProcess() {
       sessionStorage.setItem('appointmentData', JSON.stringify(updatedData));
       
       if (emailExists) {
-        console.log('✅ [RETURNING PATIENT] Skipping intake, redirecting to appointment');
+        // RETURNING PATIENT - skip intake, go straight to confirmation
+        console.log('✅ [RETURNING PATIENT] Skipping intake, redirecting to confirmation');
         router.push(`/appointment/${createAppointmentResult.accessToken}`);
         return;
       }
       
-      console.log('📝 [NEW PATIENT] Showing intake form (appointment already created)');
-      setTimeout(() => {
-        const intakeSection = document.getElementById('intake-form-section');
-        if (intakeSection) {
-          intakeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
+      // NEW PATIENT - redirect to intake page
+      console.log('📝 [NEW PATIENT] Redirecting to intake page');
+      router.push(`/intake?accessToken=${createAppointmentResult.accessToken}&email=${encodeURIComponent(patientEmail)}`);
       
     } catch (error) {
       console.error("Error creating appointment:", error);
       alert(error instanceof Error ? error.message : "Failed to create appointment. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle intake submission
-  const handleIntakeSubmit = async () => {
-    const intakeValid =
-      intakeAnswers.allergies !== null &&
-      intakeAnswers.surgeries !== null &&
-      intakeAnswers.medicalIssues !== null &&
-      intakeAnswers.medications !== null;
-
-    if (!intakeValid) {
-      alert("Please complete all required fields");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const storedData = sessionStorage.getItem("appointmentData");
-      const data = storedData ? JSON.parse(storedData) : {};
-      
-      const appointmentId = data.appointmentId;
-      const accessToken = data.accessToken;
-      const patientEmail = email.trim().toLowerCase();
-      
-      console.log('📤 [INTAKE SUBMIT] Data:', {
-        email: patientEmail,
-        appointmentId,
-        accessToken,
-      });
-      
-      if (!accessToken) {
-        throw new Error("Appointment not found. Please try again.");
-      }
-
-      // Update patient using email
-      const updatePatientResponse = await fetch("/api/update-intake-patient", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: patientEmail,
-          has_drug_allergies: intakeAnswers.allergies,
-          has_recent_surgeries: intakeAnswers.surgeries,
-          has_ongoing_medical_issues: intakeAnswers.medicalIssues,
-          preferred_pharmacy: appointmentData.pharmacy,
-        }),
-      });
-
-      if (!updatePatientResponse.ok) {
-        const updateResult = await updatePatientResponse.json();
-        console.error("Failed to update patient record:", updateResult);
-        // Don't throw - continue to update appointment
-      }
-
-      const updateAppointmentResponse = await fetch("/api/update-appointment-intake", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          appointmentId: appointmentId,
-          accessToken: accessToken,
-          intakeData: {
-            allergies: intakeAnswers.allergies,
-            allergiesDetails: intakeAnswers.allergiesDetails,
-            surgeries: intakeAnswers.surgeries,
-            surgeriesDetails: intakeAnswers.surgeriesDetails,
-            medicalIssues: intakeAnswers.medicalIssues,
-            medicalIssuesDetails: intakeAnswers.medicalIssuesDetails,
-            medications: intakeAnswers.medications,
-            medicationsDetails: intakeAnswers.medicationsDetails,
-            pharmacy: appointmentData.pharmacy,
-          },
-        }),
-      });
-
-      if (!updateAppointmentResponse.ok) {
-        const updateResult = await updateAppointmentResponse.json();
-        console.error("Failed to update appointment intake:", updateResult);
-      }
-
-      console.log('✅ [INTAKE] Intake submitted, redirecting to appointment');
-
-      const finalData = {
-        ...data,
-        allergies: intakeAnswers.allergies,
-        allergiesDetails: intakeAnswers.allergiesDetails,
-        surgeries: intakeAnswers.surgeries,
-        surgeriesDetails: intakeAnswers.surgeriesDetails,
-        medicalIssues: intakeAnswers.medicalIssues,
-        medicalIssuesDetails: intakeAnswers.medicalIssuesDetails,
-        medications: intakeAnswers.medications,
-        medicationsDetails: intakeAnswers.medicationsDetails,
-        intakeComplete: true,
-      };
-      sessionStorage.setItem('appointmentData', JSON.stringify(finalData));
-
-      setIntakeComplete(true);
-      
-      router.push(`/appointment/${accessToken}`);
-      
-    } catch (error) {
-      console.error("Error submitting intake:", error);
-      alert(error instanceof Error ? error.message : "Failed to submit intake. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -731,7 +602,6 @@ export default function AppointmentProcess() {
         </div>
 
         <div className="space-y-3 md:space-y-6">
-          {!paymentComplete && (
             <div className="space-y-3 md:space-y-6">
               <div className="font-bold text-sm md:text-base text-primary-orange text-center">{STEPS[step - 1].title}</div>
 
@@ -1164,14 +1034,6 @@ export default function AppointmentProcess() {
                           streetAddress: appointmentData.streetAddress,
                           postalCode: appointmentData.postalCode,
                           placeId: appointmentData.placeId,
-                          allergies: intakeAnswers.allergies,
-                          allergiesDetails: intakeAnswers.allergiesDetails,
-                          surgeries: intakeAnswers.surgeries,
-                          surgeriesDetails: intakeAnswers.surgeriesDetails,
-                          medicalIssues: intakeAnswers.medicalIssues,
-                          medicalIssuesDetails: intakeAnswers.medicalIssuesDetails,
-                          medications: intakeAnswers.medications,
-                          medicationsDetails: intakeAnswers.medicationsDetails,
                         };
                         
                         console.log('💾 [PROCEED] Saving data:', {
@@ -1224,197 +1086,6 @@ export default function AppointmentProcess() {
                 </div>
               )}
             </div>
-          )}
-
-          {/* Intake form - only shown for NEW patients after payment */}
-          {paymentComplete && !intakeComplete && !emailExists && (
-            <div id="intake-form-section" className="space-y-3 md:space-y-4 mt-3 md:mt-4">
-              <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4">
-                <div className="text-primary-teal font-bold text-base md:text-lg mb-2">Appointment Confirmed</div>
-                <div className="text-gray-300 text-xs md:text-sm">
-                  {appointmentData.appointmentDate && appointmentData.appointmentTime && (
-                    <div className="font-semibold mb-1">
-                      Date & Time: {formatDateTime(appointmentData.appointmentDate, appointmentData.appointmentTime)}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4 space-y-3 md:space-y-4">
-                <div className="text-center">
-                  <div className="text-red-500 font-bold text-xs md:text-sm mb-2">REQUIRED BEFORE VISIT</div>
-                  <div className="text-white font-bold text-base md:text-xl mb-3">Complete Your Intake</div>
-                </div>
-
-                <div className="bg-[#1a2128] border border-primary-orange/30 rounded-lg p-3 md:p-4">
-                  <div className="text-gray-300 text-xs text-center md:text-justify">
-                    Provide these details so we can route your request and prepare the provider <span className="text-red-500 font-semibold">Before Visit Starts</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 md:space-y-4">
-                  <div>
-                    <div className="text-white font-semibold text-sm md:text-base mb-2">Any Drug Allergies?</div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      <button 
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, allergies: true }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.allergies === true
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, allergies: false, allergiesDetails: "" }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.allergies === false
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                    {intakeAnswers.allergies === true && (
-                      <input
-                        value={intakeAnswers.allergiesDetails}
-                        onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, allergiesDetails: e.target.value }))}
-                        placeholder="List any known drug allergies..."
-                        className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="text-white font-semibold text-sm md:text-base mb-2">Any Recent Surgeries or Procedures?</div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, surgeries: true }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.surgeries === true
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, surgeries: false, surgeriesDetails: "" }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.surgeries === false
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                    {intakeAnswers.surgeries === true && (
-                      <input
-                        value={intakeAnswers.surgeriesDetails}
-                        onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, surgeriesDetails: e.target.value }))}
-                        placeholder="Describe recent surgeries or procedures..."
-                        className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="text-white font-semibold text-sm md:text-base mb-2">Any Ongoing Medical Issues?</div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, medicalIssues: true }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.medicalIssues === true
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, medicalIssues: false, medicalIssuesDetails: "" }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.medicalIssues === false
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                    {intakeAnswers.medicalIssues === true && (
-                      <input
-                        value={intakeAnswers.medicalIssuesDetails}
-                        onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, medicalIssuesDetails: e.target.value }))}
-                        placeholder="Describe ongoing medical issues..."
-                        className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
-                      />
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="text-white font-semibold text-sm md:text-base mb-2">Currently Taking Any Medications?</div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, medications: true }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.medications === true
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setIntakeAnswers((prev) => ({ ...prev, medications: false, medicationsDetails: "" }))}
-                        className={`py-3 md:py-4 rounded-lg font-bold border transition-all ${
-                          intakeAnswers.medications === false
-                            ? "bg-primary-teal text-black border-primary-teal"
-                            : "border-white/20 text-white hover:border-primary-teal/50"
-                        }`}
-                      >
-                        No
-                      </button>
-                    </div>
-                    {intakeAnswers.medications === true && (
-                      <input
-                        value={intakeAnswers.medicationsDetails}
-                        onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, medicationsDetails: e.target.value }))}
-                        placeholder="List current medications..."
-                        className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex justify-center pt-2">
-                  <button
-                    onClick={handleIntakeSubmit}
-                    disabled={isLoading || 
-                      intakeAnswers.allergies === null ||
-                      intakeAnswers.surgeries === null ||
-                      intakeAnswers.medicalIssues === null ||
-                      intakeAnswers.medications === null
-                    }
-                    className={`w-full md:w-auto px-8 py-3 rounded-lg font-bold text-sm shadow-lg ${
-                      isLoading || 
-                      intakeAnswers.allergies === null ||
-                      intakeAnswers.surgeries === null ||
-                      intakeAnswers.medicalIssues === null ||
-                      intakeAnswers.medications === null
-                        ? "bg-gray-600 text-gray-400 opacity-50 cursor-not-allowed"
-                        : "bg-primary-orange text-white hover:bg-orange-600"
-                    }`}
-                  >
-                    {isLoading ? "Submitting..." : "Complete Booking"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Reason Dialog */}
@@ -1606,6 +1277,7 @@ export default function AppointmentProcess() {
     </div>
   );
 }
+
 
 
 
