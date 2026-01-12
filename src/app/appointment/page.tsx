@@ -40,9 +40,9 @@ export default function AppointmentProcess() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
   const [emailExists, setEmailExists] = useState(false);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false); // NEW
-  const [emailChecked, setEmailChecked] = useState(false); // NEW
-  const [patientId, setPatientId] = useState<string | null>(null); // NEW
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailChecked, setEmailChecked] = useState(false);
+  const [patientId, setPatientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [visitTypeDialogOpen, setVisitTypeDialogOpen] = useState(false);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
@@ -85,7 +85,7 @@ export default function AppointmentProcess() {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
-  const [highlightedField, setHighlightedField] = useState<string | null>("email"); // Start with email
+  const [highlightedField, setHighlightedField] = useState<string | null>("email");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
   const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
   const prefillHighlight = emailExists && appointmentData.appointmentDate && appointmentData.appointmentTime;
@@ -129,11 +129,9 @@ export default function AppointmentProcess() {
 
   const isNameValid = useCallback((value: string) => {
     const trimmed = value.trim();
-    // Min 2 characters, only letters (no numbers or special chars except spaces, hyphens, apostrophes)
     return trimmed.length >= 2 && /^[A-Za-z][A-Za-z\s'\-]*$/.test(trimmed) && !/\d/.test(trimmed);
   }, []);
 
-  // NEW: Email validation helper
   const isEmailValid = useCallback((value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(value.trim());
@@ -190,7 +188,7 @@ export default function AppointmentProcess() {
     setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
   };
 
-  // NEW: Check email in database function
+  // FIXED: Check email in database function with better error handling
   const checkEmailInDatabase = useCallback(async (emailToCheck: string) => {
     if (!isEmailValid(emailToCheck)) {
       setEmailExists(false);
@@ -208,42 +206,52 @@ export default function AppointmentProcess() {
         body: JSON.stringify({ email: emailToCheck.trim().toLowerCase() }),
       });
 
+      // FIXED: Handle both ok and non-ok responses properly
       if (response.ok) {
         const data = await response.json();
         setEmailChecked(true);
         
-        // Check if this is a RETURNING PATIENT (has patientId = has had appointment before)
+        console.log('📧 [EMAIL CHECK] Response:', data);
+        
         const isReturningPatient = data.exists && data.patientId;
         setEmailExists(isReturningPatient);
         
         if (isReturningPatient) {
-          // RETURNING PATIENT - has patient record from previous appointment
           setPatientId(data.patientId);
           
-          // Prefill user data
           if (data.user) {
+            // FIXED: Validate prefilled data before setting
             let formattedDateOfBirth = "";
             if (data.user.date_of_birth) {
               const dateParts = data.user.date_of_birth.split("-");
-              if (dateParts.length === 3) {
+              if (dateParts.length === 3 && dateParts[0].length === 4) {
                 formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
               }
             }
-            const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
-            const phoneFormatted = formatPhone(phoneDigits).formatted;
+            
+            // FIXED: Only format phone if it has exactly 10 digits
+            const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "");
+            const phoneFormatted = phoneDigits.length === 10 ? formatPhone(phoneDigits).formatted : "";
+            
+            console.log('📋 [PREFILL] Setting returning patient data:', {
+              firstName: data.user.first_name,
+              lastName: data.user.last_name,
+              phone: phoneFormatted,
+              dob: formattedDateOfBirth,
+              address: data.user.address,
+            });
             
             setAppointmentData((prev) => ({
               ...prev,
               firstName: data.user.first_name || prev.firstName,
               lastName: data.user.last_name || prev.lastName,
-              phone: phoneDigits ? phoneFormatted : prev.phone,
+              phone: phoneFormatted || prev.phone,
               dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
               streetAddress: data.user.address || prev.streetAddress,
               placeId: data.user.address ? "api-prefill-address" : prev.placeId,
             }));
           }
           
-          // Returning patient skips intake
           sessionStorage.setItem('appointmentData', JSON.stringify({
             email: emailToCheck.trim().toLowerCase(),
             patientId: data.patientId,
@@ -251,31 +259,39 @@ export default function AppointmentProcess() {
             user: data.user,
           }));
         } else if (data.exists && data.user) {
-          // USER EXISTS but NO PATIENT RECORD (has account but never had appointment)
-          // Prefill their data but REQUIRE intake
+          // USER EXISTS but NO PATIENT RECORD
           setPatientId(null);
           
           let formattedDateOfBirth = "";
           if (data.user.date_of_birth) {
             const dateParts = data.user.date_of_birth.split("-");
-            if (dateParts.length === 3) {
+            if (dateParts.length === 3 && dateParts[0].length === 4) {
               formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
             }
           }
-          const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
-          const phoneFormatted = formatPhone(phoneDigits).formatted;
+          
+          // FIXED: Only format phone if it has exactly 10 digits
+          const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "");
+          const phoneFormatted = phoneDigits.length === 10 ? formatPhone(phoneDigits).formatted : "";
+          
+          console.log('📋 [PREFILL] Setting existing user data (no patient record):', {
+            firstName: data.user.first_name,
+            lastName: data.user.last_name,
+            phone: phoneFormatted,
+            dob: formattedDateOfBirth,
+            address: data.user.address,
+          });
           
           setAppointmentData((prev) => ({
             ...prev,
             firstName: data.user.first_name || prev.firstName,
             lastName: data.user.last_name || prev.lastName,
-            phone: phoneDigits ? phoneFormatted : prev.phone,
+            phone: phoneFormatted || prev.phone,
             dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
             streetAddress: data.user.address || prev.streetAddress,
             placeId: data.user.address ? "api-prefill-address" : prev.placeId,
           }));
           
-          // Has user account but still needs intake (first appointment)
           sessionStorage.setItem('appointmentData', JSON.stringify({
             email: emailToCheck.trim().toLowerCase(),
             userId: data.userId,
@@ -283,19 +299,34 @@ export default function AppointmentProcess() {
             user: data.user,
           }));
         } else {
-          // COMPLETELY NEW - no user, no patient
+          // COMPLETELY NEW user
           setPatientId(null);
           sessionStorage.setItem('appointmentData', JSON.stringify({
             email: emailToCheck.trim().toLowerCase(),
             skipIntake: false,
           }));
         }
+      } else {
+        // FIXED: API returned non-ok status - still mark as checked so user can proceed
+        console.warn('📧 [EMAIL CHECK] API returned non-ok status:', response.status);
+        setEmailChecked(true);
+        setEmailExists(false);
+        setPatientId(null);
+        sessionStorage.setItem('appointmentData', JSON.stringify({
+          email: emailToCheck.trim().toLowerCase(),
+          skipIntake: false,
+        }));
       }
     } catch (error) {
-      console.error("Error checking email:", error);
+      // FIXED: On error, still mark as checked so user can proceed as new patient
+      console.error("📧 [EMAIL CHECK] Error checking email:", error);
       setEmailExists(false);
-      setEmailChecked(false);
+      setEmailChecked(true); // CHANGED: Allow proceeding even if API fails
       setPatientId(null);
+      sessionStorage.setItem('appointmentData', JSON.stringify({
+        email: emailToCheck.trim().toLowerCase(),
+        skipIntake: false,
+      }));
     } finally {
       setIsCheckingEmail(false);
     }
@@ -319,7 +350,7 @@ export default function AppointmentProcess() {
     appearance,
   };
 
-  // Load email and user data from sessionStorage on mount (optional - for landing page flow)
+  // Load email and user data from sessionStorage on mount
   useEffect(() => {
     const emailCheckData = sessionStorage.getItem('emailCheckResponse');
     if (emailCheckData) {
@@ -327,7 +358,6 @@ export default function AppointmentProcess() {
         const data = JSON.parse(emailCheckData);
         if (data.email) {
           setEmail(data.email);
-          // Trigger email check with existing email
           checkEmailInDatabase(data.email);
         }
       } catch (error) {
@@ -386,13 +416,13 @@ export default function AppointmentProcess() {
     }
   }, [step, clientSecret]);
 
-  // Field highlighting logic - UPDATED to include email
+  // Field highlighting logic
   useEffect(() => {
     if (step === 1) {
       if (!isEmailValid(email)) {
         setHighlightedField("email");
       } else if (!emailChecked && !isCheckingEmail) {
-        setHighlightedField("email"); // Highlight until email is checked
+        setHighlightedField("email");
       } else if (!appointmentData.symptoms) {
         setHighlightedField("symptoms");
       } else if (!isChiefComplaintValid(appointmentData.chief_complaint)) {
@@ -421,7 +451,6 @@ export default function AppointmentProcess() {
 
   // Filtered reasons for symptom search
   const filteredReasons = useMemo(() => {
-    // Show top 8-9 options when focused but empty
     if (!reasonQuery.trim()) {
       if (reasonInputFocused) {
         return symptomSuggestions.slice(0, 9);
@@ -455,22 +484,69 @@ export default function AppointmentProcess() {
       .slice(0, 8);
   }, [reasonQuery, reasonInputFocused]);
 
-  // UPDATED: personalDetailsValid now includes email validation
-  const personalDetailsValid =
-    isEmailValid(email) &&
-    emailChecked &&
-    appointmentData.symptoms &&
-    isChiefComplaintValid(appointmentData.chief_complaint) &&
-    appointmentData.visitType &&
-    appointmentData.appointmentDate &&
-    appointmentData.appointmentTime &&
-    appointmentData.pharmacy.trim() &&
-    isNameValid(appointmentData.firstName) &&
-    isNameValid(appointmentData.lastName) &&
-    isPhoneValid(appointmentData.phone) &&
-    isDobValid(appointmentData.dateOfBirth) &&
-    appointmentData.streetAddress.trim() &&
-    appointmentData.placeId.trim();
+  // FIXED: personalDetailsValid validation with debug logging
+  const personalDetailsValid = useMemo(() => {
+    const emailValid = isEmailValid(email);
+    const symptomsValid = !!appointmentData.symptoms;
+    const chiefComplaintValid = isChiefComplaintValid(appointmentData.chief_complaint);
+    const visitTypeValid = !!appointmentData.visitType;
+    const dateValid = !!appointmentData.appointmentDate;
+    const timeValid = !!appointmentData.appointmentTime;
+    const pharmacyValid = !!appointmentData.pharmacy.trim();
+    const firstNameValid = isNameValid(appointmentData.firstName);
+    const lastNameValid = isNameValid(appointmentData.lastName);
+    const phoneValid = isPhoneValid(appointmentData.phone);
+    const dobValid = isDobValid(appointmentData.dateOfBirth);
+    const addressValid = !!appointmentData.streetAddress.trim() && !!appointmentData.placeId.trim();
+
+    const allValid = emailValid &&
+      emailChecked &&
+      symptomsValid &&
+      chiefComplaintValid &&
+      visitTypeValid &&
+      dateValid &&
+      timeValid &&
+      pharmacyValid &&
+      firstNameValid &&
+      lastNameValid &&
+      phoneValid &&
+      dobValid &&
+      addressValid;
+
+    // Debug logging - remove in production
+    if (!allValid) {
+      console.log('🔍 [VALIDATION] Field status:', {
+        emailValid,
+        emailChecked,
+        symptomsValid,
+        chiefComplaintValid,
+        visitTypeValid,
+        dateValid,
+        timeValid,
+        pharmacyValid,
+        firstNameValid,
+        lastNameValid,
+        phoneValid,
+        dobValid,
+        addressValid,
+        // Raw values for debugging
+        email,
+        phone: appointmentData.phone,
+        dob: appointmentData.dateOfBirth,
+      });
+    }
+
+    return allValid;
+  }, [
+    email,
+    emailChecked,
+    appointmentData,
+    isEmailValid,
+    isPhoneValid,
+    isDobValid,
+    isChiefComplaintValid,
+    isNameValid,
+  ]);
 
   const totalStepFields = 10;
   const completedFields = useMemo(() => {
@@ -508,8 +584,7 @@ export default function AppointmentProcess() {
     isNameValid,
   ]);
 
-  // FIXED: Handle payment success - ALWAYS create appointment immediately
-  // This ensures doctor sees appointment and SMS/email are sent right away
+  // Handle payment success
   const handlePaymentSuccess = async () => {
     setPaymentComplete(true);
     setIsLoading(true);
@@ -518,16 +593,13 @@ export default function AppointmentProcess() {
       const storedData = sessionStorage.getItem("appointmentData");
       const data = storedData ? JSON.parse(storedData) : {};
       
-      // If appointment already created (has accessToken), just navigate
       if (data.accessToken) {
         router.push(`/appointment/${data.accessToken}`);
         return;
       }
       
-      // Detect patient's local timezone
       const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
-      // Prepare appointment data
       const completeAppointmentData = {
         ...data,
         ...appointmentData,
@@ -535,8 +607,7 @@ export default function AppointmentProcess() {
         patientId: patientId,
         email: email.trim(),
         patientTimezone: patientTZ,
-        skipIntake: emailExists, // true for returning, false for new
-        // Include empty intake for new patients (will be updated later)
+        skipIntake: emailExists,
         allergies: emailExists ? null : intakeAnswers.allergies,
         allergiesDetails: emailExists ? "" : intakeAnswers.allergiesDetails,
         surgeries: emailExists ? null : intakeAnswers.surgeries,
@@ -554,8 +625,6 @@ export default function AppointmentProcess() {
         isReturningPatient: emailExists,
       });
       
-      // ALWAYS create appointment immediately after payment
-      // This triggers SMS/email and shows in doctor's calendar right away
       const createAppointmentResponse = await fetch("/api/create-appointment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -571,7 +640,6 @@ export default function AppointmentProcess() {
         throw new Error(createAppointmentResult.error || "Failed to create appointment");
       }
       
-      // Store appointment ID and access token
       const updatedData = {
         ...data,
         ...completeAppointmentData,
@@ -580,14 +648,12 @@ export default function AppointmentProcess() {
       };
       sessionStorage.setItem('appointmentData', JSON.stringify(updatedData));
       
-      // For RETURNING patients: go directly to appointment page
       if (emailExists) {
         console.log('✅ [RETURNING PATIENT] Skipping intake, redirecting to appointment');
         router.push(`/appointment/${createAppointmentResult.accessToken}`);
         return;
       }
       
-      // For NEW patients: show intake form (appointment already created)
       console.log('📝 [NEW PATIENT] Showing intake form (appointment already created)');
       setTimeout(() => {
         const intakeSection = document.getElementById('intake-form-section');
@@ -604,9 +670,8 @@ export default function AppointmentProcess() {
     }
   };
 
-  // Handle intake submission - UPDATES existing appointment (already created after payment)
+  // Handle intake submission
   const handleIntakeSubmit = async () => {
-    // Pharmacy already collected in Step 1, only validate intake questions
     const intakeValid =
       intakeAnswers.allergies !== null &&
       intakeAnswers.surgeries !== null &&
@@ -632,7 +697,6 @@ export default function AppointmentProcess() {
         throw new Error("Appointment not found. Please try again.");
       }
 
-      // Update patient record with intake data
       const updatePatientResponse = await fetch("/api/update-intake-patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -651,7 +715,6 @@ export default function AppointmentProcess() {
         throw new Error(updateResult.error || "Failed to update patient record");
       }
 
-      // Update the existing appointment with intake data
       const updateAppointmentResponse = await fetch("/api/update-appointment-intake", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -675,12 +738,10 @@ export default function AppointmentProcess() {
       if (!updateAppointmentResponse.ok) {
         const updateResult = await updateAppointmentResponse.json();
         console.error("Failed to update appointment intake:", updateResult);
-        // Don't throw - appointment exists, intake update is not critical for navigation
       }
 
       console.log('✅ [INTAKE] Intake submitted, redirecting to appointment');
 
-      // Update sessionStorage with intake data
       const finalData = {
         ...data,
         allergies: intakeAnswers.allergies,
@@ -697,7 +758,6 @@ export default function AppointmentProcess() {
 
       setIntakeComplete(true);
       
-      // Navigate to appointment page with existing access token
       router.push(`/appointment/${accessToken}`);
       
     } catch (error) {
@@ -707,9 +767,6 @@ export default function AppointmentProcess() {
       setIsLoading(false);
     }
   };
-
-  // REMOVED: Loading screen that required email from landing page
-  // The page now works standalone
 
   return (
     <div className="min-h-screen bg-[#050b14] p-3 md:p-8">
@@ -887,14 +944,13 @@ export default function AppointmentProcess() {
                   <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
                     <div className="text-white font-semibold text-xs md:text-sm">Patient Details</div>
                     <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      {/* UPDATED: Email field - now editable with onBlur check */}
+                      {/* Email field */}
                       <div className="col-span-2 relative">
                         <input 
                           type="email" 
                           value={email}
                           onChange={(e) => {
                             setEmail(e.target.value);
-                            // Reset check status when email changes
                             if (emailChecked) {
                               setEmailChecked(false);
                               setEmailExists(false);
@@ -930,6 +986,12 @@ export default function AppointmentProcess() {
                           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-primary-teal">
                             <Check size={16} />
                             <span className="text-[10px] font-semibold whitespace-nowrap">Welcome back!</span>
+                          </div>
+                        )}
+                        {/* ADDED: Show checkmark for new users too */}
+                        {emailChecked && !emailExists && !isCheckingEmail && isEmailValid(email) && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-primary-teal">
+                            <Check size={16} />
                           </div>
                         )}
                       </div>
@@ -1085,14 +1147,13 @@ export default function AppointmentProcess() {
                   <div className="flex justify-center">
                     <button 
                       onClick={() => {
-                        // Save appointment data to sessionStorage before proceeding
                         const currentSessionData = sessionStorage.getItem('appointmentData');
                         const existingData = currentSessionData ? JSON.parse(currentSessionData) : {};
                         const dataToSave = {
                           ...existingData,
                           email: email.trim().toLowerCase(),
                           patientId: patientId,
-                          skipIntake: emailExists, // Returning patients skip intake
+                          skipIntake: emailExists,
                           symptoms: appointmentData.symptoms,
                           chief_complaint: appointmentData.chief_complaint,
                           visitType: appointmentData.visitType,
@@ -1107,7 +1168,6 @@ export default function AppointmentProcess() {
                           streetAddress: appointmentData.streetAddress,
                           postalCode: appointmentData.postalCode,
                           placeId: appointmentData.placeId,
-                          // Include intake answers for medical history (will be null for returning patients)
                           allergies: intakeAnswers.allergies,
                           allergiesDetails: intakeAnswers.allergiesDetails,
                           surgeries: intakeAnswers.surgeries,
@@ -1393,7 +1453,6 @@ export default function AppointmentProcess() {
                 </div>
               </div>
               <div className="max-h-72 overflow-y-auto border border-white/5 rounded-lg">
-                {/* "Something else" option - shown when focused or when something is typed */}
                 {(reasonInputFocused || reasonQuery.trim()) && (
                   <div 
                     className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 font-semibold"
@@ -1429,43 +1488,43 @@ export default function AppointmentProcess() {
         )}
 
         {/* Chief Complaint Dialog */}
-              {chiefComplaintDialogOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
-                  <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
-                    <div className="flex justify-center items-center">
-                      <div className="text-white font-bold text-base md:text-lg">Describe symptoms</div>
-                    </div>
-                    <div className="space-y-2">
-                      <textarea
-                        value={appointmentData.chief_complaint}
-                        onChange={(e) => setAppointmentData((prev) => ({ ...prev, chief_complaint: e.target.value }))}
-                        placeholder="Describe symptoms"
-                        rows={2}
-                        className={`w-full bg-[#11161c] border rounded-lg px-3 py-3 text-white text-[16px] focus:outline-none min-h-[60px] transition-all ${
-                          highlightedField === "chief_complaint"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                            : isChiefComplaintValid(appointmentData.chief_complaint)
-                            ? "border-primary-teal"
-                            : "border-white/10"
-                        }`}
-                      />
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setChiefComplaintDialogOpen(false)}
-                        disabled={!isChiefComplaintValid(appointmentData.chief_complaint)}
-                        className={`bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-sm md:text-base ${
-                          isChiefComplaintValid(appointmentData.chief_complaint)
-                            ? "hover:bg-primary-teal/90"
-                            : "opacity-50 cursor-not-allowed"
-                        }`}
-                      >
-                        OK
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+        {chiefComplaintDialogOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
+            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
+              <div className="flex justify-center items-center">
+                <div className="text-white font-bold text-base md:text-lg">Describe symptoms</div>
+              </div>
+              <div className="space-y-2">
+                <textarea
+                  value={appointmentData.chief_complaint}
+                  onChange={(e) => setAppointmentData((prev) => ({ ...prev, chief_complaint: e.target.value }))}
+                  placeholder="Describe symptoms"
+                  rows={2}
+                  className={`w-full bg-[#11161c] border rounded-lg px-3 py-3 text-white text-[16px] focus:outline-none min-h-[60px] transition-all ${
+                    highlightedField === "chief_complaint"
+                      ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                      : isChiefComplaintValid(appointmentData.chief_complaint)
+                      ? "border-primary-teal"
+                      : "border-white/10"
+                  }`}
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setChiefComplaintDialogOpen(false)}
+                  disabled={!isChiefComplaintValid(appointmentData.chief_complaint)}
+                  className={`bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-sm md:text-base ${
+                    isChiefComplaintValid(appointmentData.chief_complaint)
+                      ? "hover:bg-primary-teal/90"
+                      : "opacity-50 cursor-not-allowed"
+                  }`}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Visit Type Dialog */}
         {visitTypeDialogOpen && (
@@ -1553,6 +1612,7 @@ export default function AppointmentProcess() {
     </div>
   );
 }
+
 
 
 
