@@ -40,6 +40,9 @@ export default function AppointmentProcess() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [email, setEmail] = useState("");
   const [emailExists, setEmailExists] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false); // NEW
+  const [emailChecked, setEmailChecked] = useState(false); // NEW
+  const [patientId, setPatientId] = useState<string | null>(null); // NEW
   const [isLoading, setIsLoading] = useState(false);
   const [visitTypeDialogOpen, setVisitTypeDialogOpen] = useState(false);
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
@@ -82,7 +85,7 @@ export default function AppointmentProcess() {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
-  const [highlightedField, setHighlightedField] = useState<string | null>("symptoms");
+  const [highlightedField, setHighlightedField] = useState<string | null>("email"); // Start with email
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
   const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
   const prefillHighlight = emailExists && appointmentData.appointmentDate && appointmentData.appointmentTime;
@@ -128,6 +131,12 @@ export default function AppointmentProcess() {
     const trimmed = value.trim();
     // Min 2 characters, only letters (no numbers or special chars except spaces, hyphens, apostrophes)
     return trimmed.length >= 2 && /^[A-Za-z][A-Za-z\s'\-]*$/.test(trimmed) && !/\d/.test(trimmed);
+  }, []);
+
+  // NEW: Email validation helper
+  const isEmailValid = useCallback((value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value.trim());
   }, []);
 
   const markTouched = (..._args: unknown[]) => {
@@ -181,6 +190,117 @@ export default function AppointmentProcess() {
     setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
   };
 
+  // NEW: Check email in database function
+  const checkEmailInDatabase = useCallback(async (emailToCheck: string) => {
+    if (!isEmailValid(emailToCheck)) {
+      setEmailExists(false);
+      setEmailChecked(false);
+      setPatientId(null);
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    
+    try {
+      const response = await fetch("/api/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToCheck.trim().toLowerCase() }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEmailChecked(true);
+        
+        // Check if this is a RETURNING PATIENT (has patientId = has had appointment before)
+        const isReturningPatient = data.exists && data.patientId;
+        setEmailExists(isReturningPatient);
+        
+        if (isReturningPatient) {
+          // RETURNING PATIENT - has patient record from previous appointment
+          setPatientId(data.patientId);
+          
+          // Prefill user data
+          if (data.user) {
+            let formattedDateOfBirth = "";
+            if (data.user.date_of_birth) {
+              const dateParts = data.user.date_of_birth.split("-");
+              if (dateParts.length === 3) {
+                formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+              }
+            }
+            const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
+            const phoneFormatted = formatPhone(phoneDigits).formatted;
+            
+            setAppointmentData((prev) => ({
+              ...prev,
+              firstName: data.user.first_name || prev.firstName,
+              lastName: data.user.last_name || prev.lastName,
+              phone: phoneDigits ? phoneFormatted : prev.phone,
+              dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
+              streetAddress: data.user.address || prev.streetAddress,
+              placeId: data.user.address ? "api-prefill-address" : prev.placeId,
+            }));
+          }
+          
+          // Returning patient skips intake
+          sessionStorage.setItem('appointmentData', JSON.stringify({
+            email: emailToCheck.trim().toLowerCase(),
+            patientId: data.patientId,
+            skipIntake: true,
+            user: data.user,
+          }));
+        } else if (data.exists && data.user) {
+          // USER EXISTS but NO PATIENT RECORD (has account but never had appointment)
+          // Prefill their data but REQUIRE intake
+          setPatientId(null);
+          
+          let formattedDateOfBirth = "";
+          if (data.user.date_of_birth) {
+            const dateParts = data.user.date_of_birth.split("-");
+            if (dateParts.length === 3) {
+              formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
+            }
+          }
+          const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
+          const phoneFormatted = formatPhone(phoneDigits).formatted;
+          
+          setAppointmentData((prev) => ({
+            ...prev,
+            firstName: data.user.first_name || prev.firstName,
+            lastName: data.user.last_name || prev.lastName,
+            phone: phoneDigits ? phoneFormatted : prev.phone,
+            dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
+            streetAddress: data.user.address || prev.streetAddress,
+            placeId: data.user.address ? "api-prefill-address" : prev.placeId,
+          }));
+          
+          // Has user account but still needs intake (first appointment)
+          sessionStorage.setItem('appointmentData', JSON.stringify({
+            email: emailToCheck.trim().toLowerCase(),
+            userId: data.userId,
+            skipIntake: false,
+            user: data.user,
+          }));
+        } else {
+          // COMPLETELY NEW - no user, no patient
+          setPatientId(null);
+          sessionStorage.setItem('appointmentData', JSON.stringify({
+            email: emailToCheck.trim().toLowerCase(),
+            skipIntake: false,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error checking email:", error);
+      setEmailExists(false);
+      setEmailChecked(false);
+      setPatientId(null);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  }, [isEmailValid]);
+
   const appearance = {
     theme: "night" as const,
     variables: {
@@ -199,65 +319,22 @@ export default function AppointmentProcess() {
     appearance,
   };
 
-  // Load email and user data from sessionStorage on mount
+  // Load email and user data from sessionStorage on mount (optional - for landing page flow)
   useEffect(() => {
     const emailCheckData = sessionStorage.getItem('emailCheckResponse');
-    if (!emailCheckData) {
-      // No email data, redirect to home
-      router.push('/');
-      return;
-    }
-
-    try {
-      const data = JSON.parse(emailCheckData);
-      setEmail(data.email);
-      setEmailExists(data.exists);
-
-      if (data.user) {
-        // Prefill user data
-        let formattedDateOfBirth = "";
-        if (data.user.date_of_birth) {
-          const dateParts = data.user.date_of_birth.split("-");
-          if (dateParts.length === 3) {
-            formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
-          }
+    if (emailCheckData) {
+      try {
+        const data = JSON.parse(emailCheckData);
+        if (data.email) {
+          setEmail(data.email);
+          // Trigger email check with existing email
+          checkEmailInDatabase(data.email);
         }
-        const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "").slice(0, 10);
-        const phoneFormatted = formatPhone(phoneDigits).formatted;
-        const addressIncoming = data.user.address || "";
-        
-        setAppointmentData((prev) => ({
-          ...prev,
-          firstName: data.user.first_name || "",
-          lastName: data.user.last_name || "",
-          phone: phoneDigits ? phoneFormatted : "",
-          dateOfBirth: formattedDateOfBirth,
-          streetAddress: addressIncoming,
-          placeId: addressIncoming ? "api-prefill-address" : "",
-        }));
+      } catch (error) {
+        console.error('Error parsing email check data:', error);
       }
-
-      // Also save to appointmentData sessionStorage for CheckoutForm
-      // Note: We always collect intake data in this flow, so skipIntake is false
-      if (data.patientId) {
-        sessionStorage.setItem('appointmentData', JSON.stringify({
-          email: data.email,
-          patientId: data.patientId,
-          skipIntake: false, // Always collect intake data
-          user: data.user,
-        }));
-      } else if (data.user) {
-        sessionStorage.setItem('appointmentData', JSON.stringify({
-          email: data.email,
-          user: data.user,
-          skipIntake: false, // Always collect intake data
-        }));
-      }
-    } catch (error) {
-      console.error('Error parsing email check data:', error);
-      router.push('/');
     }
-  }, [router]);
+  }, [checkEmailInDatabase]);
 
   // Fetch doctor info
   useEffect(() => {
@@ -309,10 +386,14 @@ export default function AppointmentProcess() {
     }
   }, [step, clientSecret]);
 
-  // Field highlighting logic
+  // Field highlighting logic - UPDATED to include email
   useEffect(() => {
     if (step === 1) {
-      if (!appointmentData.symptoms) {
+      if (!isEmailValid(email)) {
+        setHighlightedField("email");
+      } else if (!emailChecked && !isCheckingEmail) {
+        setHighlightedField("email"); // Highlight until email is checked
+      } else if (!appointmentData.symptoms) {
         setHighlightedField("symptoms");
       } else if (!isChiefComplaintValid(appointmentData.chief_complaint)) {
         setHighlightedField("chief_complaint");
@@ -336,7 +417,7 @@ export default function AppointmentProcess() {
         setHighlightedField(null);
       }
     }
-  }, [step, appointmentData, isPhoneValid, isDobValid, hasOneWord, isChiefComplaintValid, isNameValid]);
+  }, [step, email, emailChecked, isCheckingEmail, appointmentData, isEmailValid, isPhoneValid, isDobValid, hasOneWord, isChiefComplaintValid, isNameValid]);
 
   // Filtered reasons for symptom search
   const filteredReasons = useMemo(() => {
@@ -374,7 +455,10 @@ export default function AppointmentProcess() {
       .slice(0, 8);
   }, [reasonQuery, reasonInputFocused]);
 
+  // UPDATED: personalDetailsValid now includes email validation
   const personalDetailsValid =
+    isEmailValid(email) &&
+    emailChecked &&
     appointmentData.symptoms &&
     isChiefComplaintValid(appointmentData.chief_complaint) &&
     appointmentData.visitType &&
@@ -391,7 +475,7 @@ export default function AppointmentProcess() {
   const totalStepFields = 10;
   const completedFields = useMemo(() => {
     let count = 0;
-    if (email.trim()) count += 1;
+    if (isEmailValid(email) && emailChecked) count += 1;
     if (appointmentData.symptoms && isChiefComplaintValid(appointmentData.chief_complaint)) count += 1;
     if (appointmentData.visitType) count += 1;
     if (appointmentData.appointmentDate && appointmentData.appointmentTime) count += 1;
@@ -404,6 +488,7 @@ export default function AppointmentProcess() {
     return Math.min(count, totalStepFields);
   }, [
     email,
+    emailChecked,
     appointmentData.symptoms,
     appointmentData.visitType,
     appointmentData.appointmentDate,
@@ -415,6 +500,7 @@ export default function AppointmentProcess() {
     appointmentData.dateOfBirth,
     appointmentData.streetAddress,
     appointmentData.placeId,
+    isEmailValid,
     isPhoneValid,
     isDobValid,
     appointmentData.chief_complaint,
@@ -422,35 +508,103 @@ export default function AppointmentProcess() {
     isNameValid,
   ]);
 
-  // Handle navigation after payment
+  // FIXED: Handle payment success - ALWAYS create appointment immediately
+  // This ensures doctor sees appointment and SMS/email are sent right away
   const handlePaymentSuccess = async () => {
     setPaymentComplete(true);
+    setIsLoading(true);
     
-    // Always show intake form after payment, regardless of emailExists
-    // The intake form is required to collect medical history before creating appointment
-    // Only navigate away if we already have an access token (appointment already created)
-    if (emailExists) {
+    try {
       const storedData = sessionStorage.getItem("appointmentData");
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        // Only skip intake if appointment is already created (has accessToken)
-        if (data.accessToken) {
-          router.push(`/appointment/${data.accessToken}`);
-          return;
+      const data = storedData ? JSON.parse(storedData) : {};
+      
+      // If appointment already created (has accessToken), just navigate
+      if (data.accessToken) {
+        router.push(`/appointment/${data.accessToken}`);
+        return;
+      }
+      
+      // Detect patient's local timezone
+      const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Prepare appointment data
+      const completeAppointmentData = {
+        ...data,
+        ...appointmentData,
+        dateOfBirth: convertDateToISO(appointmentData.dateOfBirth),
+        patientId: patientId,
+        email: email.trim(),
+        patientTimezone: patientTZ,
+        skipIntake: emailExists, // true for returning, false for new
+        // Include empty intake for new patients (will be updated later)
+        allergies: emailExists ? null : intakeAnswers.allergies,
+        allergiesDetails: emailExists ? "" : intakeAnswers.allergiesDetails,
+        surgeries: emailExists ? null : intakeAnswers.surgeries,
+        surgeriesDetails: emailExists ? "" : intakeAnswers.surgeriesDetails,
+        medicalIssues: emailExists ? null : intakeAnswers.medicalIssues,
+        medicalIssuesDetails: emailExists ? "" : intakeAnswers.medicalIssuesDetails,
+        medications: emailExists ? null : intakeAnswers.medications,
+        medicationsDetails: emailExists ? "" : intakeAnswers.medicationsDetails,
+      };
+      
+      console.log('📤 [PAYMENT SUCCESS] Creating appointment immediately:', {
+        email: completeAppointmentData.email,
+        patientId: completeAppointmentData.patientId,
+        skipIntake: completeAppointmentData.skipIntake,
+        isReturningPatient: emailExists,
+      });
+      
+      // ALWAYS create appointment immediately after payment
+      // This triggers SMS/email and shows in doctor's calendar right away
+      const createAppointmentResponse = await fetch("/api/create-appointment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payment_intent_id: data.payment_intent_id,
+          appointmentData: completeAppointmentData,
+        }),
+      });
+      
+      const createAppointmentResult = await createAppointmentResponse.json();
+      
+      if (!createAppointmentResponse.ok) {
+        throw new Error(createAppointmentResult.error || "Failed to create appointment");
+      }
+      
+      // Store appointment ID and access token
+      const updatedData = {
+        ...data,
+        ...completeAppointmentData,
+        appointmentId: createAppointmentResult.appointmentId,
+        accessToken: createAppointmentResult.accessToken,
+      };
+      sessionStorage.setItem('appointmentData', JSON.stringify(updatedData));
+      
+      // For RETURNING patients: go directly to appointment page
+      if (emailExists) {
+        console.log('✅ [RETURNING PATIENT] Skipping intake, redirecting to appointment');
+        router.push(`/appointment/${createAppointmentResult.accessToken}`);
+        return;
+      }
+      
+      // For NEW patients: show intake form (appointment already created)
+      console.log('📝 [NEW PATIENT] Showing intake form (appointment already created)');
+      setTimeout(() => {
+        const intakeSection = document.getElementById('intake-form-section');
+        if (intakeSection) {
+          intakeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-      }
+      }, 100);
+      
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      alert(error instanceof Error ? error.message : "Failed to create appointment. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-    // Show intake form (by not navigating) - this will be rendered below
-    // Scroll to intake form section if needed
-    setTimeout(() => {
-      const intakeSection = document.getElementById('intake-form-section');
-      if (intakeSection) {
-        intakeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
   };
 
-  // Handle intake submission
+  // Handle intake submission - UPDATES existing appointment (already created after payment)
   const handleIntakeSubmit = async () => {
     const intakeValid =
       intakeAnswers.allergies !== null &&
@@ -468,21 +622,22 @@ export default function AppointmentProcess() {
 
     try {
       const storedData = sessionStorage.getItem("appointmentData");
-      let patientId = null;
-      let payment_intent_id = null;
+      const data = storedData ? JSON.parse(storedData) : {};
       
-      if (storedData) {
-        const data = JSON.parse(storedData);
-        patientId = data.patientId;
-        payment_intent_id = data.payment_intent_id;
+      const currentPatientId = data.patientId || patientId;
+      const appointmentId = data.appointmentId;
+      const accessToken = data.accessToken;
+      
+      if (!accessToken) {
+        throw new Error("Appointment not found. Please try again.");
       }
 
       // Update patient record with intake data
-      const updateResponse = await fetch("/api/update-intake-patient", {
+      const updatePatientResponse = await fetch("/api/update-intake-patient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          patientId,
+          patientId: currentPatientId,
           email: email.trim(),
           has_drug_allergies: intakeAnswers.allergies,
           has_recent_surgeries: intakeAnswers.surgeries,
@@ -491,40 +646,43 @@ export default function AppointmentProcess() {
         }),
       });
 
-      const updateResult = await updateResponse.json();
-
-      if (!updateResponse.ok) {
-        throw new Error(updateResult.error || "Failed to submit intake");
+      if (!updatePatientResponse.ok) {
+        const updateResult = await updatePatientResponse.json();
+        throw new Error(updateResult.error || "Failed to update patient record");
       }
 
-      // Save intake answers to sessionStorage
-      const currentSessionData = sessionStorage.getItem('appointmentData');
-      const existingData = currentSessionData ? JSON.parse(currentSessionData) : {};
-      
-      // Convert dateOfBirth to ISO format if needed
-      const convertDateToISO = (dateStr: string) => {
-        if (!dateStr) return "";
-        // If already in YYYY-MM-DD format, return as is
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-        // If in MM/DD/YYYY format, convert to YYYY-MM-DD
-        const parts = dateStr.split("/");
-        if (parts.length === 3) {
-          const [month, day, year] = parts;
-          return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        }
-        return dateStr;
-      };
+      // Update the existing appointment with intake data
+      const updateAppointmentResponse = await fetch("/api/update-appointment-intake", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appointmentId: appointmentId,
+          accessToken: accessToken,
+          intakeData: {
+            allergies: intakeAnswers.allergies,
+            allergiesDetails: intakeAnswers.allergiesDetails,
+            surgeries: intakeAnswers.surgeries,
+            surgeriesDetails: intakeAnswers.surgeriesDetails,
+            medicalIssues: intakeAnswers.medicalIssues,
+            medicalIssuesDetails: intakeAnswers.medicalIssuesDetails,
+            medications: intakeAnswers.medications,
+            medicationsDetails: intakeAnswers.medicationsDetails,
+            pharmacy: appointmentData.pharmacy,
+          },
+        }),
+      });
 
-      const isoDateOfBirth = convertDateToISO(existingData.dateOfBirth || appointmentData.dateOfBirth);
+      if (!updateAppointmentResponse.ok) {
+        const updateResult = await updateAppointmentResponse.json();
+        console.error("Failed to update appointment intake:", updateResult);
+        // Don't throw - appointment exists, intake update is not critical for navigation
+      }
 
-        // Detect patient's local timezone
-        const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        
-        // Prepare complete appointment data with intake form data
-        const completeAppointmentData = {
-        ...existingData,
-          ...appointmentData,
-        // Include intake answers for medical history
+      console.log('✅ [INTAKE] Intake submitted, redirecting to appointment');
+
+      // Update sessionStorage with intake data
+      const finalData = {
+        ...data,
         allergies: intakeAnswers.allergies,
         allergiesDetails: intakeAnswers.allergiesDetails,
         surgeries: intakeAnswers.surgeries,
@@ -533,62 +691,15 @@ export default function AppointmentProcess() {
         medicalIssuesDetails: intakeAnswers.medicalIssuesDetails,
         medications: intakeAnswers.medications,
         medicationsDetails: intakeAnswers.medicationsDetails,
-          dateOfBirth: isoDateOfBirth,
-          patientId: patientId,
-          email: email.trim(),
-          patientTimezone: patientTZ, // Include patient timezone for proper conversion
-          skipIntake: false, // Set to false since we're completing intake now
-        };
-
-      // Save to sessionStorage
-      sessionStorage.setItem('appointmentData', JSON.stringify(completeAppointmentData));
-
-      // Now call create-appointment API with all the data including intake form data
-      if (!payment_intent_id) {
-        throw new Error("Payment intent ID is missing. Please try the payment process again.");
-      }
-
-      console.log('📤 [API] Calling create-appointment with complete intake form data:', {
-        allergies: completeAppointmentData.allergies,
-        allergiesDetails: completeAppointmentData.allergiesDetails,
-        surgeries: completeAppointmentData.surgeries,
-        surgeriesDetails: completeAppointmentData.surgeriesDetails,
-        medicalIssues: completeAppointmentData.medicalIssues,
-        medicalIssuesDetails: completeAppointmentData.medicalIssuesDetails,
-        medications: completeAppointmentData.medications,
-        medicationsDetails: completeAppointmentData.medicationsDetails,
-      });
-
-      const createAppointmentResponse = await fetch("/api/create-appointment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          payment_intent_id: payment_intent_id,
-          appointmentData: completeAppointmentData,
-        }),
-      });
-
-      const createAppointmentResult = await createAppointmentResponse.json();
-
-      if (!createAppointmentResponse.ok) {
-        throw new Error(createAppointmentResult.error || "Failed to create appointment");
-      }
+        intakeComplete: true,
+      };
+      sessionStorage.setItem('appointmentData', JSON.stringify(finalData));
 
       setIntakeComplete(true);
-
-      // Store access token
-      if (createAppointmentResult.accessToken) {
-        const finalData = JSON.parse(sessionStorage.getItem('appointmentData') || '{}');
-        finalData.accessToken = createAppointmentResult.accessToken;
-        sessionStorage.setItem('appointmentData', JSON.stringify(finalData));
-        
-        // Navigate to appointment page with access token
-        router.push(`/appointment/${createAppointmentResult.accessToken}`);
-      } else {
-        throw new Error("No access token received from appointment creation");
-      }
+      
+      // Navigate to appointment page with existing access token
+      router.push(`/appointment/${accessToken}`);
+      
     } catch (error) {
       console.error("Error submitting intake:", error);
       alert(error instanceof Error ? error.message : "Failed to submit intake. Please try again.");
@@ -597,13 +708,8 @@ export default function AppointmentProcess() {
     }
   };
 
-  if (!email) {
-    return (
-      <div className="min-h-screen bg-[#050b14] flex items-center justify-center p-4">
-        <div className="text-white text-sm">Loading...</div>
-      </div>
-    );
-  }
+  // REMOVED: Loading screen that required email from landing page
+  // The page now works standalone
 
   return (
     <div className="min-h-screen bg-[#050b14] p-3 md:p-8">
@@ -642,11 +748,6 @@ export default function AppointmentProcess() {
                     <div className="bg-primary-teal/10 text-primary-teal text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full">
                       {appointmentData.visitType}
                     </div>
-                    {/* {step === 2 && (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <div className="text-white font-bold text-xs md:text-sm mt-0.5 md:mt-1">$189</div>
-                      </div>
-                    )} */}
                   </div>
                 </div>
               )}
@@ -762,9 +863,6 @@ export default function AppointmentProcess() {
                             : "border-white/10"
                         }`}
                       />
-                      {/* {appointmentData.pharmacyAddress && (
-                        <div className="text-gray-500 text-[10px] md:text-xs mt-1 px-1">{appointmentData.pharmacyAddress}</div>
-                      )} */}
                     </div>
                   </div>
 
@@ -772,16 +870,51 @@ export default function AppointmentProcess() {
                   <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
                     <div className="text-white font-semibold text-xs md:text-sm">Patient Details</div>
                     <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      <input 
-                        type="email" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Email"
-                        className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal col-span-2 transition-all ${
-                          appointmentData.appointmentDate && appointmentData.appointmentTime ? "border-primary-teal" : "border-white/10"
-                        }`}
-                        disabled
-                      />
+                      {/* UPDATED: Email field - now editable with onBlur check */}
+                      <div className="col-span-2 relative">
+                        <input 
+                          type="email" 
+                          value={email}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            // Reset check status when email changes
+                            if (emailChecked) {
+                              setEmailChecked(false);
+                              setEmailExists(false);
+                              setPatientId(null);
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const trimmedEmail = e.target.value.trim();
+                            if (trimmedEmail && isEmailValid(trimmedEmail)) {
+                              checkEmailInDatabase(trimmedEmail);
+                            }
+                          }}
+                          placeholder="Email"
+                          className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none transition-all ${
+                            highlightedField === "email"
+                              ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                              : isCheckingEmail
+                              ? "border-yellow-500"
+                              : emailChecked && isEmailValid(email)
+                              ? "border-primary-teal"
+                              : "border-white/10"
+                          } ${isCheckingEmail || (emailChecked && emailExists) ? "pr-32" : ""}`}
+                        />
+                        {/* Loading spinner while checking email */}
+                        {isCheckingEmail && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-teal"></div>
+                          </div>
+                        )}
+                        {/* Returning patient indicator */}
+                        {emailChecked && emailExists && !isCheckingEmail && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-primary-teal">
+                            <Check size={16} />
+                            <span className="text-[10px] font-semibold whitespace-nowrap">Welcome back!</span>
+                          </div>
+                        )}
+                      </div>
                       <input
                         value={appointmentData.firstName}
                         onFocus={() => markTouched("firstName")}
@@ -935,6 +1068,9 @@ export default function AppointmentProcess() {
                         const existingData = currentSessionData ? JSON.parse(currentSessionData) : {};
                         const dataToSave = {
                           ...existingData,
+                          email: email.trim().toLowerCase(),
+                          patientId: patientId,
+                          skipIntake: emailExists, // Returning patients skip intake
                           symptoms: appointmentData.symptoms,
                           chief_complaint: appointmentData.chief_complaint,
                           visitType: appointmentData.visitType,
@@ -949,7 +1085,7 @@ export default function AppointmentProcess() {
                           streetAddress: appointmentData.streetAddress,
                           postalCode: appointmentData.postalCode,
                           placeId: appointmentData.placeId,
-                          // Include intake answers for medical history
+                          // Include intake answers for medical history (will be null for returning patients)
                           allergies: intakeAnswers.allergies,
                           allergiesDetails: intakeAnswers.allergiesDetails,
                           surgeries: intakeAnswers.surgeries,
@@ -960,15 +1096,11 @@ export default function AppointmentProcess() {
                           medicationsDetails: intakeAnswers.medicationsDetails,
                         };
                         
-                        console.log('💾 [INTAKE] Saving intake form data to sessionStorage:', {
-                          allergies: dataToSave.allergies,
-                          allergiesDetails: dataToSave.allergiesDetails,
-                          surgeries: dataToSave.surgeries,
-                          surgeriesDetails: dataToSave.surgeriesDetails,
-                          medicalIssues: dataToSave.medicalIssues,
-                          medicalIssuesDetails: dataToSave.medicalIssuesDetails,
-                          medications: dataToSave.medications,
-                          medicationsDetails: dataToSave.medicationsDetails,
+                        console.log('💾 [PROCEED] Saving data to sessionStorage:', {
+                          email: dataToSave.email,
+                          patientId: dataToSave.patientId,
+                          skipIntake: dataToSave.skipIntake,
+                          emailExists: emailExists,
                         });
                         
                         sessionStorage.setItem('appointmentData', JSON.stringify(dataToSave));
@@ -1018,7 +1150,8 @@ export default function AppointmentProcess() {
             </div>
           )}
 
-          {paymentComplete && !intakeComplete && (
+          {/* Intake form - only shown for NEW patients after payment */}
+          {paymentComplete && !intakeComplete && !emailExists && (
             <div id="intake-form-section" className="space-y-3 md:space-y-4 mt-3 md:mt-4">
               <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4">
                 <div className="text-primary-teal font-bold text-base md:text-lg mb-2">Appointment Confirmed</div>
@@ -1106,7 +1239,7 @@ export default function AppointmentProcess() {
                       <input
                         value={intakeAnswers.surgeriesDetails}
                         onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, surgeriesDetails: e.target.value }))}
-                        placeholder="List recent surgeries..."
+                        placeholder="Describe recent surgeries or procedures..."
                         className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
                       />
                     )}
@@ -1140,14 +1273,14 @@ export default function AppointmentProcess() {
                       <input
                         value={intakeAnswers.medicalIssuesDetails}
                         onChange={(e) => setIntakeAnswers((prev) => ({ ...prev, medicalIssuesDetails: e.target.value }))}
-                        placeholder="List ongoing medical issues..."
+                        placeholder="Describe ongoing medical issues..."
                         className="w-full mt-2 bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal"
                       />
                     )}
                   </div>
 
                   <div>
-                    <div className="text-white font-semibold text-sm md:text-base mb-2">Current Medications?</div>
+                    <div className="text-white font-semibold text-sm md:text-base mb-2">Currently Taking Any Medications?</div>
                     <div className="grid grid-cols-2 gap-2 md:gap-3">
                       <button
                         onClick={() => setIntakeAnswers((prev) => ({ ...prev, medications: true }))}
@@ -1179,40 +1312,30 @@ export default function AppointmentProcess() {
                       />
                     )}
                   </div>
-                  
-    <div>
-                    <div className="text-white font-semibold text-sm md:text-base mb-2">Preferred Pharmacy</div>
-                      <PharmacySelector
-                        value={appointmentData.pharmacy}
-                        onChange={(value) => setAppointmentData((prev) => ({ ...prev, pharmacy: value }))}
-                        onPlaceSelect={(place) => {
-                          const fullAddress = place.formatted_address 
-                            ? `${place.name}, ${place.formatted_address}`
-                            : place.name;
-                          setAppointmentData((prev) => ({
-                            ...prev,
-                            pharmacy: fullAddress,
-                            pharmacyAddress: place.formatted_address || "",
-                          }));
-                        }}
-                        placeholder="Pharmacy name (City or ZIP)"
-                        className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal"
-                      />
-                      {appointmentData.pharmacyAddress && (
-                        <div className="text-gray-500 text-[10px] md:text-xs mt-1">{appointmentData.pharmacyAddress}</div>
-                      )}
-                    </div>
-                  </div>
+                </div>
 
+                <div className="flex justify-center pt-2">
                   <button
                     onClick={handleIntakeSubmit}
-                    disabled={isLoading}
-                    className={`w-full bg-gray-600 text-white font-bold py-3 md:py-4 rounded-lg text-sm md:text-base transition-all ${
-                      isLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-500"
+                    disabled={isLoading || 
+                      intakeAnswers.allergies === null ||
+                      intakeAnswers.surgeries === null ||
+                      intakeAnswers.medicalIssues === null ||
+                      intakeAnswers.medications === null
+                    }
+                    className={`w-full md:w-auto bg-primary-teal text-black px-8 py-3 rounded-lg font-bold text-sm shadow-lg ${
+                      isLoading || 
+                      intakeAnswers.allergies === null ||
+                      intakeAnswers.surgeries === null ||
+                      intakeAnswers.medicalIssues === null ||
+                      intakeAnswers.medications === null
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:bg-primary-teal/90"
                     }`}
                   >
-                    {isLoading ? "SUBMITTING..." : "SUBMIT INTAKE"}
+                    {isLoading ? "Submitting..." : "Complete Booking"}
                   </button>
+                </div>
               </div>
             </div>
           )}
@@ -1221,9 +1344,9 @@ export default function AppointmentProcess() {
         {/* Reason Dialog */}
         {reasonDialogOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
-            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-6 w-full max-w-lg space-y-3 md:space-y-4">
+            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
               <div className="flex justify-between items-center">
-                <div className="text-white font-bold text-base md:text-lg">Select Reason for Visit</div>
+                <div className="text-white font-bold text-base md:text-lg">Reason For Visit</div>
                 <button 
                   onClick={() => {
                     setReasonDialogOpen(false);
@@ -1408,4 +1531,3 @@ export default function AppointmentProcess() {
     </div>
   );
 }
-
