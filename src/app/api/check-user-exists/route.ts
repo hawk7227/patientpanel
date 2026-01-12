@@ -12,17 +12,56 @@ export async function POST(request: Request) {
       );
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
     const supabase = createServerClient();
 
-    // Check if user exists by email in users table
+    // First check if patient exists directly by email (for returning patients)
+    const { data: existingPatient, error: patientSearchError } = await supabase
+      .from("patients")
+      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location")
+      .eq("email", normalizedEmail)
+      .single();
+
+    if (patientSearchError && patientSearchError.code !== 'PGRST116') {
+      console.error("Error searching for patient:", patientSearchError);
+    }
+
+    if (existingPatient) {
+      // RETURNING PATIENT - has patient record from previous appointment
+      // Get user data if they have a user account
+      let userData = null;
+      if (existingPatient.user_id) {
+        const { data: user } = await supabase
+          .from("users")
+          .select("id, email, first_name, last_name, mobile_phone, date_of_birth, address")
+          .eq("id", existingPatient.user_id)
+          .single();
+        userData = user;
+      }
+
+      return NextResponse.json({
+        exists: true,
+        patientId: existingPatient.id,
+        user: userData || {
+          first_name: existingPatient.first_name,
+          last_name: existingPatient.last_name,
+          email: existingPatient.email,
+          mobile_phone: existingPatient.phone,
+          date_of_birth: existingPatient.date_of_birth,
+          address: existingPatient.location,
+        },
+        patient: existingPatient,
+      });
+    }
+
+    // Check if user exists by email in users table (might have account but no appointment yet)
     const { data: existingUser, error: userSearchError } = await supabase
       .from("users")
       .select("id, email, first_name, last_name, mobile_phone, date_of_birth, address")
-      .eq("email", email.toLowerCase().trim())
+      .eq("email", normalizedEmail)
       .single();
 
     if (userSearchError && userSearchError.code !== 'PGRST116') {
-      // PGRST116 is "not found" error, which is expected if user doesn't exist
       console.error("Error searching for user:", userSearchError);
       return NextResponse.json(
         { error: "Failed to check user", details: userSearchError.message },
@@ -31,39 +70,31 @@ export async function POST(request: Request) {
     }
 
     if (existingUser) {
-      // User exists - check if patient record exists
-      const { data: existingPatient, error: patientSearchError } = await supabase
-        .from("patients")
-        .select("id, user_id, first_name, last_name, email")
-        .eq("user_id", existingUser.id)
-        .single();
-
-      if (patientSearchError && patientSearchError.code !== 'PGRST116') {
-        console.error("Error searching for patient:", patientSearchError);
-        // If error is not "not found", return error
-        return NextResponse.json(
-          { error: "Failed to check patient", details: patientSearchError.message },
-          { status: 500 }
-        );
-      }
-
+      // User exists but NO patient record (has account but never had appointment)
       return NextResponse.json({
         exists: true,
+        userId: existingUser.id,
+        patientId: null, // No patient record yet - will need intake
         user: existingUser,
-        patient: existingPatient || null,
-        patientId: existingPatient?.id || null,
+        patient: null,
       });
     }
 
+    // Completely new - no user, no patient
     return NextResponse.json({
       exists: false,
+      patientId: null,
+      user: null,
+      patient: null,
     });
   } catch (error: any) {
-    console.error("Error in check-user-exists:", error);
+    console.error("Error in check-email:", error);
     return NextResponse.json(
       { error: "Internal server error", details: error.message },
       { status: 500 }
     );
   }
 }
+
+
 
