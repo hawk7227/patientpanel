@@ -606,12 +606,12 @@ export default function AppointmentProcess() {
 
   // Handle intake submission - UPDATES existing appointment (already created after payment)
   const handleIntakeSubmit = async () => {
+    // Pharmacy already collected in Step 1, only validate intake questions
     const intakeValid =
       intakeAnswers.allergies !== null &&
       intakeAnswers.surgeries !== null &&
       intakeAnswers.medicalIssues !== null &&
-      intakeAnswers.medications !== null &&
-      appointmentData.pharmacy.trim() !== "";
+      intakeAnswers.medications !== null;
 
     if (!intakeValid) {
       alert("Please complete all required fields");
@@ -1323,14 +1323,14 @@ export default function AppointmentProcess() {
                       intakeAnswers.medicalIssues === null ||
                       intakeAnswers.medications === null
                     }
-                    className={`w-full md:w-auto bg-primary-teal text-black px-8 py-3 rounded-lg font-bold text-sm shadow-lg ${
+                    className={`w-full md:w-auto px-8 py-3 rounded-lg font-bold text-sm shadow-lg ${
                       isLoading || 
                       intakeAnswers.allergies === null ||
                       intakeAnswers.surgeries === null ||
                       intakeAnswers.medicalIssues === null ||
                       intakeAnswers.medications === null
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:bg-primary-teal/90"
+                        ? "bg-gray-600 text-gray-400 opacity-50 cursor-not-allowed"
+                        : "bg-primary-orange text-white hover:bg-orange-600"
                     }`}
                   >
                     {isLoading ? "Submitting..." : "Complete Booking"}
@@ -1531,3 +1531,4 @@ export default function AppointmentProcess() {
     </div>
   );
 }
+
