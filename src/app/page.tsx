@@ -74,7 +74,7 @@ export default function Home() {
             </div>
 
             <div className="text-xs text-primary-teal mb-6">
-               $59 per visit — Traditional Insurances Accepted
+               $189 per visit 
             </div>
             
             <div className="flex flex-wrap justify-center gap-4 text-[10px] md:text-xs text-gray-300 font-medium">
