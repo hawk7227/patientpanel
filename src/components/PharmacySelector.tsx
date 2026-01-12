@@ -18,9 +18,9 @@ interface Pharmacy {
     };
   };
   opening_hours?: {
-    open_now?: boolean; // Deprecated, but kept for fallback
-    isOpen?: () => boolean; // New method - use this instead of open_now
-  } | any; // Allow any to handle Google Maps API object structure
+    open_now?: boolean;
+    isOpen?: () => boolean;
+  } | any;
   distance?: number;
   formatted_phone_number?: string;
 }
@@ -29,6 +29,7 @@ interface PharmacySelectorProps {
   value: string;
   onChange: (value: string) => void;
   onPlaceSelect?: (place: Pharmacy) => void;
+  onLocationDetected?: (location: { lat: number; lng: number }) => void; // NEW: callback for detected location
   placeholder?: string;
   className?: string;
   highlighted?: boolean;
@@ -38,6 +39,7 @@ export default function PharmacySelector({
   value,
   onChange,
   onPlaceSelect,
+  onLocationDetected, // NEW
   placeholder = "Preferred Pharmacy",
   className = "",
   highlighted = false,
@@ -54,10 +56,16 @@ export default function PharmacySelector({
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setUserLocation({
+          const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setUserLocation(location);
+          
+          // NEW: Call the callback to pass location to parent
+          if (onLocationDetected) {
+            onLocationDetected(location);
+          }
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -69,7 +77,7 @@ export default function PharmacySelector({
         setLocationError("Geolocation is not supported by your browser.");
       }, 0);
     }
-  }, []);
+  }, [onLocationDetected]);
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
     const R = 3959;
@@ -205,13 +213,10 @@ export default function PharmacySelector({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {pharmacy.rating && <div className="flex items-center gap-0.5 text-[10px] leading-tight"><Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400 flex-shrink-0" /><span className="text-yellow-400 whitespace-nowrap">{pharmacy.rating}</span>{pharmacy.user_ratings_total && <span className="text-gray-400 whitespace-nowrap">({pharmacy.user_ratings_total})</span>}</div>}
                         {pharmacy.opening_hours && (() => {
-                          // Use isOpen() method if available (new API), otherwise fallback to open_now (deprecated)
                           let isOpen = false;
                           if (pharmacy.opening_hours && typeof (pharmacy.opening_hours as any).isOpen === 'function') {
-                            // New API: use isOpen() method
                             isOpen = (pharmacy.opening_hours as any).isOpen();
                           } else if (pharmacy.opening_hours && 'open_now' in pharmacy.opening_hours) {
-                            // Fallback to deprecated open_now property
                             isOpen = (pharmacy.opening_hours as any).open_now ?? false;
                           }
                           return (
