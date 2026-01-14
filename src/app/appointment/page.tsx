@@ -72,7 +72,7 @@ export default function AppointmentProcess() {
     pharmacyAddress: "",
   });
   const [clientSecret, setClientSecret] = useState("");
-  const [highlightedField, setHighlightedField] = useState<string | null>("email");
+  const [highlightedField, setHighlightedField] = useState<string | null>("symptoms");
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
   const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
   const prefillHighlight = emailExists && appointmentData.appointmentDate && appointmentData.appointmentTime;
@@ -92,6 +92,21 @@ export default function AppointmentProcess() {
     const filled = digits.padEnd(8, "_");
     const formatted = `${filled.slice(0, 2)}/${filled.slice(2, 4)}/${filled.slice(4, 8)}`;
     return { digits, formatted };
+  };
+
+  // Calculate cursor position for phone field "(XXX)-XXX-XXXX"
+  const getPhoneCursorPosition = (digitCount: number): number => {
+    if (digitCount === 0) return 1;
+    if (digitCount <= 3) return digitCount + 1;
+    if (digitCount <= 6) return digitCount + 3;
+    return digitCount + 4;
+  };
+
+  // Calculate cursor position for DOB field "MM/DD/YYYY"
+  const getDobCursorPosition = (digitCount: number): number => {
+    if (digitCount <= 2) return digitCount;
+    if (digitCount <= 4) return digitCount + 1;
+    return digitCount + 2;
   };
 
   const isDobValid = useCallback((value: string) => {
@@ -336,36 +351,117 @@ export default function AppointmentProcess() {
     }
   }, [step, clientSecret]);
 
-  // Field highlighting logic
+  // Field highlighting logic - CORRECT SEQUENCE
+  // Note: Pharmacy is NOT in the required sequence - can be filled anytime
   useEffect(() => {
     if (step === 1) {
-      if (!isEmailValid(email)) {
-        setHighlightedField("email");
-      } else if (!appointmentData.symptoms) {
+      // 1. Reason for Visit (symptoms)
+      if (!appointmentData.symptoms) {
         setHighlightedField("symptoms");
-      } else if (!isChiefComplaintValid(appointmentData.chief_complaint)) {
+      }
+      // 2. Chief Complaint (after selecting symptom)
+      else if (!isChiefComplaintValid(appointmentData.chief_complaint)) {
         setHighlightedField("chief_complaint");
-      } else if (!appointmentData.visitType) {
+      }
+      // 3. Visit Type
+      else if (!appointmentData.visitType) {
         setHighlightedField("visitType");
-      } else if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) {
+      }
+      // 4. Date/Time
+      else if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) {
         setHighlightedField("dateTime");
-      } else if (!appointmentData.pharmacy.trim()) {
-        setHighlightedField("pharmacy");
-      } else if (!isNameValid(appointmentData.firstName)) {
+      }
+      // 5. Email (pharmacy skipped - can be filled anytime)
+      else if (!isEmailValid(email)) {
+        setHighlightedField("email");
+      }
+      // 6. First Name
+      else if (!isNameValid(appointmentData.firstName)) {
         setHighlightedField("firstName");
-      } else if (!isNameValid(appointmentData.lastName)) {
+      }
+      // 7. Last Name
+      else if (!isNameValid(appointmentData.lastName)) {
         setHighlightedField("lastName");
-      } else if (!isPhoneValid(appointmentData.phone)) {
+      }
+      // 8. Phone
+      else if (!isPhoneValid(appointmentData.phone)) {
         setHighlightedField("phone");
-      } else if (!isDobValid(appointmentData.dateOfBirth)) {
+      }
+      // 9. Date of Birth
+      else if (!isDobValid(appointmentData.dateOfBirth)) {
         setHighlightedField("dateOfBirth");
-      } else if (!appointmentData.streetAddress || !appointmentData.placeId) {
+      }
+      // 10. Address
+      else if (!appointmentData.streetAddress.trim() || !appointmentData.placeId.trim()) {
         setHighlightedField("streetAddress");
-      } else {
+      }
+      // 11. Pharmacy - highlight if everything else done but pharmacy empty
+      else if (!appointmentData.pharmacy.trim()) {
+        setHighlightedField("pharmacy");
+      }
+      // All complete
+      else {
         setHighlightedField(null);
       }
     }
   }, [step, email, appointmentData, isEmailValid, isPhoneValid, isDobValid, hasOneWord, isChiefComplaintValid, isNameValid]);
+
+  // Check if a field should be accessible (previous fields must be completed)
+  const isFieldAccessible = useCallback((fieldName: string): boolean => {
+    // Pharmacy is always accessible - no restrictions
+    if (fieldName === 'pharmacy') return true;
+    
+    const sequence = [
+      'symptoms',
+      'chief_complaint',
+      'visitType',
+      'dateTime',
+      // 'pharmacy' removed - always accessible
+      'email',
+      'firstName',
+      'lastName',
+      'phone',
+      'dateOfBirth',
+      'streetAddress'
+    ];
+    
+    const fieldIndex = sequence.indexOf(fieldName);
+    if (fieldIndex === -1) return true;
+    
+    for (let i = 0; i < fieldIndex; i++) {
+      const prevField = sequence[i];
+      switch (prevField) {
+        case 'symptoms':
+          if (!appointmentData.symptoms) return false;
+          break;
+        case 'chief_complaint':
+          if (!isChiefComplaintValid(appointmentData.chief_complaint)) return false;
+          break;
+        case 'visitType':
+          if (!appointmentData.visitType) return false;
+          break;
+        case 'dateTime':
+          if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) return false;
+          break;
+        case 'email':
+          if (!isEmailValid(email)) return false;
+          break;
+        case 'firstName':
+          if (!isNameValid(appointmentData.firstName)) return false;
+          break;
+        case 'lastName':
+          if (!isNameValid(appointmentData.lastName)) return false;
+          break;
+        case 'phone':
+          if (!isPhoneValid(appointmentData.phone)) return false;
+          break;
+        case 'dateOfBirth':
+          if (!isDobValid(appointmentData.dateOfBirth)) return false;
+          break;
+      }
+    }
+    return true;
+  }, [appointmentData, email, isEmailValid, isPhoneValid, isDobValid, isChiefComplaintValid, isNameValid]);
 
   // Filtered reasons for symptom search
   const filteredReasons = useMemo(() => {
@@ -677,9 +773,17 @@ export default function AppointmentProcess() {
 
                     <div className="relative">
                       <button
-                        onClick={() => setVisitTypeDialogOpen(true)}
+                        onClick={() => {
+                          if (!isFieldAccessible('visitType')) {
+                            return;
+                          }
+                          setVisitTypeDialogOpen(true);
+                        }}
+                        disabled={!isFieldAccessible('visitType')}
                         className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between min-h-[48px] md:min-h-[52px] text-xs transition-all ${
-                          highlightedField === "visitType"
+                          !isFieldAccessible('visitType')
+                            ? "opacity-50 cursor-not-allowed border-white/5"
+                            : highlightedField === "visitType"
                             ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]" 
                             : appointmentData.visitType
                             ? "border-primary-teal" 
@@ -697,11 +801,17 @@ export default function AppointmentProcess() {
                     <div className="relative">
                       <button
                         onClick={() => {
+                          if (!isFieldAccessible('dateTime')) {
+                            return;
+                          }
                           setDateTimeMode("date");
                           setDateTimeDialogOpen(true);
                         }}
+                        disabled={!isFieldAccessible('dateTime')}
                         className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between min-h-[48px] md:min-h-[52px] transition-all ${
-                          highlightedField === "dateTime"
+                          !isFieldAccessible('dateTime')
+                            ? "opacity-50 cursor-not-allowed border-white/5 text-[11px]"
+                            : highlightedField === "dateTime"
                             ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)] text-[11px]" 
                             : appointmentData.appointmentDate && appointmentData.appointmentTime
                             ? "border-primary-teal py-2 text-sm md:text-base" 
@@ -720,7 +830,9 @@ export default function AppointmentProcess() {
                     <div className="relative flex flex-col">
                       <PharmacySelector
                         value={appointmentData.pharmacy}
-                        onChange={(value) => setAppointmentData((prev) => ({ ...prev, pharmacy: value }))}
+                        onChange={(value) => {
+                          setAppointmentData((prev) => ({ ...prev, pharmacy: value }));
+                        }}
                         onPlaceSelect={(place) => {
                           const fullAddress = place.formatted_address 
                             ? `${place.name}, ${place.formatted_address}`
@@ -754,6 +866,7 @@ export default function AppointmentProcess() {
                           type="email" 
                           value={email}
                           onChange={(e) => {
+                            if (!isFieldAccessible('email')) return;
                             setEmail(e.target.value);
                             if (emailChecked) {
                               setEmailChecked(false);
@@ -762,8 +875,11 @@ export default function AppointmentProcess() {
                           }}
                           placeholder="Email"
                           autoComplete="email"
+                          disabled={!isFieldAccessible('email')}
                           className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none transition-all ${
-                            highlightedField === "email"
+                            !isFieldAccessible('email')
+                              ? "opacity-50 cursor-not-allowed border-white/5"
+                              : highlightedField === "email"
                               ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                               : isCheckingEmail
                               ? "border-yellow-500"
@@ -796,13 +912,17 @@ export default function AppointmentProcess() {
                         value={appointmentData.firstName}
                         onFocus={() => markTouched("firstName")}
                         onChange={(e) => {
+                          if (!isFieldAccessible('firstName')) return;
                           markTouched("firstName");
                           setAppointmentData((prev) => ({ ...prev, firstName: e.target.value }));
                         }}
                         placeholder="First Name"
                         autoComplete="given-name"
+                        disabled={!isFieldAccessible('firstName')}
                         className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          highlightedField === "firstName"
+                          !isFieldAccessible('firstName')
+                            ? "opacity-50 cursor-not-allowed border-white/5"
+                            : highlightedField === "firstName"
                             ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                             : isNameValid(appointmentData.firstName) && (!emailExists || prefillHighlight)
                             ? "border-primary-teal"
@@ -813,13 +933,17 @@ export default function AppointmentProcess() {
                         value={appointmentData.lastName}
                         onFocus={() => markTouched("lastName")}
                         onChange={(e) => {
+                          if (!isFieldAccessible('lastName')) return;
                           markTouched("lastName");
                           setAppointmentData((prev) => ({ ...prev, lastName: e.target.value }));
                         }}
                         placeholder="Last Name"
                         autoComplete="family-name"
+                        disabled={!isFieldAccessible('lastName')}
                         className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          highlightedField === "lastName"
+                          !isFieldAccessible('lastName')
+                            ? "opacity-50 cursor-not-allowed border-white/5"
+                            : highlightedField === "lastName"
                             ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                             : isNameValid(appointmentData.lastName) && (!emailExists || prefillHighlight)
                             ? "border-primary-teal"
@@ -829,14 +953,39 @@ export default function AppointmentProcess() {
                       <input
                         value={appointmentData.phone}
                         onChange={(e) => {
-                          markTouched("phone");
-                          const { formatted } = formatPhone(e.target.value);
+                          if (!isFieldAccessible('phone')) return;
+                          const input = e.target;
+                          const newValue = e.target.value;
+                          const newDigits = formatPhone(newValue).digits.length;
+                          const { formatted } = formatPhone(newValue);
                           setAppointmentData((prev) => ({ ...prev, phone: formatted }));
+                          requestAnimationFrame(() => {
+                            const newCursorPos = getPhoneCursorPosition(newDigits);
+                            input.setSelectionRange(newCursorPos, newCursorPos);
+                          });
+                        }}
+                        onKeyDown={(e) => {
+                          if (!isFieldAccessible('phone')) return;
+                          if (e.key === 'Backspace') {
+                            const input = e.target as HTMLInputElement;
+                            const { digits } = formatPhone(appointmentData.phone);
+                            if (digits.length > 0) {
+                              const newDigits = digits.slice(0, -1);
+                              const { formatted } = formatPhone(newDigits);
+                              setAppointmentData((prev) => ({ ...prev, phone: formatted }));
+                              requestAnimationFrame(() => {
+                                const newCursorPos = getPhoneCursorPosition(newDigits.length);
+                                input.setSelectionRange(newCursorPos, newCursorPos);
+                              });
+                              e.preventDefault();
+                            }
+                          }
                         }}
                         placeholder="Phone Number"
                         onFocus={(e) => {
+                          if (!isFieldAccessible('phone')) return;
                           markTouched("phone");
-                          if (!appointmentData.phone.trim()) {
+                          if (!appointmentData.phone.trim() || appointmentData.phone === "(___)___-____") {
                             const { formatted } = formatPhone("");
                             setAppointmentData((prev) => ({ ...prev, phone: formatted }));
                             requestAnimationFrame(() => {
@@ -850,10 +999,13 @@ export default function AppointmentProcess() {
                             setAppointmentData((prev) => ({ ...prev, phone: "" }));
                           }
                         }}
+                        disabled={!isFieldAccessible('phone')}
                         inputMode="numeric"
                         autoComplete="tel"
                         className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          highlightedField === "phone"
+                          !isFieldAccessible('phone')
+                            ? "opacity-50 cursor-not-allowed border-white/5"
+                            : highlightedField === "phone"
                             ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                             : isPhoneValid(appointmentData.phone) && (!emailExists || prefillHighlight)
                             ? "border-primary-teal"
@@ -862,11 +1014,40 @@ export default function AppointmentProcess() {
                       />
                       <input
                         value={appointmentData.dateOfBirth}
-                        onChange={(e) => handleDateOfBirthChange(e.target.value)}
+                        onChange={(e) => {
+                          if (!isFieldAccessible('dateOfBirth')) return;
+                          const input = e.target;
+                          const newValue = e.target.value;
+                          const newDigits = formatDob(newValue).digits.length;
+                          const { formatted } = formatDob(newValue);
+                          setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
+                          requestAnimationFrame(() => {
+                            const newCursorPos = getDobCursorPosition(newDigits);
+                            input.setSelectionRange(newCursorPos, newCursorPos);
+                          });
+                        }}
+                        onKeyDown={(e) => {
+                          if (!isFieldAccessible('dateOfBirth')) return;
+                          if (e.key === 'Backspace') {
+                            const input = e.target as HTMLInputElement;
+                            const { digits } = formatDob(appointmentData.dateOfBirth);
+                            if (digits.length > 0) {
+                              const newDigits = digits.slice(0, -1);
+                              const { formatted } = formatDob(newDigits);
+                              setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
+                              requestAnimationFrame(() => {
+                                const newCursorPos = getDobCursorPosition(newDigits.length);
+                                input.setSelectionRange(newCursorPos, newCursorPos);
+                              });
+                              e.preventDefault();
+                            }
+                          }
+                        }}
                         placeholder="Date of Birth"
                         onFocus={(e) => {
+                          if (!isFieldAccessible('dateOfBirth')) return;
                           markTouched("dateOfBirth");
-                          if (!appointmentData.dateOfBirth.trim()) {
+                          if (!appointmentData.dateOfBirth.trim() || appointmentData.dateOfBirth === "__/__/____") {
                             const { formatted } = formatDob("");
                             setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
                             requestAnimationFrame(() => {
@@ -875,21 +1056,23 @@ export default function AppointmentProcess() {
                           }
                         }}
                         onBlur={(e) => {
-                          markTouched("dateOfBirth");
                           const { digits } = formatDob(e.target.value);
                           if (!digits.length) {
                             setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
                             return;
                           }
-                          if (!isDobValid(e.target.value)) {
+                          if (digits.length === 8 && !isDobValid(e.target.value)) {
                             alert("Date of birth can't be in the future or invalid.");
                             setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
                           }
                         }}
+                        disabled={!isFieldAccessible('dateOfBirth')}
                         inputMode="numeric"
                         autoComplete="bday"
                         className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          highlightedField === "dateOfBirth"
+                          !isFieldAccessible('dateOfBirth')
+                            ? "opacity-50 cursor-not-allowed border-white/5"
+                            : highlightedField === "dateOfBirth"
                             ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                             : isDobValid(appointmentData.dateOfBirth) && (!emailExists || prefillHighlight)
                             ? "border-primary-teal"
@@ -900,10 +1083,18 @@ export default function AppointmentProcess() {
                         <GooglePlacesAutocomplete
                           value={appointmentData.streetAddress}
                           onChange={(value) => {
+                            if (!isFieldAccessible('streetAddress')) return;
                             markTouched("streetAddress");
-                            setAppointmentData((prev) => ({ ...prev, streetAddress: value }));
+                            // Clear placeId when user types - forces them to select from dropdown
+                            setAppointmentData((prev) => ({ 
+                              ...prev, 
+                              streetAddress: value,
+                              placeId: "", // Clear placeId - user must select from dropdown
+                              postalCode: ""
+                            }));
                           }}
                           onPlaceSelect={(place) => {
+                            if (!isFieldAccessible('streetAddress')) return;
                             if (place.formatted_address) {
                               let postalCode = "";
                               const addressComponents =
@@ -929,8 +1120,11 @@ export default function AppointmentProcess() {
                           placeholder="Street Address"
                           types={["address"]}
                           componentRestrictions={{ country: "us" }}
+                          disabled={!isFieldAccessible('streetAddress')}
                           className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                            highlightedField === "streetAddress"
+                            !isFieldAccessible('streetAddress')
+                              ? "opacity-50 cursor-not-allowed border-white/5"
+                              : highlightedField === "streetAddress"
                               ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
                               : appointmentData.streetAddress.trim() && appointmentData.placeId.trim() && (!emailExists || prefillHighlight)
                               ? "border-primary-teal"
@@ -1277,6 +1471,14 @@ export default function AppointmentProcess() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
 
 
 
