@@ -58,14 +58,131 @@ export async function POST(request: Request) {
 
     if (patientError || !patient) {
       console.log("⚠️ [UPDATE-INTAKE-PATIENT] Patient not found for user:", user.id);
-      // Patient doesn't exist yet - return success anyway
       return NextResponse.json({
         success: true,
         message: "Patient record not found, skipping update",
       });
     }
 
-    // Build update data - only include fields that are provided
+    const patientId = patient.id;
+    const updates: string[] = [];
+
+    // ============================================
+    // WRITE TO NORMALIZED TABLES
+    // ============================================
+
+    // 1. Handle allergies -> patient_allergies table
+    if (has_drug_allergies !== undefined) {
+      // Clear existing allergies
+      await supabase
+        .from("patient_allergies")
+        .delete()
+        .eq("patient_id", patientId);
+
+      if (has_drug_allergies && drug_allergies_details) {
+        // Split by comma or newline to get individual allergies
+        const allergyList = drug_allergies_details
+          .split(/[,\n]/)
+          .map((a: string) => a.trim())
+          .filter((a: string) => a.length > 0);
+
+        if (allergyList.length > 0) {
+          const allergyRecords = allergyList.map((allergen: string) => ({
+            patient_id: patientId,
+            allergen_name: allergen,
+            severity: "unknown",
+            status: "active",
+          }));
+
+          const { error: allergyError } = await supabase
+            .from("patient_allergies")
+            .insert(allergyRecords);
+
+          if (allergyError) {
+            console.error("❌ Error inserting allergies:", allergyError);
+          } else {
+            updates.push(`allergies (${allergyRecords.length})`);
+          }
+        }
+      }
+    }
+
+    // 2. Handle surgeries -> clinical_notes table (patient-level, no appointment)
+    if (has_recent_surgeries !== undefined && has_recent_surgeries && recent_surgeries_details) {
+      const { error: surgeryError } = await supabase
+        .from("clinical_notes")
+        .insert({
+          patient_id: patientId,
+          appointment_id: null,
+          note_type: "surgeries",
+          content: recent_surgeries_details,
+        });
+
+      if (surgeryError) {
+        console.error("❌ Error inserting surgery notes:", surgeryError);
+      } else {
+        updates.push("surgeries");
+      }
+    }
+
+    // 3. Handle medical issues -> problems table
+    if (has_ongoing_medical_issues !== undefined && has_ongoing_medical_issues && ongoing_medical_issues_details) {
+      // Split by comma or newline to get individual problems
+      const problemList = ongoing_medical_issues_details
+        .split(/[,\n]/)
+        .map((p: string) => p.trim())
+        .filter((p: string) => p.length > 0);
+
+      if (problemList.length > 0) {
+        const problemRecords = problemList.map((problem: string) => ({
+          patient_id: patientId,
+          problem_name: problem,
+          status: "active",
+        }));
+
+        const { error: problemError } = await supabase
+          .from("problems")
+          .insert(problemRecords);
+
+        if (problemError) {
+          console.error("❌ Error inserting problems:", problemError);
+        } else {
+          updates.push(`problems (${problemRecords.length})`);
+        }
+      }
+    }
+
+    // 4. Handle medications -> medication_orders table
+    if (has_current_medications !== undefined && has_current_medications && current_medications_details) {
+      // Split by comma or newline to get individual medications
+      const medList = current_medications_details
+        .split(/[,\n]/)
+        .map((m: string) => m.trim())
+        .filter((m: string) => m.length > 0);
+
+      if (medList.length > 0) {
+        const medRecords = medList.map((medication: string) => ({
+          patient_id: patientId,
+          appointment_id: null,
+          medication_name: medication,
+          status: "active",
+        }));
+
+        const { error: medError } = await supabase
+          .from("medication_orders")
+          .insert(medRecords);
+
+        if (medError) {
+          console.error("❌ Error inserting medications:", medError);
+        } else {
+          updates.push(`medications (${medRecords.length})`);
+        }
+      }
+    }
+
+    // ============================================
+    // ALSO UPDATE PATIENTS TABLE (for backwards compatibility)
+    // ============================================
     const updateData: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
@@ -102,7 +219,7 @@ export async function POST(request: Request) {
     const { error: updateError } = await supabase
       .from("patients")
       .update(updateData)
-      .eq("id", patient.id);
+      .eq("id", patientId);
 
     if (updateError) {
       console.error("❌ [UPDATE-INTAKE-PATIENT] Error updating patient:", updateError);
@@ -112,11 +229,15 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("✅ [UPDATE-INTAKE-PATIENT] Updated patient:", patient.id);
+    console.log("✅ [UPDATE-INTAKE-PATIENT] Updated patient:", {
+      patientId: patientId,
+      normalizedTablesUpdated: updates,
+    });
 
     return NextResponse.json({
       success: true,
-      patientId: patient.id,
+      patientId: patientId,
+      normalizedUpdates: updates,
     });
 
   } catch (error) {
@@ -127,5 +248,6 @@ export async function POST(request: Request) {
     );
   }
 }
+
 
 
