@@ -1,1476 +1,2436 @@
-"use client";
+'use client'
 
-import Image from "next/image";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-import symptomSuggestions from "@/data/symptom-suggestions.json";
-import { 
-  Video, 
-  Phone,
-  ChevronRight,
-  Check,
-  Calendar,
-} from "lucide-react";
-import AppointmentCalendar from "@/components/AppointmentCalendar";
-import CheckoutForm from "@/components/CheckoutForm";
-import GooglePlacesAutocomplete from "@/components/GooglePlacesAutocomplete";
-import PharmacySelector from "@/components/PharmacySelector";
+import { useEffect, useState, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { User, Phone, Mail, Calendar, Eye, Edit, Trash2, X, Activity, Plus, Pill, Search, ExternalLink } from 'lucide-react'
+import AppointmentDetailModal from '@/components/AppointmentDetailModal'
+import MedicationHistoryPanel from '@/components/MedicationHistoryPanel'
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
+interface Patient {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  mobile_phone: string
+  date_of_birth: string
+  address: string
+  created_at: string
+  appointments_count: number
+  last_appointment: string
+  last_appointment_status: string
+  appointments: Array<{
+    id: string
+    status: string
+    service_type: string
+    visit_type: string
+    created_at: string
+    requested_date_time: string | null
+  }>
+  // Track merged patient IDs for data operations
+  merged_patient_ids?: string[]
+  // Medical chart fields
+  allergies?: string | null
+  current_medications?: string | null
+  active_problems?: string | null
+  recent_surgeries_details?: string | null
+  ongoing_medical_issues_details?: string | null
+  vitals_bp?: string | null
+  vitals_hr?: string | null
+  vitals_temp?: string | null
+  preferred_pharmacy?: string | null
+  chief_complaint?: string | null
+  ros_general?: string | null
+  resolved_problems?: any[] | null
+  medication_history?: any[] | null
+  active_medication_orders?: any[] | null
+  past_medication_orders?: any[] | null
+  prescription_logs?: any[] | null
+}
 
-const STEPS = [
-   { 
-     id: 0, 
-     key: 'appointmentDetails', 
-     title: 'Step 1 of 2',
-     detailKey: null 
-   },
-   { 
-     id: 1, 
-     key: 'checkout', 
-     title: 'Final Step', 
-     detailKey: null 
-   }
- ];
-
-export default function AppointmentProcess() {
-  const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [email, setEmail] = useState("");
-  const [emailExists, setEmailExists] = useState(false);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [emailChecked, setEmailChecked] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [visitTypeDialogOpen, setVisitTypeDialogOpen] = useState(false);
-  const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
-  const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
-  const [doctorInfo, setDoctorInfo] = useState<{
-    id: string;
-    name: string;
-    credentials: string;
-    specialty: string;
-  } | null>(null);
-  const [reasonQuery, setReasonQuery] = useState("");
-  const [reasonInputFocused, setReasonInputFocused] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [appointmentData, setAppointmentData] = useState({
-    symptoms: "",
-    visitType: "",
-    appointmentDate: "",
-    appointmentTime: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    dateOfBirth: "",
-    streetAddress: "",
-    postalCode: "",
-    placeId: "",
-    chief_complaint: "",
-    pharmacy: "",
-    pharmacyAddress: "",
-  });
-  const [clientSecret, setClientSecret] = useState("");
-  const [highlightedField, setHighlightedField] = useState<string | null>("symptoms");
-  const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
-  const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
-  const prefillHighlight = emailExists && appointmentData.appointmentDate && appointmentData.appointmentTime;
-
-  // Helper functions
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 10);
-    const filled = digits.padEnd(10, "_");
-    const formatted = `(${filled.slice(0, 3)})-${filled.slice(3, 6)}-${filled.slice(6, 10)}`;
-    return { digits, formatted };
-  };
-
-  const isPhoneValid = useCallback((value: string) => formatPhone(value).digits.length === 10, []);
-
-  const formatDob = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 8);
-    const filled = digits.padEnd(8, "_");
-    const formatted = `${filled.slice(0, 2)}/${filled.slice(2, 4)}/${filled.slice(4, 8)}`;
-    return { digits, formatted };
-  };
-
-  // Calculate cursor position for phone field "(XXX)-XXX-XXXX"
-  const getPhoneCursorPosition = (digitCount: number): number => {
-    if (digitCount === 0) return 1;
-    if (digitCount <= 3) return digitCount + 1;
-    if (digitCount <= 6) return digitCount + 3;
-    return digitCount + 4;
-  };
-
-  // Calculate cursor position for DOB field "MM/DD/YYYY"
-  const getDobCursorPosition = (digitCount: number): number => {
-    if (digitCount <= 2) return digitCount;
-    if (digitCount <= 4) return digitCount + 1;
-    return digitCount + 2;
-  };
-
-  const isDobValid = useCallback((value: string) => {
-    const { digits } = formatDob(value);
-    if (digits.length !== 8) return false;
-    const mm = Number(digits.slice(0, 2));
-    const dd = Number(digits.slice(2, 4));
-    const yyyy = Number(digits.slice(4, 8));
-    if (mm < 1 || mm > 12) return false;
-    const dt = new Date(yyyy, mm - 1, dd);
-    if (dt.getMonth() !== mm - 1 || dt.getDate() !== dd || dt.getFullYear() !== yyyy) return false;
-    const today = new Date();
-    dt.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    if (dt > today) return false;
-    return true;
-  }, []);
-
-  const hasOneWord = useCallback((value: string) => /\b[A-Za-z]{2,}\b(?:\s+\b[A-Za-z]{2,}\b)+/.test(value.trim()), []);
+export default function DoctorPatients() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentDoctor, setCurrentDoctor] = useState<any>(null)
+  const [searchSuggestions, setSearchSuggestions] = useState<Patient[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [showAllRecords, setShowAllRecords] = useState(false)
+  const [recordFilter, setRecordFilter] = useState<'all' | 'prescription' | 'lab_result' | 'visit_summary'>('all')
+  const [recordCounts, setRecordCounts] = useState<{
+    all: number
+    prescription: number
+    lab_result: number
+    visit_summary: number
+  }>({
+    all: 0,
+    prescription: 0,
+    lab_result: 0,
+    visit_summary: 0
+  })
+  const [patientRecordMap, setPatientRecordMap] = useState<Map<string, {
+    prescription: number
+    lab_result: number
+    visit_summary: number
+  }>>(new Map())
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Array<{
+    id: string
+    requested_date_time: string | null
+    status: string
+    visit_type: string | null
+    patient: {
+      first_name: string
+      last_name: string
+      email: string
+    } | null
+  }>>([])
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
+  const [showPatientModal, setShowPatientModal] = useState(false)
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false)
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isLoadingChart, setIsLoadingChart] = useState(false)
+  const [patientChartData, setPatientChartData] = useState<Patient | null>(null)
+  const [activeTab, setActiveTab] = useState<'overview' | 'chart'>('overview')
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    mobile_phone: '',
+    date_of_birth: '',
+    address: ''
+  })
   
-  const isChiefComplaintValid = useCallback((value: string) => value.trim().length >= 2, []);
+  // Problems & Medications state
+  const [activeProblems, setActiveProblems] = useState<Array<{id: string, problem: string, since: string}>>([])
+  const [resolvedProblems, setResolvedProblems] = useState<Array<{id: string, problem: string, resolvedDate: string}>>([])
+  const [medicationHistory, setMedicationHistory] = useState<Array<{id: string, medication: string, provider: string, date: string}>>([])
+  const [activeMedOrders, setActiveMedOrders] = useState<Array<{id: string, medication: string, sig: string, status: string}>>([])
+  const [pastMedOrders, setPastMedOrders] = useState<Array<{id: string, medication: string, sig: string, date: string}>>([])
+  const [prescriptionLogs, setPrescriptionLogs] = useState<Array<{id: string, date: string, medication: string, quantity: string, pharmacy: string, status: string}>>([])
+  
+  // Form states for adding new items
+  const [newActiveProblem, setNewActiveProblem] = useState({problem: '', since: ''})
+  const [newResolvedProblem, setNewResolvedProblem] = useState({problem: '', resolvedDate: ''})
+  const [newMedHistory, setNewMedHistory] = useState({medication: '', provider: '', date: ''})
+  const [newPrescriptionLog, setNewPrescriptionLog] = useState({medication: '', quantity: '', pharmacy: '', date: ''})
+  const [savingProblems, setSavingProblems] = useState(false)
+  const [showMedicationHistoryPanel, setShowMedicationHistoryPanel] = useState(false)
 
-  const isNameValid = useCallback((value: string) => {
-    const trimmed = value.trim();
-    return trimmed.length >= 2 && /^[A-Za-z][A-Za-z\s'\-]*$/.test(trimmed) && !/\d/.test(trimmed);
-  }, []);
+  useEffect(() => {
+    fetchCurrentDoctor()
+    fetchPatients()
+  }, [])
 
-  const isEmailValid = useCallback((value: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value.trim());
-  }, []);
-
-  const markTouched = (..._args: unknown[]) => {
-    void _args;
-  };
-
-  const convertDateToISO = (dateStr: string): string => {
-    if (dateStr && dateStr.includes("/")) {
-      const parts = dateStr.split("/");
-      if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-        const month = parts[0].padStart(2, "0");
-        const day = parts[1].padStart(2, "0");
-        const year = parts[2];
-        return `${year}-${month}-${day}`;
+  // Handle openChart URL parameter from sidebar search
+  useEffect(() => {
+    const openChartId = searchParams.get('openChart')
+    if (openChartId && patients.length > 0) {
+      // Find the patient in the loaded list
+      const patient = patients.find(p => p.id === openChartId)
+      if (patient) {
+        // Open the patient chart
+        setSelectedPatient(patient)
+        setEditForm({
+          first_name: patient.first_name,
+          last_name: patient.last_name,
+          email: patient.email,
+          mobile_phone: patient.mobile_phone,
+          date_of_birth: patient.date_of_birth,
+          address: patient.address
+        })
+        setIsEditing(false)
+        setActiveTab('overview')
+        setShowPatientModal(true)
+        fetchPatientChart(patient.id)
+        
+        // Clear the URL parameter to avoid re-opening on refresh
+        router.replace('/doctor/patients', { scroll: false })
       }
     }
-    if (dateStr && dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      return dateStr;
-    }
-    return "";
-  };
+  }, [searchParams, patients])
 
-  const formatDateTime = (date: string, time: string, showDay: boolean = true): string => {
-    if (!date || !time) return "";
+  useEffect(() => {
+    if (currentDoctor) {
+      fetchUpcomingAppointmentsForDoctor(currentDoctor.id)
+      fetchPatientRecordCounts()
+    }
+  }, [currentDoctor])
+
+  const fetchPatientRecordCounts = async () => {
+    if (!currentDoctor || patients.length === 0) return
+
     try {
-      const dateObj = new Date(date + "T00:00:00");
-      if (isNaN(dateObj.getTime())) {
-        return `${date} • ${time}`;
+      // Get all patient IDs
+      const patientIds = patients.map(p => p.id)
+      
+      if (patientIds.length === 0) return
+
+      // Batch queries to avoid very long URLs (chunk size: 50)
+      const BATCH_SIZE = 50
+      const batches: string[][] = []
+      for (let i = 0; i < patientIds.length; i += BATCH_SIZE) {
+        batches.push(patientIds.slice(i, i + BATCH_SIZE))
       }
-      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const dayName = days[dateObj.getDay()];
-      const month = months[dateObj.getMonth()];
-      const day = dateObj.getDate();
-      const year = dateObj.getFullYear();
-      
-      const [hours, minutes] = time.split(":");
-      const hour24 = parseInt(hours, 10);
-      const hour12 = hour24 % 12 || 12;
-      const ampm = hour24 >= 12 ? "pm" : "am";
-      const formattedTime = `${hour12.toString().padStart(2, "0")}:${minutes}${ampm}`;
-      
-      return `${showDay ? `${dayName} - ` : ""}${month}-${day}-${year} ${formattedTime}`;
-    } catch {
-      return `${date} • ${time}`;
-    }
-  };
 
-  const handleDateOfBirthChange = (value: string) => {
-    const { formatted } = formatDob(value);
-    setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
-  };
+      // Fetch medical records for this doctor's patients (using user_id) - batched
+      let medicalRecords: any[] = []
+      let recordsError: any = null
+      for (const batch of batches) {
+        const { data, error } = await supabase
+          .from('medical_records')
+          .select('user_id, record_type')
+          .eq('is_shared', true)
+          .in('user_id', batch)
+        if (data) medicalRecords.push(...data)
+        if (error && !recordsError) recordsError = error
+      }
 
-  // FIXED: Check email in database function with better error handling
-  // Check email in database - used on mount if email exists in sessionStorage
-  const checkEmailInDatabase = useCallback(async (emailToCheck: string) => {
-    if (!isEmailValid(emailToCheck)) {
-      setEmailExists(false);
-      setEmailChecked(false);
-      return;
-    }
+      // Fetch prescriptions for this doctor's patients (using patient_id) - batched
+      let prescriptions: any[] = []
+      let prescriptionsError: any = null
+      for (const batch of batches) {
+        const { data, error } = await supabase
+          .from('prescriptions')
+          .select('patient_id')
+          .eq('doctor_id', currentDoctor.id)
+          .in('patient_id', batch)
+        if (data) prescriptions.push(...data)
+        if (error && !prescriptionsError) prescriptionsError = error
+      }
 
-    setIsCheckingEmail(true);
-    
-    try {
-      const response = await fetch("/api/check-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailToCheck.trim().toLowerCase() }),
-      });
+      // Fetch appointments for this doctor's patients (for visit summaries) - batched
+      let appointments: any[] = []
+      let appointmentsError: any = null
+      for (const batch of batches) {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('id, patient_id')
+          .eq('doctor_id', currentDoctor.id)
+          .in('patient_id', batch)
+        if (data) appointments.push(...data)
+        if (error && !appointmentsError) appointmentsError = error
+      }
 
-      if (response.ok) {
-        const data = await response.json();
-        setEmailChecked(true);
+      if (recordsError) {
+        console.error('Error fetching medical records:', recordsError.message || recordsError.code || recordsError)
+      }
+      if (prescriptionsError) {
+        console.error('Error fetching prescriptions:', prescriptionsError.message || prescriptionsError.code || prescriptionsError)
+      }
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError.message || appointmentsError.code || appointmentsError)
+      }
+
+      // Count records by type and patient
+      const recordMap = new Map<string, {
+        prescription: number
+        lab_result: number
+        visit_summary: number
+      }>()
+
+      // Initialize all patients in the map
+      patientIds.forEach(id => {
+        recordMap.set(id, { prescription: 0, lab_result: 0, visit_summary: 0 })
+      })
+
+      // Process medical records (user_id maps to patient id)
+      if (medicalRecords && Array.isArray(medicalRecords)) {
+        medicalRecords.forEach((record: any) => {
+          const patientId = record?.user_id
+          if (!patientId || !recordMap.has(patientId)) return
+
+          const counts = recordMap.get(patientId)!
+          if (record.record_type === 'prescription') counts.prescription++
+          if (record.record_type === 'lab_result') counts.lab_result++
+          if (record.record_type === 'visit_summary') counts.visit_summary++
+        })
+      }
+
+      // Process prescriptions (prescriptions table uses patient_id)
+      if (prescriptions && Array.isArray(prescriptions)) {
+        prescriptions.forEach((prescription: any) => {
+          const patientId = prescription?.patient_id
+          if (!patientId || !recordMap.has(patientId)) return
+
+          const counts = recordMap.get(patientId)!
+          counts.prescription++
+        })
+      }
+
+      // Process appointment documents for visit summaries - batched
+      if (appointments && Array.isArray(appointments) && appointments.length > 0) {
+        const appointmentIds = appointments.map((a: any) => a?.id).filter(Boolean)
+        const appointmentToPatient = new Map(appointments.map((a: any) => [a?.id, a?.patient_id]))
         
-        console.log('📧 [EMAIL CHECK] Response:', data);
-        
-        // Returning patient = has patient record
-        const isReturningPatient = data.exists && data.patientId;
-        setEmailExists(isReturningPatient);
-        
-        // Prefill form if user data exists
-        if (data.user) {
-          let formattedDateOfBirth = "";
-          if (data.user.date_of_birth) {
-            const dateParts = data.user.date_of_birth.split("-");
-            if (dateParts.length === 3 && dateParts[0].length === 4) {
-              formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
-            }
+        if (appointmentIds.length > 0) {
+          // Batch appointment IDs too
+          const appointmentBatches: string[][] = []
+          for (let i = 0; i < appointmentIds.length; i += BATCH_SIZE) {
+            appointmentBatches.push(appointmentIds.slice(i, i + BATCH_SIZE))
           }
-          
-          const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "");
-          const phoneFormatted = phoneDigits.length === 10 ? formatPhone(phoneDigits).formatted : "";
-          
-          setAppointmentData((prev) => ({
-            ...prev,
-            firstName: data.user.first_name || prev.firstName,
-            lastName: data.user.last_name || prev.lastName,
-            phone: phoneFormatted || prev.phone,
-            dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
-            streetAddress: data.user.address || prev.streetAddress,
-            placeId: data.user.address ? "api-prefill-address" : prev.placeId,
-          }));
+
+          let appointmentDocs: any[] = []
+          let docsError: any = null
+          for (const batch of appointmentBatches) {
+            const { data, error } = await supabase
+              .from('files')
+              .select('appointment_id, file_type')
+              .eq('is_shared', true)
+              .in('appointment_id', batch)
+              .or('file_type.eq.visit_summary,file_type.eq.summary')
+            if (data) appointmentDocs.push(...data)
+            if (error && !docsError) docsError = error
+          }
+
+          if (docsError) {
+            console.error('Error fetching appointment documents:', docsError.message || docsError.code || docsError)
+          }
+
+          if (!docsError && appointmentDocs && Array.isArray(appointmentDocs)) {
+            appointmentDocs.forEach((doc: any) => {
+              const patientId = appointmentToPatient.get(doc?.appointment_id)
+              if (patientId && recordMap.has(patientId)) {
+                const counts = recordMap.get(patientId)!
+                counts.visit_summary++
+              }
+            })
+          }
         }
+      }
+
+      setPatientRecordMap(recordMap)
+
+      // Calculate total counts - count actual number of records, not patients
+      let totalPrescriptions = 0
+      let totalLabResults = 0
+      let totalVisitSummaries = 0
+
+      recordMap.forEach((counts) => {
+        totalPrescriptions += counts.prescription
+        totalLabResults += counts.lab_result
+        totalVisitSummaries += counts.visit_summary
+      })
+
+      // Total all records count
+      const totalAllRecords = totalPrescriptions + totalLabResults + totalVisitSummaries
+
+      const counts = {
+        all: totalAllRecords, // Total number of all records
+        prescription: totalPrescriptions, // Total number of prescription records
+        lab_result: totalLabResults, // Total number of lab result records
+        visit_summary: totalVisitSummaries // Total number of visit summary records
+      }
+
+      setRecordCounts(counts)
+    } catch (error: any) {
+      console.error('Unexpected error in fetchPatientRecordCounts:', error?.message || error?.toString() || error)
+      console.error('Error fetching patient record counts:', error)
+    }
+  }
+
+  const fetchCurrentDoctor = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: doctor, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .eq('email', user.email)
+          .single()
         
-        sessionStorage.setItem('appointmentData', JSON.stringify({
-          email: emailToCheck.trim().toLowerCase(),
-          skipIntake: isReturningPatient,
-        }));
-      } else {
-        setEmailChecked(true);
-        setEmailExists(false);
-        sessionStorage.setItem('appointmentData', JSON.stringify({
-          email: emailToCheck.trim().toLowerCase(),
-          skipIntake: false,
-        }));
+        if (doctor) {
+          setCurrentDoctor(doctor)
+          // Fetch upcoming appointments after doctor is set
+          fetchUpcomingAppointmentsForDoctor(doctor.id)
+        }
       }
     } catch (error) {
-      console.error("📧 [EMAIL CHECK] Error:", error);
-      setEmailExists(false);
-      setEmailChecked(true);
-      sessionStorage.setItem('appointmentData', JSON.stringify({
-        email: emailToCheck.trim().toLowerCase(),
-        skipIntake: false,
-      }));
-    } finally {
-      setIsCheckingEmail(false);
+      console.error('Error fetching current doctor:', error)
     }
-  }, [isEmailValid]);
+  }
 
-  const appearance = {
-    theme: "night" as const,
-    variables: {
-      colorPrimary: "#00cba9",
-      colorBackground: "#0a1219",
-      colorText: "#ffffff",
-      colorDanger: "#ef4444",
-      fontFamily: "ui-sans-serif, system-ui, sans-serif",
-      spacingUnit: "4px",
-      borderRadius: "8px",
-    },
-  };
+  const fetchUpcomingAppointmentsForDoctor = async (doctorId: string) => {
+    try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const todayEnd = new Date(today)
+      todayEnd.setHours(23, 59, 59, 999)
 
-  const options = {
-    clientSecret,
-    appearance,
-  };
+      const { data: appointments, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          requested_date_time,
+          status,
+          visit_type,
+          patients!appointments_patient_id_fkey(
+            first_name,
+            last_name,
+            email
+          )
+        `)
+        .eq('doctor_id', doctorId)
+        .in('status', ['accepted', 'pending'])
+        .gte('requested_date_time', todayEnd.toISOString())
+        .order('requested_date_time', { ascending: true })
+        .limit(10)
 
-  // Load email and user data from sessionStorage on mount
+      if (error) {
+        console.error('Error fetching upcoming appointments:', error)
+        return
+      }
+
+      const formattedAppointments = (appointments || []).map((apt: any) => ({
+        id: apt.id,
+        requested_date_time: apt.requested_date_time,
+        status: apt.status,
+        visit_type: apt.visit_type,
+        patient: apt.patients ? {
+          first_name: apt.patients.first_name || '',
+          last_name: apt.patients.last_name || '',
+          email: apt.patients.email || ''
+        } : null
+      }))
+
+      setUpcomingAppointments(formattedAppointments)
+    } catch (error) {
+      console.error('Error fetching upcoming appointments:', error)
+    }
+  }
+
+  // Consolidate patients by email - merges duplicates into single records
+  const consolidatePatientsByEmail = (patients: Patient[]): Patient[] => {
+    const emailMap = new Map<string, Patient>()
+    
+    patients.forEach(patient => {
+      const email = patient.email?.toLowerCase().trim()
+      if (!email) {
+        // Keep patients without email as-is
+        emailMap.set(patient.id, patient)
+        return
+      }
+      
+      const existing = emailMap.get(email)
+      if (!existing) {
+        emailMap.set(email, {
+          ...patient,
+          merged_patient_ids: [patient.id]
+        })
+      } else {
+        // Merge appointments from duplicate patient
+        const mergedAppointments = [...(existing.appointments || []), ...(patient.appointments || [])]
+        // Sort by created_at descending
+        mergedAppointments.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        
+        // Keep the most complete/recent patient info
+        const useNewer = new Date(patient.created_at) > new Date(existing.created_at)
+        
+        emailMap.set(email, {
+          ...existing,
+          // Use newer patient's basic info if available
+          first_name: (useNewer && patient.first_name) ? patient.first_name : existing.first_name,
+          last_name: (useNewer && patient.last_name) ? patient.last_name : existing.last_name,
+          mobile_phone: patient.mobile_phone || existing.mobile_phone,
+          date_of_birth: patient.date_of_birth || existing.date_of_birth,
+          address: patient.address || existing.address,
+          // Merge appointments
+          appointments: mergedAppointments,
+          appointments_count: mergedAppointments.length,
+          // Use most recent appointment info
+          last_appointment: mergedAppointments[0]?.created_at || existing.last_appointment,
+          last_appointment_status: mergedAppointments[0]?.status || existing.last_appointment_status,
+          // Track all merged patient IDs
+          merged_patient_ids: [...(existing.merged_patient_ids || [existing.id]), patient.id]
+        })
+      }
+    })
+    
+    return Array.from(emailMap.values())
+  }
+
+  const fetchPatients = async () => {
+    try {
+      // Get all patients with their appointments
+      const { data: patientsData, error: patientsError } = await supabase
+        .from('patients')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          date_of_birth,
+          location,
+          created_at,
+          appointments:appointments!appointments_patient_id_fkey (
+            id,
+            status,
+            service_type,
+            visit_type,
+            created_at,
+            requested_date_time
+          )
+        `)
+        .order('created_at', { ascending: false })
+
+      if (patientsError) {
+        console.error('Error fetching patients:', patientsError)
+        return
+      }
+
+      // Process patients with their appointments
+      const processedPatients = (patientsData || []).map(patient => {
+        const appointments = (patient.appointments as any[]) || []
+        const sortedAppointments = appointments.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        
+        return {
+          id: patient.id,
+          first_name: patient.first_name || '',
+          last_name: patient.last_name || '',
+          email: patient.email || '',
+          mobile_phone: patient.phone || '',
+          date_of_birth: patient.date_of_birth || '',
+          address: patient.location || '',
+          created_at: patient.created_at || '',
+          appointments_count: appointments.length,
+          last_appointment: sortedAppointments[0]?.created_at || patient.created_at,
+          last_appointment_status: sortedAppointments[0]?.status || '',
+          appointments: sortedAppointments.map(apt => ({
+            id: apt.id,
+            status: apt.status,
+            service_type: apt.service_type,
+            visit_type: apt.visit_type,
+            created_at: apt.created_at,
+            requested_date_time: apt.requested_date_time
+          }))
+        }
+      })
+
+      // Consolidate patients by email to merge duplicates
+      const consolidatedPatients = consolidatePatientsByEmail(processedPatients)
+      setPatients(consolidatedPatients)
+    } catch (error) {
+      console.error('Error fetching patients:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch record counts when patients or doctor changes
   useEffect(() => {
-    const emailCheckData = sessionStorage.getItem('emailCheckResponse');
-    if (emailCheckData) {
+    if (currentDoctor && patients.length > 0) {
+      const timer = setTimeout(() => {
+        fetchPatientRecordCounts()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [currentDoctor?.id, patients.length])
+
+  // Refresh record counts when filter changes
+  useEffect(() => {
+    if (showAllRecords && currentDoctor && patients.length > 0) {
+      fetchPatientRecordCounts()
+    }
+  }, [recordFilter, showAllRecords])
+
+  const fetchPatientChart = async (patientId: string) => {
+    setIsLoadingChart(true)
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          date_of_birth,
+          location,
+          created_at,
+          allergies,
+          current_medications,
+          active_problems,
+          recent_surgeries_details,
+          ongoing_medical_issues_details,
+          vitals_bp,
+          vitals_hr,
+          vitals_temp,
+          preferred_pharmacy,
+          chief_complaint,
+          ros_general
+        `)
+        .eq('id', patientId)
+        .single()
+
+      if (error) throw error
+
+      if (data) {
+        // Fetch ALL appointments for this patient (complete history)
+        const { data: allAppointmentsData } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false })
+
+        // Fetch active problems from normalized table
+        const { data: activeProblemsData } = await supabase
+          .from('problems')
+          .select('*')
+          .eq('patient_id', patientId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+
+        let parsedActiveProblems: Array<{id: string, problem: string, since: string}> = []
+        if (activeProblemsData && activeProblemsData.length > 0) {
+          parsedActiveProblems = activeProblemsData.map((p, idx) => ({
+            id: p.id || `ap-${idx}`,
+            problem: p.problem_name || '',
+            since: p.onset_date ? new Date(p.onset_date).toISOString().split('T')[0] : ''
+          }))
+        } else if (data.active_problems) {
+          // Fallback to old field for backward compatibility
+          try {
+            const parsed = typeof data.active_problems === 'string' ? JSON.parse(data.active_problems) : data.active_problems
+            if (Array.isArray(parsed)) {
+              parsedActiveProblems = parsed.map((p: any, idx: number) => ({
+                id: p.id || `ap-${idx}`,
+                problem: typeof p === 'string' ? p : p.problem || p,
+                since: typeof p === 'string' ? '' : p.since || ''
+              }))
+            } else if (typeof parsed === 'string') {
+              parsedActiveProblems = [{id: 'ap-0', problem: parsed, since: ''}]
+            }
+          } catch {
+            parsedActiveProblems = [{id: 'ap-0', problem: data.active_problems, since: ''}]
+          }
+        }
+
+        // Fetch resolved problems
+        const { data: resolvedProblemsData } = await supabase
+          .from('problems')
+          .select('*')
+          .eq('patient_id', patientId)
+          .eq('status', 'resolved')
+          .order('created_at', { ascending: false })
+
+        const parsedResolvedProblems = resolvedProblemsData?.map((p, idx) => ({
+          id: p.id || `rp-${idx}`,
+          problem: p.problem_name || '',
+          resolvedDate: p.resolved_date ? new Date(p.resolved_date).toISOString().split('T')[0] : ''
+        })) || []
+
+        // Fetch ALL medication history
+        const { data: medHistoryData } = await supabase
+          .from('medication_history')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('start_date', { ascending: false })
+
+        const parsedMedHistory = medHistoryData?.map((m, idx) => ({
+          id: m.id || `mh-${idx}`,
+          medication: m.medication_name || '',
+          provider: m.prescriber || 'External Provider',
+          date: m.start_date ? new Date(m.start_date).toISOString().split('T')[0] : ''
+        })) || []
+
+        // Fetch active medication orders
+        const { data: activeOrdersData } = await supabase
+          .from('medication_orders')
+          .select('*')
+          .eq('patient_id', patientId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+
+        const parsedActiveOrders = activeOrdersData?.map((m, idx) => ({
+          id: m.id || `amo-${idx}`,
+          medication: m.medication_name || '',
+          sig: m.dosage || '',
+          status: m.status || 'Sent'
+        })) || []
+
+        // Fetch ALL past/completed medication orders
+        const { data: pastOrdersData } = await supabase
+          .from('medication_orders')
+          .select('*')
+          .eq('patient_id', patientId)
+          .in('status', ['completed', 'discontinued', 'expired'])
+          .order('created_at', { ascending: false })
+
+        const parsedPastOrders = pastOrdersData?.map((m, idx) => ({
+          id: m.id || `pmo-${idx}`,
+          medication: m.medication_name || '',
+          sig: m.dosage || '',
+          date: m.created_at ? new Date(m.created_at).toISOString().split('T')[0] : ''
+        })) || []
+
+        // Fetch ALL prescription logs from ALL appointments (not just latest)
+        let parsedPrescriptionLogs: Array<any> = []
+        if (allAppointmentsData && allAppointmentsData.length > 0) {
+          const appointmentIds = allAppointmentsData.map(apt => apt.id)
+          
+          const { data: allPrescriptionLogsData } = await supabase
+            .from('prescription_logs')
+            .select('*')
+            .in('appointment_id', appointmentIds)
+            .order('action_at', { ascending: false })
+
+          if (allPrescriptionLogsData && allPrescriptionLogsData.length > 0) {
+            parsedPrescriptionLogs = allPrescriptionLogsData.map((p, idx) => {
+              const notes = p.notes || ''
+              const medMatch = notes.match(/(.+?)\s*-\s*Qty:/)
+              const qtyMatch = notes.match(/Qty:\s*(.+?)\s*-/)
+              const pharmMatch = notes.match(/Pharmacy:\s*(.+)/)
+              
+              return {
+                id: p.id || `pl-${idx}`,
+                date: p.action_at ? new Date(p.action_at).toISOString().split('T')[0] : '',
+                medication: medMatch ? medMatch[1].trim() : notes,
+                quantity: qtyMatch ? qtyMatch[1].trim() : '',
+                pharmacy: pharmMatch ? pharmMatch[1].trim() : '',
+                status: p.action || 'Sent'
+              }
+            })
+          }
+        }
+
+        setActiveProblems(parsedActiveProblems)
+        setResolvedProblems(parsedResolvedProblems)
+        setMedicationHistory(parsedMedHistory)
+        setActiveMedOrders(parsedActiveOrders)
+        setPastMedOrders(parsedPastOrders)
+        setPrescriptionLogs(parsedPrescriptionLogs)
+
+        // Fetch surgeries from clinical_notes (normalized table)
+        const { data: surgeriesData } = await supabase
+          .from('clinical_notes')
+          .select('content')
+          .eq('patient_id', patientId)
+          .eq('note_type', 'surgeries')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        // Fetch allergies from normalized patient_allergies table
+        const { data: allergiesData } = await supabase
+          .from('patient_allergies')
+          .select('allergen_name, severity, reaction, status')
+          .eq('patient_id', patientId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+
+        // Build allergies text from normalized table or fallback to old field
+        let allergiesText = ''
+        if (allergiesData && allergiesData.length > 0) {
+          allergiesText = allergiesData.map(a => {
+            let text = a.allergen_name
+            if (a.reaction) text += ` (${a.reaction})`
+            return text
+          }).join(', ')
+        } else if (data.allergies) {
+          allergiesText = data.allergies
+        }
+
+        // Fetch current medications from medication_orders (active)
+        const { data: currentMedsData } = await supabase
+          .from('medication_orders')
+          .select('medication_name, dosage, frequency')
+          .eq('patient_id', patientId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+
+        // Build current medications text from normalized table or fallback
+        let currentMedsText = ''
+        if (currentMedsData && currentMedsData.length > 0) {
+          currentMedsText = currentMedsData.map(m => {
+            let text = m.medication_name
+            if (m.dosage) text += ` ${m.dosage}`
+            if (m.frequency) text += ` ${m.frequency}`
+            return text
+          }).join(', ')
+        } else if (data.current_medications) {
+          currentMedsText = data.current_medications
+        }
+
+        // Fetch medical issues from problems table (active problems)
+        const medicalIssuesText = parsedActiveProblems.length > 0
+          ? parsedActiveProblems.map(p => p.problem).filter(Boolean).join(', ')
+          : ''
+
+        setPatientChartData({
+          ...data,
+          mobile_phone: data.phone || '',
+          address: data.location || '',
+          appointments_count: allAppointmentsData?.length || selectedPatient?.appointments_count || 0,
+          last_appointment: allAppointmentsData?.[0]?.created_at || selectedPatient?.last_appointment || '',
+          last_appointment_status: allAppointmentsData?.[0]?.status || selectedPatient?.last_appointment_status || '',
+          appointments: allAppointmentsData?.map(apt => ({
+            id: apt.id,
+            status: apt.status,
+            service_type: apt.service_type,
+            visit_type: apt.visit_type,
+            created_at: apt.created_at,
+            requested_date_time: apt.requested_date_time
+          })) || selectedPatient?.appointments || [],
+          // Use normalized data with fallback to old fields
+          allergies: allergiesText || data.allergies || '',
+          current_medications: currentMedsText || data.current_medications || '',
+          active_problems: medicalIssuesText || data.active_problems || '',
+          recent_surgeries_details: surgeriesData?.content || data.recent_surgeries_details || '',
+          ongoing_medical_issues_details: medicalIssuesText || data.ongoing_medical_issues_details || ''
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching patient chart:', error)
+    } finally {
+      setIsLoadingChart(false)
+    }
+  }
+
+  // Debounced search for suggestions
+  useEffect(() => {
+    if (searchTerm.trim().length === 0) {
+      setSearchSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      const searchLower = searchTerm.toLowerCase()
+      const matches = patients.filter(patient => {
+        const fullName = `${patient.first_name} ${patient.last_name}`.toLowerCase()
+        return (
+          fullName.includes(searchLower) ||
+          patient.first_name.toLowerCase().includes(searchLower) ||
+          patient.last_name.toLowerCase().includes(searchLower) ||
+          patient.email.toLowerCase().includes(searchLower)
+        )
+      }).slice(0, 10) // Limit to 10 suggestions
+      
+      setSearchSuggestions(matches)
+      setShowSuggestions(matches.length > 0)
+    }, 200) // 200ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, patients])
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const handleSuggestionClick = (patient: Patient) => {
+    // Clear search and close dropdown
+    setSearchTerm('')
+    setShowSuggestions(false)
+    
+    // Open the patient chart directly
+    setSelectedPatient(patient)
+    setEditForm({
+      first_name: patient.first_name,
+      last_name: patient.last_name,
+      email: patient.email,
+      mobile_phone: patient.mobile_phone,
+      date_of_birth: patient.date_of_birth,
+      address: patient.address
+    })
+    setIsEditing(false)
+    setActiveTab('overview')
+    setShowPatientModal(true)
+    fetchPatientChart(patient.id)
+  }
+
+  const filteredPatients = patients.filter(patient => {
+    // First filter by search term
+    const matchesSearch = 
+      patient.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.email.toLowerCase().includes(searchTerm.toLowerCase())
+
+    if (!matchesSearch) return false
+
+    // Then filter by record type if not 'all'
+    if (recordFilter === 'all') return true
+
+    const patientRecords = patientRecordMap.get(patient.id)
+    if (!patientRecords) return false
+
+    // Filter by specific record type - show patients that have at least one record of that type
+    if (recordFilter === 'prescription' && patientRecords.prescription > 0) return true
+    if (recordFilter === 'lab_result' && patientRecords.lab_result > 0) return true
+    if (recordFilter === 'visit_summary' && patientRecords.visit_summary > 0) return true
+
+    return false
+  })
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const handleViewPatient = (patient: Patient) => {
+    setSelectedPatient(patient)
+    setEditForm({
+      first_name: patient.first_name,
+      last_name: patient.last_name,
+      email: patient.email,
+      mobile_phone: patient.mobile_phone,
+      date_of_birth: patient.date_of_birth,
+      address: patient.address
+    })
+    setIsEditing(false)
+    setActiveTab('overview')
+    setShowPatientModal(true)
+    fetchPatientChart(patient.id)
+  }
+
+  const handleEditPatient = async () => {
+    if (!selectedPatient) return
+
+    try {
+      // Update patient information in patients table
+      const { error } = await supabase
+        .from('patients')
+        .update({
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
+          email: editForm.email,
+          phone: editForm.mobile_phone,
+          date_of_birth: editForm.date_of_birth,
+          location: editForm.address
+        })
+        .eq('id', selectedPatient.id)
+
+      if (error) throw error
+
+      // Refresh patients list
+      await fetchPatients()
+      setIsEditing(false)
+      setShowPatientModal(false)
+      alert('Patient information updated successfully')
+    } catch (error: any) {
+      console.error('Error updating patient:', error)
+      alert('Failed to update patient: ' + error.message)
+    }
+  }
+
+  const handleDeletePatient = async () => {
+    if (!selectedPatient) return
+
+    if (!confirm(`Are you sure you want to delete patient ${selectedPatient.first_name} ${selectedPatient.last_name}? This will delete the patient record. Note: Appointments will remain but will have no patient reference.`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      // Delete patient record (appointments will remain with null patient_id due to ON DELETE SET NULL)
+      const { error } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', selectedPatient.id)
+
+      if (error) throw error
+
+      // Refresh patients list
+      await fetchPatients()
+      setShowPatientModal(false)
+      setSelectedPatient(null)
+      alert('Patient deleted successfully')
+    } catch (error: any) {
+      console.error('Error deleting patient:', error)
+      alert('Failed to delete patient: ' + error.message)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleViewAppointment = (appointmentId: string) => {
+    setSelectedAppointmentId(appointmentId)
+    setShowAppointmentModal(true)
+    setShowPatientModal(false)
+  }
+
+  // Open clinical panel for any patient - creates appointment if needed
+  const handleOpenClinicalPanel = async (patient: Patient) => {
+    if (patient.appointments && patient.appointments.length > 0) {
+      // Patient has appointments - open the most recent one
+      const sortedAppointments = [...patient.appointments].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+      handleViewAppointment(sortedAppointments[0].id)
+    } else {
+      // No appointments - create a pending General Consultation
       try {
-        const data = JSON.parse(emailCheckData);
-        if (data.email) {
-          setEmail(data.email);
-          checkEmailInDatabase(data.email);
+        const { data: newAppointment, error } = await supabase
+          .from('appointments')
+          .insert({
+            patient_id: patient.id,
+            doctor_id: currentDoctor?.id,
+            status: 'pending',
+            service_type: 'General Consultation',
+            visit_type: 'video',
+            requested_date_time: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (error) throw error
+
+        if (newAppointment) {
+          // Update local state with new appointment
+          const updatedPatient = {
+            ...patient,
+            appointments: [{
+              id: newAppointment.id,
+              status: newAppointment.status,
+              service_type: newAppointment.service_type,
+              visit_type: newAppointment.visit_type,
+              created_at: newAppointment.created_at,
+              requested_date_time: newAppointment.requested_date_time
+            }],
+            appointments_count: 1,
+            last_appointment: newAppointment.created_at,
+            last_appointment_status: newAppointment.status
+          }
+          setSelectedPatient(updatedPatient)
+          
+          // Open the clinical panel with the new appointment
+          handleViewAppointment(newAppointment.id)
         }
       } catch (error) {
-        console.error('Error parsing email check data:', error);
+        console.error('Error creating appointment for clinical panel:', error)
+        alert('Failed to open clinical panel. Please try again.')
       }
     }
-  }, [checkEmailInDatabase]);
+  }
 
-  // Fetch doctor info
-  useEffect(() => {
-    const fetchDoctorInfo = async () => {
-      try {
-        const response = await fetch('/api/get-doctor-availability?date=2025-01-01&doctorId=1fd1af57-5529-4d00-a301-e653b4829efc');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.doctor) {
-            setDoctorInfo({
-              id: data.doctor.id,
-              name: data.doctor.name,
-              credentials: "MSN, APRN, FNP-C",
-              specialty: data.doctor.specialty || "A Private Practice Provider",
-            });
-          }
-        }
-      } catch {
-        setDoctorInfo({
-          id: "1fd1af57-5529-4d00-a301-e653b4829efc",
-          name: "LaMonica A. Hodges",
-          credentials: "MSN, APRN, FNP-C",
-          specialty: "A Private Practice Provider",
-        });
-      }
-    };
-    fetchDoctorInfo();
-  }, []);
+  const handleAppointmentStatusChange = () => {
+    fetchPatients()
+  }
 
-  // Create payment intent when moving to step 2
-  useEffect(() => {
-    if (step === 2 && !clientSecret) {
-      const initPaymentIntent = async () => {
-        try {
-          const res = await fetch("/api/create-payment-intent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount: 18900 }),
-          });
-          const data = await res.json();
-          if (data.clientSecret) {
-            setClientSecret(data.clientSecret);
-          }
-        } catch (error) {
-          console.error("Error creating payment intent:", error);
-        }
-      };
-      void initPaymentIntent();
+  // Problems & Medications handlers
+  const handleAddActiveProblem = () => {
+    if (!newActiveProblem.problem.trim() || !selectedPatient) return
+    const newProblem = {
+      id: `ap-${Date.now()}`,
+      problem: newActiveProblem.problem,
+      since: newActiveProblem.since
     }
-  }, [step, clientSecret]);
+    setActiveProblems([...activeProblems, newProblem])
+    setNewActiveProblem({problem: '', since: ''})
+    saveProblemsAndMedications()
+  }
 
-  // Field highlighting logic - CORRECT SEQUENCE
-  // Note: Pharmacy is NOT in the required sequence - can be filled anytime
-  useEffect(() => {
-    if (step === 1) {
-      // 1. Reason for Visit (symptoms)
-      if (!appointmentData.symptoms) {
-        setHighlightedField("symptoms");
-      }
-      // 2. Chief Complaint (after selecting symptom)
-      else if (!isChiefComplaintValid(appointmentData.chief_complaint)) {
-        setHighlightedField("chief_complaint");
-      }
-      // 3. Visit Type
-      else if (!appointmentData.visitType) {
-        setHighlightedField("visitType");
-      }
-      // 4. Date/Time
-      else if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) {
-        setHighlightedField("dateTime");
-      }
-      // 5. Email (pharmacy skipped - can be filled anytime)
-      else if (!isEmailValid(email)) {
-        setHighlightedField("email");
-      }
-      // 6. First Name
-      else if (!isNameValid(appointmentData.firstName)) {
-        setHighlightedField("firstName");
-      }
-      // 7. Last Name
-      else if (!isNameValid(appointmentData.lastName)) {
-        setHighlightedField("lastName");
-      }
-      // 8. Phone
-      else if (!isPhoneValid(appointmentData.phone)) {
-        setHighlightedField("phone");
-      }
-      // 9. Date of Birth
-      else if (!isDobValid(appointmentData.dateOfBirth)) {
-        setHighlightedField("dateOfBirth");
-      }
-      // 10. Address
-      else if (!appointmentData.streetAddress.trim() || !appointmentData.placeId.trim()) {
-        setHighlightedField("streetAddress");
-      }
-      // 11. Pharmacy - highlight if everything else done but pharmacy empty
-      else if (!appointmentData.pharmacy.trim()) {
-        setHighlightedField("pharmacy");
-      }
-      // All complete
-      else {
-        setHighlightedField(null);
-      }
+  const handleRemoveActiveProblem = (id: string) => {
+    setActiveProblems(activeProblems.filter(p => p.id !== id))
+    saveProblemsAndMedications()
+  }
+
+  const handleAddResolvedProblem = () => {
+    if (!newResolvedProblem.problem.trim() || !selectedPatient) return
+    const newProblem = {
+      id: `rp-${Date.now()}`,
+      problem: newResolvedProblem.problem,
+      resolvedDate: newResolvedProblem.resolvedDate
     }
-  }, [step, email, appointmentData, isEmailValid, isPhoneValid, isDobValid, hasOneWord, isChiefComplaintValid, isNameValid]);
+    setResolvedProblems([...resolvedProblems, newProblem])
+    setNewResolvedProblem({problem: '', resolvedDate: ''})
+    saveProblemsAndMedications()
+  }
 
-  // Check if a field should be accessible (previous fields must be completed)
-  const isFieldAccessible = useCallback((fieldName: string): boolean => {
-    // Pharmacy is always accessible - no restrictions
-    if (fieldName === 'pharmacy') return true;
-    
-    const sequence = [
-      'symptoms',
-      'chief_complaint',
-      'visitType',
-      'dateTime',
-      // 'pharmacy' removed - always accessible
-      'email',
-      'firstName',
-      'lastName',
-      'phone',
-      'dateOfBirth',
-      'streetAddress'
-    ];
-    
-    const fieldIndex = sequence.indexOf(fieldName);
-    if (fieldIndex === -1) return true;
-    
-    for (let i = 0; i < fieldIndex; i++) {
-      const prevField = sequence[i];
-      switch (prevField) {
-        case 'symptoms':
-          if (!appointmentData.symptoms) return false;
-          break;
-        case 'chief_complaint':
-          if (!isChiefComplaintValid(appointmentData.chief_complaint)) return false;
-          break;
-        case 'visitType':
-          if (!appointmentData.visitType) return false;
-          break;
-        case 'dateTime':
-          if (!appointmentData.appointmentDate || !appointmentData.appointmentTime) return false;
-          break;
-        case 'email':
-          if (!isEmailValid(email)) return false;
-          break;
-        case 'firstName':
-          if (!isNameValid(appointmentData.firstName)) return false;
-          break;
-        case 'lastName':
-          if (!isNameValid(appointmentData.lastName)) return false;
-          break;
-        case 'phone':
-          if (!isPhoneValid(appointmentData.phone)) return false;
-          break;
-        case 'dateOfBirth':
-          if (!isDobValid(appointmentData.dateOfBirth)) return false;
-          break;
-      }
+  const handleRemoveResolvedProblem = (id: string) => {
+    setResolvedProblems(resolvedProblems.filter(p => p.id !== id))
+    saveProblemsAndMedications()
+  }
+
+  const handleAddMedicationHistory = () => {
+    if (!newMedHistory.medication.trim() || !selectedPatient) return
+    const newMed = {
+      id: `mh-${Date.now()}`,
+      medication: newMedHistory.medication,
+      provider: newMedHistory.provider,
+      date: newMedHistory.date
     }
-    return true;
-  }, [appointmentData, email, isEmailValid, isPhoneValid, isDobValid, isChiefComplaintValid, isNameValid]);
+    setMedicationHistory([...medicationHistory, newMed])
+    setNewMedHistory({medication: '', provider: '', date: ''})
+    saveProblemsAndMedications()
+  }
 
-  // Filtered reasons for symptom search
-  const filteredReasons = useMemo(() => {
-    if (!reasonQuery.trim()) {
-      if (reasonInputFocused) {
-        return symptomSuggestions.slice(0, 9);
-      }
-      return [];
+  const handleRemoveMedicationHistory = (id: string) => {
+    setMedicationHistory(medicationHistory.filter(m => m.id !== id))
+    saveProblemsAndMedications()
+  }
+
+  const handleAddPrescriptionLog = () => {
+    if (!newPrescriptionLog.medication.trim() || !selectedPatient) return
+    const newLog = {
+      id: `pl-${Date.now()}`,
+      date: newPrescriptionLog.date,
+      medication: newPrescriptionLog.medication,
+      quantity: newPrescriptionLog.quantity,
+      pharmacy: newPrescriptionLog.pharmacy,
+      status: 'sent'
     }
-    
-    const searchTerm = reasonQuery.toLowerCase().trim();
-    
-    const nameMatches = symptomSuggestions
-      .filter((item) => item.name.toLowerCase().startsWith(searchTerm))
-      .map((item) => ({ item, priority: 1 }));
-    
-    const smartMatches = searchTerm.length >= 3
-      ? symptomSuggestions
-          .filter((item) => {
-            const nameLower = item.name.toLowerCase();
-            if (nameLower.startsWith(searchTerm)) return false;
-            
-            return item.smart_search.some((keyword) => {
-              const keywordLower = keyword.toLowerCase();
-              return keywordLower.startsWith(searchTerm) && keywordLower.length <= 15;
-            });
-          })
-          .map((item) => ({ item, priority: 2 }))
-      : [];
-    
-    return [...nameMatches, ...smartMatches]
-      .sort((a, b) => a.priority - b.priority)
-      .map((result) => result.item)
-      .slice(0, 8);
-  }, [reasonQuery, reasonInputFocused]);
+    setPrescriptionLogs([...prescriptionLogs, newLog])
+    setNewPrescriptionLog({medication: '', quantity: '', pharmacy: '', date: ''})
+    saveProblemsAndMedications()
+  }
 
-  // FIXED: personalDetailsValid validation - removed emailChecked requirement (checked on Proceed click)
-  const personalDetailsValid = useMemo(() => {
-    const emailValid = isEmailValid(email);
-    const symptomsValid = !!appointmentData.symptoms;
-    const chiefComplaintValid = isChiefComplaintValid(appointmentData.chief_complaint);
-    const visitTypeValid = !!appointmentData.visitType;
-    const dateValid = !!appointmentData.appointmentDate;
-    const timeValid = !!appointmentData.appointmentTime;
-    const pharmacyValid = !!appointmentData.pharmacy.trim();
-    const firstNameValid = isNameValid(appointmentData.firstName);
-    const lastNameValid = isNameValid(appointmentData.lastName);
-    const phoneValid = isPhoneValid(appointmentData.phone);
-    const dobValid = isDobValid(appointmentData.dateOfBirth);
-    const addressValid = !!appointmentData.streetAddress.trim() && !!appointmentData.placeId.trim();
+  const handleRemovePrescriptionLog = (id: string) => {
+    setPrescriptionLogs(prescriptionLogs.filter(l => l.id !== id))
+    saveProblemsAndMedications()
+  }
 
-    const allValid = emailValid &&
-      symptomsValid &&
-      chiefComplaintValid &&
-      visitTypeValid &&
-      dateValid &&
-      timeValid &&
-      pharmacyValid &&
-      firstNameValid &&
-      lastNameValid &&
-      phoneValid &&
-      dobValid &&
-      addressValid;
-
-    // Debug logging - remove in production
-    if (!allValid) {
-      console.log('🔍 [VALIDATION] Field status:', {
-        emailValid,
-        symptomsValid,
-        chiefComplaintValid,
-        visitTypeValid,
-        dateValid,
-        timeValid,
-        pharmacyValid,
-        firstNameValid,
-        lastNameValid,
-        phoneValid,
-        dobValid,
-        addressValid,
-        // Raw values for debugging
-        email,
-        phone: appointmentData.phone,
-        dob: appointmentData.dateOfBirth,
-      });
-    }
-
-    return allValid;
-  }, [
-    email,
-    appointmentData,
-    isEmailValid,
-    isPhoneValid,
-    isDobValid,
-    isChiefComplaintValid,
-    isNameValid,
-  ]);
-
-  const totalStepFields = 10;
-  const completedFields = useMemo(() => {
-    let count = 0;
-    if (isEmailValid(email)) count += 1;
-    if (appointmentData.symptoms && isChiefComplaintValid(appointmentData.chief_complaint)) count += 1;
-    if (appointmentData.visitType) count += 1;
-    if (appointmentData.appointmentDate && appointmentData.appointmentTime) count += 1;
-    if (appointmentData.pharmacy.trim()) count += 1;
-    if (isNameValid(appointmentData.firstName)) count += 1;
-    if (isNameValid(appointmentData.lastName)) count += 1;
-    if (isPhoneValid(appointmentData.phone)) count += 1;
-    if (isDobValid(appointmentData.dateOfBirth)) count += 1;
-    if (appointmentData.streetAddress.trim() && appointmentData.placeId.trim()) count += 1;
-    return Math.min(count, totalStepFields);
-  }, [
-    email,
-    appointmentData.symptoms,
-    appointmentData.visitType,
-    appointmentData.appointmentDate,
-    appointmentData.appointmentTime,
-    appointmentData.pharmacy,
-    appointmentData.firstName,
-    appointmentData.lastName,
-    appointmentData.phone,
-    appointmentData.dateOfBirth,
-    appointmentData.streetAddress,
-    appointmentData.placeId,
-    isEmailValid,
-    isPhoneValid,
-    isDobValid,
-    appointmentData.chief_complaint,
-    isChiefComplaintValid,
-    isNameValid,
-  ]);
-
-  // Handle payment success
-  const handlePaymentSuccess = async () => {
-    setIsLoading(true);
-    
+  const saveProblemsAndMedications = async () => {
+    if (!selectedPatient) return
+    setSavingProblems(true)
     try {
-      const storedData = sessionStorage.getItem("appointmentData");
-      const data = storedData ? JSON.parse(storedData) : {};
-      
-      if (data.accessToken) {
-        router.push(`/appointment/${data.accessToken}`);
-        return;
+      const patientId = selectedPatient.id
+
+      // 1. Save Active Problems
+      // Delete existing active problems for this patient
+      await supabase
+        .from('problems')
+        .delete()
+        .eq('patient_id', patientId)
+        .eq('status', 'active')
+
+      // Insert new active problems
+      if (activeProblems.length > 0) {
+        const { error: problemsError } = await supabase
+          .from('problems')
+          .insert(activeProblems.map(p => ({
+            patient_id: patientId,
+            problem_name: p.problem,
+            status: 'active'
+          })))
+        
+        if (problemsError) throw problemsError
       }
-      
-      const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const patientEmail = email.trim().toLowerCase();
-      
-      const completeAppointmentData = {
-        ...data,
-        ...appointmentData,
-        dateOfBirth: convertDateToISO(appointmentData.dateOfBirth),
-        email: patientEmail,
-        patientTimezone: patientTZ,
-        skipIntake: emailExists,
-      };
-      
-      console.log('📤 [PAYMENT SUCCESS] Creating appointment:', {
-        email: patientEmail,
-        skipIntake: completeAppointmentData.skipIntake,
-        isReturningPatient: emailExists,
-      });
-      
-      const createAppointmentResponse = await fetch("/api/create-appointment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          payment_intent_id: data.payment_intent_id,
-          appointmentData: completeAppointmentData,
-        }),
-      });
-      
-      const createAppointmentResult = await createAppointmentResponse.json();
-      
-      if (!createAppointmentResponse.ok) {
-        throw new Error(createAppointmentResult.error || "Failed to create appointment");
+
+      // 2. Save Resolved Problems
+      // Delete existing resolved problems for this patient
+      await supabase
+        .from('problems')
+        .delete()
+        .eq('patient_id', patientId)
+        .eq('status', 'resolved')
+
+      // Insert new resolved problems
+      if (resolvedProblems.length > 0) {
+        const { error: resolvedError } = await supabase
+          .from('problems')
+          .insert(resolvedProblems.map(p => ({
+            patient_id: patientId,
+            problem_name: p.problem || '',
+            status: 'resolved'
+          })))
+        
+        if (resolvedError) throw resolvedError
       }
-      
-      console.log('✅ [APPOINTMENT CREATED] Result:', createAppointmentResult);
-      
-      const updatedData = {
-        ...data,
-        ...completeAppointmentData,
-        appointmentId: createAppointmentResult.appointmentId,
-        accessToken: createAppointmentResult.accessToken,
-      };
-      sessionStorage.setItem('appointmentData', JSON.stringify(updatedData));
-      
-      if (emailExists) {
-        // RETURNING PATIENT - skip intake, go straight to confirmation
-        console.log('✅ [RETURNING PATIENT] Skipping intake, redirecting to confirmation');
-        router.push(`/appointment/${createAppointmentResult.accessToken}`);
-        return;
+
+      // 3. Save Medication History
+      if (medicationHistory.length > 0) {
+        // Delete existing medication history for this patient
+        await supabase
+          .from('medication_history')
+          .delete()
+          .eq('patient_id', patientId)
+
+        // Insert new medication history
+        const { error: medHistoryError } = await supabase
+          .from('medication_history')
+          .insert(medicationHistory.map(med => ({
+            patient_id: patientId,
+            medication_name: med.medication || '',
+            start_date: med.date ? new Date(med.date).toISOString().split('T')[0] : null
+          })))
+        
+        if (medHistoryError) throw medHistoryError
       }
-      
-      // NEW PATIENT - redirect to intake page
-      console.log('📝 [NEW PATIENT] Redirecting to intake page');
-      router.push(`/intake?accessToken=${createAppointmentResult.accessToken}&email=${encodeURIComponent(patientEmail)}`);
-      
-    } catch (error) {
-      console.error("Error creating appointment:", error);
-      alert(error instanceof Error ? error.message : "Failed to create appointment. Please try again.");
+
+      // 4. Save Active Medication Orders
+      // Delete existing active orders for this patient
+      await supabase
+        .from('medication_orders')
+        .delete()
+        .eq('patient_id', patientId)
+        .eq('status', 'active')
+
+      // Insert new active orders
+      if (activeMedOrders.length > 0) {
+        // Get latest appointment for appointment_id
+      const { data: latestAppointment } = await supabase
+        .from('appointments')
+        .select('id')
+          .eq('patient_id', patientId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+        const { error: activeOrdersError } = await supabase
+          .from('medication_orders')
+          .insert(activeMedOrders.map(order => ({
+            patient_id: patientId,
+            appointment_id: latestAppointment?.id || null,
+            medication_name: order.medication || '',
+            dosage: order.sig || '',
+            frequency: '',
+            status: 'active'
+          })))
+        
+        if (activeOrdersError) throw activeOrdersError
+      }
+
+      // 5. Save Past Medication Orders
+      if (pastMedOrders.length > 0) {
+        // Get latest appointment for appointment_id
+        const { data: latestAppointment } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        const { error: pastOrdersError } = await supabase
+          .from('medication_orders')
+          .insert(pastMedOrders.map(order => ({
+            patient_id: patientId,
+            appointment_id: latestAppointment?.id || null,
+            medication_name: order.medication || '',
+            dosage: order.sig || '',
+            frequency: '',
+            status: 'completed'
+          })))
+        
+        if (pastOrdersError) throw pastOrdersError
+      }
+
+      // 6. Save Prescription Logs (if latest appointment exists)
+      if (prescriptionLogs.length > 0) {
+        const { data: latestAppointment } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('patient_id', patientId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (latestAppointment) {
+          const { error: logsError } = await supabase
+            .from('prescription_logs')
+            .insert(prescriptionLogs.map(log => ({
+              prescription_id: null,
+              appointment_id: latestAppointment.id,
+              action: log.status || 'created',
+              action_at: log.date ? new Date(log.date).toISOString() : new Date().toISOString(),
+              notes: `${log.medication || ''} - Qty: ${log.quantity || ''} - Pharmacy: ${log.pharmacy || ''}`
+            })))
+          
+          if (logsError) throw logsError
+        }
+      }
+
+      // Refresh chart data
+      await fetchPatientChart(selectedPatient.id)
+    } catch (error: any) {
+      console.error('Error saving problems and medications:', error)
+      alert('Failed to save: ' + error.message)
     } finally {
-      setIsLoading(false);
+      setSavingProblems(false)
     }
-  };
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-[#050b14] p-3 md:p-8">
-      {/* Autofill CSS fixes */}
-      <style>{`
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 30px #11161c inset !important;
-          -webkit-text-fill-color: white !important;
-          caret-color: white !important;
-          transition: background-color 5000s ease-in-out 0s;
-        }
-        
-        input::placeholder {
-          color: #6b7280 !important;
-        }
-      `}</style>
-      
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-4 md:mb-6">
-          <h2 className="text-xl md:text-3xl font-bold text-primary-teal">
-            <span className="text-white">Medazon Health</span> Express Booking
-          </h2>
-          {step === 2 && <div className="text-center text-primary-teal font-bold text-xl md:text-2xl mb-2">{`"When Your Privacy Matters"`}</div>}
+    <div className="w-full max-w-none">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header Card */}
+        <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl lg:text-3xl font-bold text-white">Patient Records</h1>
+              <p className="text-gray-400 mt-2">
+                {currentDoctor ? 
+                  `View and manage patients for Dr. ${currentDoctor.first_name} ${currentDoctor.last_name}` :
+                  'View and manage your patient information'
+                }
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <button
+                onClick={() => {
+                  setShowAllRecords(!showAllRecords)
+                  if (!showAllRecords) {
+                    setRecordFilter('all')
+                  }
+                }}
+                className="px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                {showAllRecords ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    Show Appointments
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Show All Records
+                  </>
+                )}
+              </button>
+              {currentDoctor && (
+                <div className="bg-blue-50 rounded-lg p-2 text-left lg:text-right">
+                  <p className="text-xs text-black">Current Doctor</p>
+                  <p className="text-sm font-semibold text-black">
+                    Dr. {currentDoctor.first_name} {currentDoctor.last_name}
+                  </p>
+                  <p className="text-xs text-black">{currentDoctor.specialty}</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-3 md:space-y-6">
-            <div className="space-y-3 md:space-y-6">
-              <div className="font-bold text-sm md:text-base text-primary-orange text-center">{STEPS[step - 1].title}</div>
-
-              {step !== 2 && doctorInfo && appointmentData.visitType && (
-                <div className="border border-white/10 rounded-xl p-2.5 md:p-3 flex items-center gap-2 md:gap-3 bg-[#0d1218]">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden ring-2 ring-primary-teal/40 flex-shrink-0">
-                    <Image
-                      src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg"
-                      alt={doctorInfo.name}
-                      width={48}
-                      height={48}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="text-white font-semibold text-xs md:text-sm truncate">{doctorInfo.name}</div>
-                    <div className="text-gray-400 text-[10px] md:text-xs">{doctorInfo.credentials}</div>
-                    <div className="text-primary-teal text-[10px] md:text-xs truncate">{doctorInfo.specialty}</div>
-                  </div>
-                  <div className="flex flex-col items-end gap-0.5 md:gap-1 flex-shrink-0">
-                    <div className="text-gray-400 text-[9px] md:text-[10px]">Visit Type</div>
-                    <div className="bg-primary-teal/10 text-primary-teal text-[10px] md:text-xs font-bold px-2 md:px-3 py-0.5 md:py-1 rounded-full">
-                      {appointmentData.visitType}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {step === 1 && (
-                <div className="bg-[#0d1218] border border-white/10 rounded-xl p-2 md:p-3 space-y-2">
-                  <div className="text-center text-white font-bold text-xs md:text-sm">Priority Queue Assigned</div>
-                  <div className="flex items-center justify-center gap-1">
-                    {Array.from({ length: totalStepFields }).map((_, idx) => {
-                      const filled = idx < completedFields;
-                      const isLastFilled = filled && completedFields === totalStepFields && idx === totalStepFields - 1;
-                      return (
-                        <div
-                          key={idx}
-                          className={`h-2 w-6 md:h-3 w-full rounded-xs border ${
-                            filled ? "bg-primary-teal border-primary-teal" : "bg-transparent border-primary-teal/60"
-                          } flex items-center justify-center text-white`}
-                        >
-                          {isLastFilled ? <Check size={10} /> : null}
+        {/* Search Card */}
+        <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="flex-1 relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search patients by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value)
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => {
+                    if (searchSuggestions.length > 0) {
+                      setShowSuggestions(true)
+                    }
+                  }}
+                  className="w-full pl-10 pr-4 py-2 bg-[#0a1f1f] border border-[#1a3d3d] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                />
+                {showSuggestions && searchSuggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute z-50 w-full mt-2 bg-[#0d2626] border border-[#1a3d3d] rounded-lg shadow-xl max-h-80 overflow-y-auto"
+                  >
+                    {searchSuggestions.map((patient, index) => (
+                      <div
+                        key={patient.id}
+                        onClick={() => handleSuggestionClick(patient)}
+                        className="px-4 py-3 cursor-pointer transition-all duration-150 border-b border-[#1a3d3d] last:border-b-0 hover:bg-teal-600/30 hover:border-l-2 hover:border-l-teal-400"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[#164e4e] hover:bg-teal-500 transition-colors flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-medium text-white">
+                              {patient.first_name.charAt(0)}{patient.last_name.charAt(0)}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-medium truncate">
+                              {patient.first_name} {patient.last_name}
+                            </div>
+                            <div className="text-sm text-gray-400 truncate">
+                              {patient.email}
+                            </div>
+                          </div>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
+                    <div className="px-3 py-2 bg-[#0a1f1f] text-xs text-gray-500 border-t border-[#1a3d3d]">
+                      Click to open patient chart
+                    </div>
                   </div>
+                )}
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowSuggestions(false)}
+              className="px-6 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors whitespace-nowrap"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+
+        {/* Patient Summary Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                </svg>
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-400">Total Patients</p>
+                <p className="text-xl sm:text-2xl font-semibold text-white">{patients.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-400">Active Patients</p>
+                <p className="text-xl sm:text-2xl font-semibold text-white">
+                  {patients.filter(p => {
+                    const lastVisit = new Date(p.last_appointment)
+                    const thirtyDaysAgo = new Date()
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+                    return lastVisit >= thirtyDaysAgo
+                  }).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-400">New This Month</p>
+                <p className="text-xl sm:text-2xl font-semibold text-white">
+                  {patients.filter(p => {
+                    const created = new Date(p.created_at)
+                    const thirtyDaysAgo = new Date()
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+                    return created >= thirtyDaysAgo
+                  }).length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs sm:text-sm font-medium text-gray-400">Avg. Appointments</p>
+                <p className="text-xl sm:text-2xl font-semibold text-white">
+                  {patients.length > 0 ? 
+                    (patients.reduce((sum, p) => sum + p.appointments_count, 0) / patients.length).toFixed(1) : 
+                    '0'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Record Filter Tabs - Only show when All Records is visible */}
+        {showAllRecords && (
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d] p-4 sm:p-6">
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setRecordFilter('all')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  recordFilter === 'all'
+                    ? 'bg-teal-500 text-white'
+                    : 'bg-[#164e4e] text-gray-300 hover:bg-[#1a5a5a]'
+                }`}
+              >
+                All Records ({recordCounts.all})
+              </button>
+              <button
+                onClick={() => setRecordFilter('prescription')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  recordFilter === 'prescription'
+                    ? 'bg-teal-500 text-white'
+                    : 'bg-[#164e4e] text-gray-300 hover:bg-[#1a5a5a]'
+                }`}
+              >
+                Prescriptions ({recordCounts.prescription})
+              </button>
+              <button
+                onClick={() => setRecordFilter('lab_result')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  recordFilter === 'lab_result'
+                    ? 'bg-teal-500 text-white'
+                    : 'bg-[#164e4e] text-gray-300 hover:bg-[#1a5a5a]'
+                }`}
+              >
+                Lab Records ({recordCounts.lab_result})
+              </button>
+              <button
+                onClick={() => setRecordFilter('visit_summary')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  recordFilter === 'visit_summary'
+                    ? 'bg-teal-500 text-white'
+                    : 'bg-[#164e4e] text-gray-300 hover:bg-[#1a5a5a]'
+                }`}
+              >
+                Visit Summaries ({recordCounts.visit_summary})
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Appointments Section */}
+        {!showAllRecords && (
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d]">
+            <div className="p-4 sm:p-6 border-b border-[#1a3d3d]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-teal-400" />
+                  Upcoming Appointments
+                </h2>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              {upcomingAppointments.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  No upcoming appointments
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingAppointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="p-3 sm:p-4 bg-[#164e4e] rounded-lg border border-[#1a5a5a] hover:border-teal-500 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedAppointmentId(appointment.id)
+                        setShowAppointmentModal(true)
+                      }}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="w-10 h-10 rounded-full bg-[#0d2626] flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-medium text-white">
+                                {appointment.patient 
+                                  ? `${appointment.patient.first_name.charAt(0)}${appointment.patient.last_name.charAt(0)}`
+                                  : 'P'
+                                }
+                              </span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-white font-medium truncate">
+                                {appointment.patient
+                                  ? `${appointment.patient.first_name} ${appointment.patient.last_name}`
+                                  : 'Unknown Patient'}
+                              </p>
+                              <p className="text-xs sm:text-sm text-gray-400 truncate">
+                                {appointment.patient?.email || 'No email'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-xs sm:text-sm text-gray-300 ml-0 sm:ml-12">
+                            {appointment.requested_date_time ? (
+                              <p>
+                                {new Date(appointment.requested_date_time).toLocaleString('en-US', {
+                                  weekday: 'short',
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            ) : (
+                              <p>Date TBD</p>
+                            )}
+                            {appointment.visit_type && (
+                              <p className="text-xs text-gray-400 mt-1">
+                                Visit Type: {appointment.visit_type}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
+                          <span className={`px-2 sm:px-3 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                            appointment.status === 'accepted'
+                              ? 'bg-green-600 text-white'
+                              : 'bg-yellow-600 text-white'
+                          }`}>
+                            {appointment.status}
+                          </span>
+                          <button className="text-teal-400 hover:text-teal-300 text-xs sm:text-sm whitespace-nowrap">
+                            View Details →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
 
-              {step === 1 && (
-                <div className="space-y-3 md:space-y-4">
-                  {/* Reason and Visit Type buttons */}
-                  <div className="grid grid-cols-2 gap-2 md:gap-3 text-sm">
-                    <div className="relative">
-                      <button
-                        onClick={() => {
-                          setReasonDialogOpen(true);
-                          setReasonInputFocused(true);
-                        }}
-                        className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between min-h-[48px] md:min-h-[52px] text-xs transition-all ${
-                          highlightedField === "symptoms"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]" 
-                            : appointmentData.symptoms && isChiefComplaintValid(appointmentData.chief_complaint)
-                            ? "border-primary-teal" 
-                            : "border-white/10"
-                        }`}
-                      >
-                        <span className="truncate">{appointmentData.symptoms ? appointmentData.symptoms : "Reason For Visit"}</span>
-                        <ChevronRight size={16} className="text-primary-teal" />
-                      </button>
-                    </div>
-
-                    <div className="relative">
-                      <button
-                        onClick={() => {
-                          if (!isFieldAccessible('visitType')) {
-                            return;
+        {/* Patients List Card */}
+        {showAllRecords && (
+          <div className="bg-[#0d2626] rounded-lg border border-[#1a3d3d]">
+            <div className="p-4 sm:p-6 border-b border-[#1a3d3d]">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <h2 className="text-lg font-semibold text-white">
+                  {recordFilter === 'all' && 'All Medical Records'}
+                  {recordFilter === 'prescription' && 'Prescriptions'}
+                  {recordFilter === 'lab_result' && 'Lab Records'}
+                  {recordFilter === 'visit_summary' && 'Visit Summaries'}
+                  {' '}({filteredPatients.length} {filteredPatients.length === 1 ? 'patient' : 'patients'})
+                </h2>
+                <div className="text-sm text-gray-400">
+                  {recordFilter === 'all' && `Total Records: ${recordCounts.all}`}
+                  {recordFilter === 'prescription' && `Total Prescriptions: ${recordCounts.prescription}`}
+                  {recordFilter === 'lab_result' && `Total Lab Results: ${recordCounts.lab_result}`}
+                  {recordFilter === 'visit_summary' && `Total Visit Summaries: ${recordCounts.visit_summary}`}
+                </div>
+              </div>
+            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full divide-y divide-[#1a3d3d]">
+              <thead className="bg-[#0a1f1f]">
+                <tr>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Patient
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                    Contact
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider hidden lg:table-cell">
+                    Appointments
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-32">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-[#0d2626] divide-y divide-[#1a3d3d]">
+                {filteredPatients.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
+                      <div className="flex flex-col items-center">
+                        <svg className="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                        <p className="text-lg font-medium text-white">No medical records found</p>
+                        <p className="text-sm text-gray-400">
+                          {recordFilter === 'all' 
+                            ? 'No patients match your search criteria'
+                            : `No patients found with ${recordFilter === 'prescription' ? 'prescriptions' : recordFilter === 'lab_result' ? 'lab records' : 'visit summaries'}`
                           }
-                          setVisitTypeDialogOpen(true);
-                        }}
-                        disabled={!isFieldAccessible('visitType')}
-                        className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between min-h-[48px] md:min-h-[52px] text-xs transition-all ${
-                          !isFieldAccessible('visitType')
-                            ? "opacity-50 cursor-not-allowed border-white/5"
-                            : highlightedField === "visitType"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]" 
-                            : appointmentData.visitType
-                            ? "border-primary-teal" 
-                            : "border-white/10"
-                        }`}
-                      >
-                        <span className="truncate">{appointmentData.visitType ? appointmentData.visitType + " Visit" : "Visit Type"}</span>
-                        <ChevronRight size={16} className="text-primary-teal" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Appointment Day/Time and Pharmacy */}
-                  <div className="grid grid-cols-2 gap-2 md:gap-3 text-sm">
-                    <div className="relative">
-                      <button
-                        onClick={() => {
-                          if (!isFieldAccessible('dateTime')) {
-                            return;
-                          }
-                          setDateTimeMode("date");
-                          setDateTimeDialogOpen(true);
-                        }}
-                        disabled={!isFieldAccessible('dateTime')}
-                        className={`w-full bg-[#0d1218] border rounded-lg px-3 md:px-4 py-2.5 md:py-3 text-left text-white font-semibold flex items-center justify-between min-h-[48px] md:min-h-[52px] transition-all ${
-                          !isFieldAccessible('dateTime')
-                            ? "opacity-50 cursor-not-allowed border-white/5 text-[11px]"
-                            : highlightedField === "dateTime"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)] text-[11px]" 
-                            : appointmentData.appointmentDate && appointmentData.appointmentTime
-                            ? "border-primary-teal py-2 text-sm md:text-base" 
-                            : "border-white/10 text-[11px]"
-                        }`}
-                      >
-                        <span className="flex-1 truncate pr-2">
-                          {appointmentData.appointmentDate && appointmentData.appointmentTime
-                            ? formatDateTime(appointmentData.appointmentDate, appointmentData.appointmentTime, false)
-                            : "Appointment Day/Time"}
-                        </span>
-                        <Calendar size={16} className="text-primary-teal flex-shrink-0" />
-                      </button>
-                    </div>
-
-                    <div className="relative flex flex-col">
-                      <PharmacySelector
-                        value={appointmentData.pharmacy}
-                        onChange={(value) => {
-                          setAppointmentData((prev) => ({ ...prev, pharmacy: value }));
-                        }}
-                        onPlaceSelect={(place) => {
-                          const fullAddress = place.formatted_address 
-                            ? `${place.name}, ${place.formatted_address}`
-                            : place.name;
-                          setAppointmentData((prev) => ({
-                            ...prev,
-                            pharmacy: fullAddress,
-                            pharmacyAddress: place.formatted_address || "",
-                          }));
-                        }}
-                        placeholder="Preferred Pharmacy"
-                        highlighted={highlightedField === "pharmacy"}
-                        className={`w-full bg-[#0d1218] border rounded-lg px-3 py-2.5 md:py-3 text-white text-xs md:text-sm focus:outline-none focus:border-primary-teal transition-all min-h-[48px] md:min-h-[52px] ${
-                          highlightedField === "pharmacy"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                            : appointmentData.pharmacy.trim()
-                            ? "border-primary-teal"
-                            : "border-white/10"
-                        }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Patient Details Form */}
-                  <div className="bg-[#0d1218] border border-white/10 rounded-xl p-3 md:p-4 space-y-2 md:space-y-3">
-                    <div className="text-white font-semibold text-xs md:text-sm">Patient Details</div>
-                    <div className="grid grid-cols-2 gap-2 md:gap-3">
-                      {/* Email field */}
-                      <div className="col-span-2 relative">
-                        <input 
-                          type="email" 
-                          value={email}
-                          onChange={(e) => {
-                            if (!isFieldAccessible('email')) return;
-                            setEmail(e.target.value);
-                            if (emailChecked) {
-                              setEmailChecked(false);
-                              setEmailExists(false);
-                            }
-                          }}
-                          placeholder="Email"
-                          autoComplete="email"
-                          disabled={!isFieldAccessible('email')}
-                          className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none transition-all ${
-                            !isFieldAccessible('email')
-                              ? "opacity-50 cursor-not-allowed border-white/5"
-                              : highlightedField === "email"
-                              ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                              : isCheckingEmail
-                              ? "border-yellow-500"
-                              : isEmailValid(email)
-                              ? "border-primary-teal"
-                              : "border-white/10"
-                          } ${isCheckingEmail || (emailChecked && emailExists) ? "pr-32" : ""}`}
-                        />
-                        {/* Loading spinner while checking email */}
-                        {isCheckingEmail && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-teal"></div>
-                          </div>
-                        )}
-                        {/* Returning patient indicator */}
-                        {emailChecked && emailExists && !isCheckingEmail && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-primary-teal">
-                            <Check size={16} />
-                            <span className="text-[10px] font-semibold whitespace-nowrap">Welcome back!</span>
-                          </div>
-                        )}
-                        {/* ADDED: Show checkmark for new users too */}
-                        {emailChecked && !emailExists && !isCheckingEmail && isEmailValid(email) && (
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-primary-teal">
-                            <Check size={16} />
-                          </div>
-                        )}
+                        </p>
                       </div>
-                      <input
-                        value={appointmentData.firstName}
-                        onFocus={() => markTouched("firstName")}
-                        onChange={(e) => {
-                          if (!isFieldAccessible('firstName')) return;
-                          markTouched("firstName");
-                          setAppointmentData((prev) => ({ ...prev, firstName: e.target.value }));
-                        }}
-                        placeholder="First Name"
-                        autoComplete="given-name"
-                        disabled={!isFieldAccessible('firstName')}
-                        className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          !isFieldAccessible('firstName')
-                            ? "opacity-50 cursor-not-allowed border-white/5"
-                            : highlightedField === "firstName"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                            : isNameValid(appointmentData.firstName) && (!emailExists || prefillHighlight)
-                            ? "border-primary-teal"
-                            : "border-white/10"
-                        }`}
-                      />
-                      <input
-                        value={appointmentData.lastName}
-                        onFocus={() => markTouched("lastName")}
-                        onChange={(e) => {
-                          if (!isFieldAccessible('lastName')) return;
-                          markTouched("lastName");
-                          setAppointmentData((prev) => ({ ...prev, lastName: e.target.value }));
-                        }}
-                        placeholder="Last Name"
-                        autoComplete="family-name"
-                        disabled={!isFieldAccessible('lastName')}
-                        className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          !isFieldAccessible('lastName')
-                            ? "opacity-50 cursor-not-allowed border-white/5"
-                            : highlightedField === "lastName"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                            : isNameValid(appointmentData.lastName) && (!emailExists || prefillHighlight)
-                            ? "border-primary-teal"
-                            : "border-white/10"
-                        }`}
-                      />
-                      <input
-                        value={appointmentData.phone}
-                        onChange={(e) => {
-                          if (!isFieldAccessible('phone')) return;
-                          const input = e.target;
-                          const newValue = e.target.value;
-                          const newDigits = formatPhone(newValue).digits.length;
-                          const { formatted } = formatPhone(newValue);
-                          setAppointmentData((prev) => ({ ...prev, phone: formatted }));
-                          requestAnimationFrame(() => {
-                            const newCursorPos = getPhoneCursorPosition(newDigits);
-                            input.setSelectionRange(newCursorPos, newCursorPos);
-                          });
-                        }}
-                        onKeyDown={(e) => {
-                          if (!isFieldAccessible('phone')) return;
-                          if (e.key === 'Backspace') {
-                            const input = e.target as HTMLInputElement;
-                            const { digits } = formatPhone(appointmentData.phone);
-                            if (digits.length > 0) {
-                              const newDigits = digits.slice(0, -1);
-                              const { formatted } = formatPhone(newDigits);
-                              setAppointmentData((prev) => ({ ...prev, phone: formatted }));
-                              requestAnimationFrame(() => {
-                                const newCursorPos = getPhoneCursorPosition(newDigits.length);
-                                input.setSelectionRange(newCursorPos, newCursorPos);
-                              });
-                              e.preventDefault();
-                            }
-                          }
-                        }}
-                        placeholder="Phone Number"
-                        onFocus={(e) => {
-                          if (!isFieldAccessible('phone')) return;
-                          markTouched("phone");
-                          if (!appointmentData.phone.trim() || appointmentData.phone === "(___)___-____") {
-                            const { formatted } = formatPhone("");
-                            setAppointmentData((prev) => ({ ...prev, phone: formatted }));
-                            requestAnimationFrame(() => {
-                              e.target.setSelectionRange(1, 1);
-                            });
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const digits = formatPhone(e.target.value).digits;
-                          if (!digits.length) {
-                            setAppointmentData((prev) => ({ ...prev, phone: "" }));
-                          }
-                        }}
-                        disabled={!isFieldAccessible('phone')}
-                        inputMode="numeric"
-                        autoComplete="tel"
-                        className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          !isFieldAccessible('phone')
-                            ? "opacity-50 cursor-not-allowed border-white/5"
-                            : highlightedField === "phone"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                            : isPhoneValid(appointmentData.phone) && (!emailExists || prefillHighlight)
-                            ? "border-primary-teal"
-                            : "border-white/10"
-                        }`}
-                      />
-                      <input
-                        value={appointmentData.dateOfBirth}
-                        onChange={(e) => {
-                          if (!isFieldAccessible('dateOfBirth')) return;
-                          const input = e.target;
-                          const newValue = e.target.value;
-                          const newDigits = formatDob(newValue).digits.length;
-                          const { formatted } = formatDob(newValue);
-                          setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
-                          requestAnimationFrame(() => {
-                            const newCursorPos = getDobCursorPosition(newDigits);
-                            input.setSelectionRange(newCursorPos, newCursorPos);
-                          });
-                        }}
-                        onKeyDown={(e) => {
-                          if (!isFieldAccessible('dateOfBirth')) return;
-                          if (e.key === 'Backspace') {
-                            const input = e.target as HTMLInputElement;
-                            const { digits } = formatDob(appointmentData.dateOfBirth);
-                            if (digits.length > 0) {
-                              const newDigits = digits.slice(0, -1);
-                              const { formatted } = formatDob(newDigits);
-                              setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
-                              requestAnimationFrame(() => {
-                                const newCursorPos = getDobCursorPosition(newDigits.length);
-                                input.setSelectionRange(newCursorPos, newCursorPos);
-                              });
-                              e.preventDefault();
-                            }
-                          }
-                        }}
-                        placeholder="Date of Birth"
-                        onFocus={(e) => {
-                          if (!isFieldAccessible('dateOfBirth')) return;
-                          markTouched("dateOfBirth");
-                          if (!appointmentData.dateOfBirth.trim() || appointmentData.dateOfBirth === "__/__/____") {
-                            const { formatted } = formatDob("");
-                            setAppointmentData((prev) => ({ ...prev, dateOfBirth: formatted }));
-                            requestAnimationFrame(() => {
-                              e.target.setSelectionRange(0, 0);
-                            });
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const { digits } = formatDob(e.target.value);
-                          if (!digits.length) {
-                            setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
-                            return;
-                          }
-                          if (digits.length === 8 && !isDobValid(e.target.value)) {
-                            alert("Date of birth can't be in the future or invalid.");
-                            setAppointmentData((prev) => ({ ...prev, dateOfBirth: "" }));
-                          }
-                        }}
-                        disabled={!isFieldAccessible('dateOfBirth')}
-                        inputMode="numeric"
-                        autoComplete="bday"
-                        className={`bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                          !isFieldAccessible('dateOfBirth')
-                            ? "opacity-50 cursor-not-allowed border-white/5"
-                            : highlightedField === "dateOfBirth"
-                            ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                            : isDobValid(appointmentData.dateOfBirth) && (!emailExists || prefillHighlight)
-                            ? "border-primary-teal"
-                            : "border-white/10"
-                        }`}
-                      />
-                      <div className="col-span-2">
-                        <GooglePlacesAutocomplete
-                          value={appointmentData.streetAddress}
-                          onChange={(value) => {
-                            if (!isFieldAccessible('streetAddress')) return;
-                            markTouched("streetAddress");
-                            // Clear placeId when user types - forces them to select from dropdown
-                            setAppointmentData((prev) => ({ 
-                              ...prev, 
-                              streetAddress: value,
-                              placeId: "", // Clear placeId - user must select from dropdown
-                              postalCode: ""
-                            }));
-                          }}
-                          onPlaceSelect={(place) => {
-                            if (!isFieldAccessible('streetAddress')) return;
-                            if (place.formatted_address) {
-                              let postalCode = "";
-                              const addressComponents =
-                                (place as { address_components?: Array<{ types?: string[]; long_name?: string }> })
-                                  .address_components;
-                              if (addressComponents) {
-                                const postalCodeComponent = addressComponents.find(
-                                  (component) => component.types?.includes("postal_code")
-                                );
-                                if (postalCodeComponent) {
-                                  postalCode = postalCodeComponent.long_name || "";
-                                }
-                              }
-                              setAppointmentData((prev) => ({
-                                ...prev,
-                                streetAddress: place.formatted_address || "",
-                                postalCode: postalCode,
-                                placeId: place.place_id || "",
-                              }));
-                              markTouched("streetAddress");
-                            }
-                          }}
-                          placeholder="Street Address"
-                          types={["address"]}
-                          componentRestrictions={{ country: "us" }}
-                          disabled={!isFieldAccessible('streetAddress')}
-                          className={`w-full bg-[#11161c] border rounded-lg px-3 py-2.5 md:py-3 text-white text-[16px] focus:outline-none focus:border-primary-teal transition-all ${
-                            !isFieldAccessible('streetAddress')
-                              ? "opacity-50 cursor-not-allowed border-white/5"
-                              : highlightedField === "streetAddress"
-                              ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                              : appointmentData.streetAddress.trim() && appointmentData.placeId.trim() && (!emailExists || prefillHighlight)
-                              ? "border-primary-teal"
-                              : "border-white/10"
-                          }`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center">
-                    <button 
-                      onClick={async () => {
-                        // Check email first if not already checked
-                        if (!emailChecked && isEmailValid(email)) {
-                          setIsCheckingEmail(true);
-                          try {
-                            const response = await fetch("/api/check-email", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ email: email.trim().toLowerCase() }),
-                            });
-
-                            if (response.ok) {
-                              const data = await response.json();
-                              setEmailChecked(true);
-                              
-                              console.log('📧 [EMAIL CHECK] Response:', data);
-                              
-                              // Returning patient = has patient record (has had appointments before)
-                              const isReturningPatient = data.exists && data.patientId;
-                              setEmailExists(isReturningPatient);
-                              
-                              // Prefill form if user data exists
-                              if (data.user) {
-                                let formattedDateOfBirth = "";
-                                if (data.user.date_of_birth) {
-                                  const dateParts = data.user.date_of_birth.split("-");
-                                  if (dateParts.length === 3 && dateParts[0].length === 4) {
-                                    formattedDateOfBirth = `${dateParts[1]}/${dateParts[2]}/${dateParts[0]}`;
-                                  }
-                                }
-                                
-                                const phoneDigits = (data.user.mobile_phone || "").replace(/\D/g, "");
-                                const phoneFormatted = phoneDigits.length === 10 ? formatPhone(phoneDigits).formatted : "";
-                                
-                                setAppointmentData((prev) => ({
-                                  ...prev,
-                                  firstName: data.user.first_name || prev.firstName,
-                                  lastName: data.user.last_name || prev.lastName,
-                                  phone: phoneFormatted || prev.phone,
-                                  dateOfBirth: formattedDateOfBirth || prev.dateOfBirth,
-                                  streetAddress: data.user.address || prev.streetAddress,
-                                  placeId: data.user.address ? "api-prefill-address" : prev.placeId,
-                                }));
-                              }
-                              
-                              sessionStorage.setItem('appointmentData', JSON.stringify({
-                                email: email.trim().toLowerCase(),
-                                skipIntake: isReturningPatient,
-                              }));
-                            } else {
-                              setEmailChecked(true);
-                              setEmailExists(false);
-                              sessionStorage.setItem('appointmentData', JSON.stringify({
-                                email: email.trim().toLowerCase(),
-                                skipIntake: false,
-                              }));
-                            }
-                          } catch (error) {
-                            console.error("📧 [EMAIL CHECK] Error:", error);
-                            setEmailChecked(true);
-                            setEmailExists(false);
-                            sessionStorage.setItem('appointmentData', JSON.stringify({
-                              email: email.trim().toLowerCase(),
-                              skipIntake: false,
-                            }));
-                          } finally {
-                            setIsCheckingEmail(false);
-                          }
-                        }
-                        
-                        // Now save data and proceed
-                        const currentSessionData = sessionStorage.getItem('appointmentData');
-                        const existingData = currentSessionData ? JSON.parse(currentSessionData) : {};
-                        const dataToSave = {
-                          ...existingData,
-                          email: email.trim().toLowerCase(),
-                          skipIntake: emailExists,
-                          symptoms: appointmentData.symptoms,
-                          chief_complaint: appointmentData.chief_complaint,
-                          visitType: appointmentData.visitType,
-                          appointmentDate: appointmentData.appointmentDate,
-                          appointmentTime: appointmentData.appointmentTime,
-                          pharmacy: appointmentData.pharmacy,
-                          pharmacyAddress: appointmentData.pharmacyAddress,
-                          firstName: appointmentData.firstName,
-                          lastName: appointmentData.lastName,
-                          phone: appointmentData.phone,
-                          dateOfBirth: appointmentData.dateOfBirth,
-                          streetAddress: appointmentData.streetAddress,
-                          postalCode: appointmentData.postalCode,
-                          placeId: appointmentData.placeId,
-                        };
-                        
-                        console.log('💾 [PROCEED] Saving data:', {
-                          email: dataToSave.email,
-                          skipIntake: dataToSave.skipIntake,
-                        });
-                        
-                        sessionStorage.setItem('appointmentData', JSON.stringify(dataToSave));
-                        setStep(2);
-                      }}
-                      disabled={!personalDetailsValid || isCheckingEmail}
-                      className={`w-full md:w-auto bg-primary-orange text-white px-6 py-3 rounded-lg font-bold text-sm shadow-lg ${
-                        personalDetailsValid && !isCheckingEmail ? "hover:bg-orange-600" : "opacity-50 cursor-not-allowed grayscale"
-                      }`}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPatients.map((patient) => (
+                    <tr 
+                      id={`patient-${patient.id}`}
+                      key={patient.id} 
+                      className="hover:bg-[#164e4e] transition-colors"
                     >
-                      {isCheckingEmail ? "Checking..." : "Proceed Next"}
+                      <td className="px-4 sm:px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-[#164e4e] flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">
+                                {patient.first_name.charAt(0)}{patient.last_name.charAt(0)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="ml-4 min-w-0 flex-1">
+                            <div className="text-sm font-medium text-white truncate">
+                              {patient.first_name} {patient.last_name}
+                            </div>
+                            <div className="text-sm text-gray-400 truncate">
+                              ID: {patient.id.slice(0, 8)}...
+                            </div>
+                            <div className="text-xs text-gray-400 sm:hidden truncate">
+                              {patient.email}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
+                        <div className="text-sm text-white truncate">{patient.email}</div>
+                        <div className="text-sm text-gray-400 truncate">{patient.mobile_phone}</div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
+                        <div className="text-sm text-white">{patient.appointments_count}</div>
+                        {(() => {
+                          const records = patientRecordMap.get(patient.id)
+                          if (!records) return null
+                          return (
+                            <div className="flex gap-2 mt-1 flex-wrap">
+                              {records.prescription > 0 && (
+                                <span className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded">
+                                  Rx: {records.prescription}
+                                </span>
+                              )}
+                              {records.lab_result > 0 && (
+                                <span className="text-xs px-2 py-0.5 bg-green-600 text-white rounded">
+                                  Lab: {records.lab_result}
+                                </span>
+                              )}
+                              {records.visit_summary > 0 && (
+                                <span className="text-xs px-2 py-0.5 bg-yellow-600 text-white rounded">
+                                  Visit: {records.visit_summary}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4">
+                        <button 
+                          onClick={() => handleViewPatient(patient)}
+                          className="flex items-center gap-1 text-white hover:text-cyan-400 text-xs sm:text-sm whitespace-nowrap px-2 py-1 rounded hover:bg-cyan-500/20 transition-colors"
+                          title="View Patient Details"
+                        >
+                          <Eye className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="hidden sm:inline">View</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        )}
+      </div>
+
+      {/* Patient Detail Modal */}
+      {showPatientModal && selectedPatient && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-white/20 shadow-2xl rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="sticky top-0 bg-slate-900/95 backdrop-blur-md border-b border-white/10 z-10 p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-white">
+                  Patient Details: {selectedPatient.first_name} {selectedPatient.last_name}
+                </h2>
+                <div className="flex items-center gap-3">
+                  {/* View Details Button - Opens Clinical Panel */}
+                  <button
+                    onClick={() => handleOpenClinicalPanel(selectedPatient)}
+                    className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm font-medium"
+                  >
+                    <Activity className="h-4 w-4" />
+                    View Details
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowPatientModal(false)
+                      setIsEditing(false)
+                      setSelectedPatient(null)
+                    }}
+                    className="text-gray-400 hover:text-white transition-colors p-2"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="border-b border-white/10 bg-slate-800/50">
+              <div className="flex">
+                <button
+                  onClick={() => setActiveTab('overview')}
+                  className={`px-6 py-3 text-sm font-medium transition-colors ${
+                    activeTab === 'overview'
+                      ? 'text-cyan-400 border-b-2 border-cyan-400'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab('chart')}
+                  className={`px-6 py-3 text-sm font-medium transition-colors ${
+                    activeTab === 'chart'
+                      ? 'text-cyan-400 border-b-2 border-cyan-400'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Patient Chart
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {isLoadingChart && activeTab === 'chart' ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+                </div>
+              ) : isEditing ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">First Name</label>
+                      <input
+                        type="text"
+                        value={editForm.first_name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, first_name: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Last Name</label>
+                      <input
+                        type="text"
+                        value={editForm.last_name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, last_name: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+                      <input
+                        type="email"
+                        value={editForm.email}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Phone</label>
+                      <input
+                        type="tel"
+                        value={editForm.mobile_phone}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, mobile_phone: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Date of Birth</label>
+                      <input
+                        type="date"
+                        value={editForm.date_of_birth}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, date_of_birth: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">Address</label>
+                      <input
+                        type="text"
+                        value={editForm.address}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleEditPatient}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
                     </button>
                   </div>
                 </div>
-              )}
-
-              {step === 2 && (
-                <div className="space-y-3 md:space-y-4">
-                  <div className="text-center">
-                    <span className="text-primary-orange font-semibold text-sm md:text-base">Confirm Appointment Request:</span><br />
-                    <span className="text-white font-bold text-xl md:text-3xl">{formatDateTime(appointmentData.appointmentDate, appointmentData.appointmentTime)}</span>
-                  </div>
-
-                  {clientSecret && (
-                    <Elements options={options} stripe={stripePromise}>
-                      <CheckoutForm
-                        formData={{
-                          email: email.trim(),
-                          firstName: appointmentData.firstName,
-                          lastName: appointmentData.lastName,
-                          phone: appointmentData.phone,
-                          dateOfBirth: appointmentData.dateOfBirth,
-                          streetAddress: appointmentData.streetAddress,
-                          postalCode: appointmentData.postalCode || "",
-                        }}
-                        acceptedTerms={acceptedTerms}
-                        onTermsChange={setAcceptedTerms}
-                        isFormValid={() => !!personalDetailsValid && acceptedTerms}
-                        convertDateToISO={convertDateToISO}
-                        onSuccess={handlePaymentSuccess}
-                        onPrevious={() => setStep(1)}
-                      />
-                    </Elements>
-                  )}
-                </div>
-              )}
-            </div>
-        </div>
-
-        {/* Reason Dialog */}
-        {reasonDialogOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
-            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="text-white font-bold text-base md:text-lg">Reason For Visit</div>
-                <button 
-                  onClick={() => {
-                    setReasonDialogOpen(false);
-                    setReasonInputFocused(false);
-                  }} 
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="relative">
-                <input
-                  value={reasonQuery}
-                  onChange={(e) => setReasonQuery(e.target.value)}
-                  onFocus={() => setReasonInputFocused(true)}
-                  onBlur={() => setReasonInputFocused(false)}
-                  placeholder="Search symptoms..."
-                  className="w-full bg-[#11161c] border border-white/10 rounded px-3 py-2 pr-40 text-[16px] text-white focus:outline-none focus:border-primary-teal"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-red-400 text-[10px] md:text-xs font-semibold uppercase whitespace-nowrap">
-                  Select From List
-                </div>
-              </div>
-              <div className="max-h-72 overflow-y-auto border border-white/5 rounded-lg">
-                {(reasonInputFocused || reasonQuery.trim()) && (
-                  <div 
-                    className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 font-semibold"
-                    onClick={() => {
-                      setAppointmentData((prev) => ({ ...prev, symptoms: "Something Else" }));
-                      setReasonDialogOpen(false);
-                      setReasonQuery("");
-                      setReasonInputFocused(false);
-                      setChiefComplaintDialogOpen(true);
-                    }}
-                  >
-                    Something else
-                  </div>
-                )}
-                {filteredReasons.map((item) => (
-                  <div 
-                    key={item.name}
-                    className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0"
-                    onClick={() => {
-                      setAppointmentData((prev) => ({ ...prev, symptoms: item.name }));
-                      setReasonDialogOpen(false);
-                      setReasonQuery("");
-                      setReasonInputFocused(false);
-                      setChiefComplaintDialogOpen(true);
-                    }}
-                  >
-                    {item.name}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Chief Complaint Dialog */}
-        {chiefComplaintDialogOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
-            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-5 w-full max-w-lg space-y-3 md:space-y-4">
-              <div className="flex justify-center items-center">
-                <div className="text-white font-bold text-base md:text-lg">Describe symptoms</div>
-              </div>
-              <div className="space-y-2">
-                <textarea
-                  value={appointmentData.chief_complaint}
-                  onChange={(e) => setAppointmentData((prev) => ({ ...prev, chief_complaint: e.target.value }))}
-                  placeholder="Describe symptoms"
-                  rows={2}
-                  className={`w-full bg-[#11161c] border rounded-lg px-3 py-3 text-white text-[16px] focus:outline-none min-h-[60px] transition-all ${
-                    highlightedField === "chief_complaint"
-                      ? "border-primary-orange animate-pulse shadow-[0_0_10px_rgba(249,115,22,0.5)]"
-                      : isChiefComplaintValid(appointmentData.chief_complaint)
-                      ? "border-primary-teal"
-                      : "border-white/10"
-                  }`}
-                />
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setChiefComplaintDialogOpen(false)}
-                  disabled={!isChiefComplaintValid(appointmentData.chief_complaint)}
-                  className={`bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-sm md:text-base ${
-                    isChiefComplaintValid(appointmentData.chief_complaint)
-                      ? "hover:bg-primary-teal/90"
-                      : "opacity-50 cursor-not-allowed"
-                  }`}
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Visit Type Dialog */}
-        {visitTypeDialogOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
-            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-6 w-full max-w-sm space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="text-white font-bold text-base md:text-lg">Select Visit Type</div>
-                <button onClick={() => setVisitTypeDialogOpen(false)} className="text-gray-400 hover:text-white">
-                  ✕
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 md:gap-3">
-                {["Video", "Audio"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => {
-                      setAppointmentData((prev) => ({ ...prev, visitType: type }));
-                      setVisitTypeDialogOpen(false);
-                    }}
-                    className={`border rounded-lg p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 text-white font-semibold transition-all ${
-                      appointmentData.visitType === type
-                        ? "border-primary-teal bg-primary-teal/10"
-                        : "border-white/10 hover:border-primary-teal"
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                      {type === "Video" ? <Video size={18} /> : <Phone size={18} />}
+              ) : activeTab === 'overview' ? (
+                <div className="space-y-6">
+                  {/* Patient Information */}
+                  <div className="bg-slate-800/50 rounded-lg p-6 border border-white/10">
+                    <h3 className="text-lg font-semibold text-white mb-4">Patient Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-400">First Name</label>
+                        <p className="text-white font-medium">{selectedPatient.first_name}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Last Name</label>
+                        <p className="text-white font-medium">{selectedPatient.last_name}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Email</label>
+                        <p className="text-white">{selectedPatient.email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Phone</label>
+                        <p className="text-white">{selectedPatient.mobile_phone || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Date of Birth</label>
+                        <p className="text-white">{selectedPatient.date_of_birth ? formatDate(selectedPatient.date_of_birth) : 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Address</label>
+                        <p className="text-white">{selectedPatient.address || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Total Appointments</label>
+                        <p className="text-white font-semibold">{selectedPatient.appointments_count}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Last Appointment</label>
+                        <p className="text-white">{formatDate(selectedPatient.last_appointment)}</p>
+                      </div>
                     </div>
-                    <span>{type} Call</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+                  </div>
 
-        {/* Date/Time Dialog */}
-        {dateTimeDialogOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 md:p-4">
-            <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 md:p-6 w-full max-w-3xl space-y-3 md:space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="text-white font-bold text-base md:text-lg">
-                  {dateTimeMode === "date" ? "Select Appointment Day" : "Select Appointment Time"}
+                  {/* Appointments List */}
+                  <div className="bg-slate-800/50 rounded-lg p-6 border border-white/10">
+                    <h3 className="text-lg font-semibold text-white mb-4">Appointments ({selectedPatient.appointments.length})</h3>
+                    {selectedPatient.appointments.length === 0 ? (
+                      <p className="text-gray-400">No appointments found</p>
+                    ) : (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {selectedPatient.appointments.map((appointment) => (
+                          <div
+                            key={appointment.id}
+                            className="bg-slate-700/50 rounded-lg p-4 border border-white/10 hover:border-cyan-500/50 transition-colors cursor-pointer"
+                            onClick={() => handleViewAppointment(appointment.id)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-white font-semibold">
+                                    {appointment.service_type?.replace('_', ' ') || 'Appointment'}
+                                  </span>
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    appointment.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                    appointment.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                                    appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    appointment.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {appointment.status}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-400">
+                                  <p>Visit Type: {appointment.visit_type || 'N/A'}</p>
+                                  {appointment.requested_date_time && (
+                                    <p>Date: {formatDateTime(appointment.requested_date_time)}</p>
+                                  )}
+                                  <p>Created: {formatDateTime(appointment.created_at)}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewAppointment(appointment.id)
+                                }}
+                                className="ml-4 px-3 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
+                              >
+                                View Details
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Patient
+                    </button>
+                    <button
+                      onClick={handleDeletePatient}
+                      disabled={isDeleting}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          Delete Patient
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white">✕</button>
-              </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Patient Header */}
+                  {patientChartData && (
+                    <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl p-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">Name</div>
+                          <div className="font-bold text-white text-base">
+                            {patientChartData.first_name} {patientChartData.last_name}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">Email</div>
+                          <div className="text-white text-sm break-all">{patientChartData.email || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">Phone</div>
+                          <div className="text-white text-sm">{patientChartData.mobile_phone || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">DOB</div>
+                          <div className="text-white text-sm">{patientChartData.date_of_birth ? formatDate(patientChartData.date_of_birth) : 'N/A'}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="sm:col-span-2 lg:col-span-2">
+                          <div className="text-xs text-gray-400 mb-1">Address</div>
+                          <div className="text-white text-sm break-words">{patientChartData.address || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-400 mb-1">Preferred Pharmacy</div>
+                          <div className="text-white font-bold text-sm">
+                            {patientChartData.preferred_pharmacy || 'Not specified'}
+                          </div>
+                        </div>
+                        <div className="sm:col-span-2 lg:col-span-3">
+                          <div className="text-xs text-gray-400 mb-3">Patient Intake</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                              <div className="text-xs text-gray-500 mb-1">Allergies</div>
+                              <div className="text-white text-sm">{patientChartData.allergies || 'NKDA'}</div>
+                            </div>
+                            {patientChartData.active_problems && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Active Problems</div>
+                                <div className="text-white text-sm">{patientChartData.active_problems}</div>
+                              </div>
+                            )}
+                            {patientChartData.current_medications && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Current Medications</div>
+                                <div className="text-white text-sm">{patientChartData.current_medications}</div>
+                              </div>
+                            )}
+                            {patientChartData.recent_surgeries_details && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Recent Surgeries</div>
+                                <div className="text-white text-sm">{patientChartData.recent_surgeries_details}</div>
+                              </div>
+                            )}
+                            {patientChartData.ongoing_medical_issues_details && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Ongoing Medical Issues</div>
+                                <div className="text-white text-sm">{patientChartData.ongoing_medical_issues_details}</div>
+                              </div>
+                            )}
+                            {(patientChartData.vitals_bp || patientChartData.vitals_hr || patientChartData.vitals_temp) && (
+                              <div>
+                                <div className="text-xs text-gray-500 mb-1">Vitals</div>
+                                <div className="text-white text-sm">
+                                  {patientChartData.vitals_bp && `BP: ${patientChartData.vitals_bp}`}
+                                  {patientChartData.vitals_hr && ` HR: ${patientChartData.vitals_hr}`}
+                                  {patientChartData.vitals_temp && ` Temp: ${patientChartData.vitals_temp}`}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              {dateTimeMode === "time" && (
-                <div className="flex justify-start">
-                  <button
-                    onClick={() => setDateTimeMode("date")}
-                    className="text-xs md:text-sm text-primary-teal hover:text-primary-teal/80 underline"
-                  >
-                    Change day
-                  </button>
+                  {/* Problems & Medications */}
+                  <div className="bg-slate-800/50 rounded-2xl p-6 border border-white/10">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-cyan-400" />
+                      Problems & Medications
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {/* Active Problems */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-semibold text-white">Active Problems</label>
+                          <button
+                            onClick={handleAddActiveProblem}
+                            disabled={!newActiveProblem.problem.trim() || savingProblems}
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add
+                          </button>
+                        </div>
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={newActiveProblem.problem}
+                            onChange={(e) => setNewActiveProblem(prev => ({ ...prev, problem: e.target.value }))}
+                            placeholder="e.g., Type 2 Diabetes Mellitus"
+                            className="flex-1 h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={newActiveProblem.since}
+                            onChange={(e) => setNewActiveProblem(prev => ({ ...prev, since: e.target.value }))}
+                            placeholder="since 2019"
+                            className="w-32 h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          {activeProblems.map((problem) => (
+                            <div key={problem.id} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg border border-white/10">
+                              <span className="text-sm text-white">
+                                {problem.problem}{problem.since && ` — since ${problem.since}`}
+                              </span>
+                              <button
+                                onClick={() => handleRemoveActiveProblem(problem.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {activeProblems.length === 0 && (
+                            <p className="text-xs text-gray-400">No active problems</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Resolved Problems */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-semibold text-white">Resolved Problems</label>
+                          <button
+                            onClick={handleAddResolvedProblem}
+                            disabled={!newResolvedProblem.problem.trim() || savingProblems}
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add
+                          </button>
+                        </div>
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={newResolvedProblem.problem}
+                            onChange={(e) => setNewResolvedProblem(prev => ({ ...prev, problem: e.target.value }))}
+                            placeholder="e.g., Acne"
+                            className="flex-1 h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={newResolvedProblem.resolvedDate}
+                            onChange={(e) => setNewResolvedProblem(prev => ({ ...prev, resolvedDate: e.target.value }))}
+                            placeholder="resolved 2023"
+                            className="w-36 h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          {resolvedProblems.map((problem) => (
+                            <div key={problem.id} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg border border-white/10">
+                              <span className="text-sm text-white">
+                                {problem.problem}{problem.resolvedDate && ` — resolved ${problem.resolvedDate}`}
+                              </span>
+                              <button
+                                onClick={() => handleRemoveResolvedProblem(problem.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {resolvedProblems.length === 0 && (
+                            <p className="text-xs text-gray-400">No resolved problems</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Medication History */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <label className="text-sm font-semibold text-white">Medication History (Surescripts)</label>
+                            <button
+                              onClick={() => setShowMedicationHistoryPanel(true)}
+                              className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 rounded border border-cyan-500/20"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Open Full View
+                            </button>
+                          </div>
+                          <button
+                            onClick={handleAddMedicationHistory}
+                            disabled={!newMedHistory.medication.trim() || savingProblems}
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={newMedHistory.medication}
+                            onChange={(e) => setNewMedHistory(prev => ({ ...prev, medication: e.target.value }))}
+                            placeholder="e.g., Atorvastatin 20mg"
+                            className="col-span-2 h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={newMedHistory.provider}
+                            onChange={(e) => setNewMedHistory(prev => ({ ...prev, provider: e.target.value }))}
+                            placeholder="Provider"
+                            className="h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="date"
+                            value={newMedHistory.date}
+                            onChange={(e) => setNewMedHistory(prev => ({ ...prev, date: e.target.value }))}
+                            className="col-span-3 h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          {medicationHistory.map((med) => (
+                            <div key={med.id} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg border border-white/10">
+                              <span className="text-sm text-white">
+                                {med.medication} — {med.provider}{med.date && ` — ${med.date}`}
+                              </span>
+                              <button
+                                onClick={() => handleRemoveMedicationHistory(med.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {medicationHistory.length === 0 && (
+                            <p className="text-xs text-gray-400">No medication history</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Active Medication Orders */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-semibold text-white">Active Medication Orders</label>
+                          <button
+                            onClick={() => setShowMedicationHistoryPanel(true)}
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 px-2 py-0.5 bg-cyan-500/10 rounded border border-cyan-500/20"
+                          >
+                            <Pill className="h-3 w-3" />
+                            View Recent Prescriptions
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mb-2">Prescriptions sent from eRx Composer will appear here.</p>
+                        <div className="space-y-2">
+                          {activeMedOrders.map((order) => (
+                            <div key={order.id} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg border border-white/10">
+                              <span className="text-sm text-white">
+                                {order.medication}{order.sig && ` — ${order.sig}`} — {order.status}
+                              </span>
+                            </div>
+                          ))}
+                          {activeMedOrders.length === 0 && (
+                            <p className="text-xs text-gray-400">No active orders. Prescriptions sent from eRx Composer will appear here.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Past Medication Orders */}
+                      <div>
+                        <label className="text-sm font-semibold text-white block mb-2">Past Medication Orders</label>
+                        <div className="space-y-2">
+                          {pastMedOrders.map((order) => (
+                            <div key={order.id} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg border border-white/10">
+                              <span className="text-sm text-white">
+                                {order.medication}{order.sig && ` — ${order.sig}`}{order.date && ` — ${order.date}`}
+                              </span>
+                            </div>
+                          ))}
+                          {pastMedOrders.length === 0 && (
+                            <p className="text-xs text-gray-400">No past orders</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Prescription Logs */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-semibold text-white">Prescription Logs</label>
+                          <button
+                            onClick={handleAddPrescriptionLog}
+                            disabled={!newPrescriptionLog.medication.trim() || savingProblems}
+                            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 mb-2">
+                          <input
+                            type="date"
+                            value={newPrescriptionLog.date}
+                            onChange={(e) => setNewPrescriptionLog(prev => ({ ...prev, date: e.target.value }))}
+                            className="h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={newPrescriptionLog.medication}
+                            onChange={(e) => setNewPrescriptionLog(prev => ({ ...prev, medication: e.target.value }))}
+                            placeholder="Medication"
+                            className="h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={newPrescriptionLog.quantity}
+                            onChange={(e) => setNewPrescriptionLog(prev => ({ ...prev, quantity: e.target.value }))}
+                            placeholder="Quantity"
+                            className="h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                          <input
+                            type="text"
+                            value={newPrescriptionLog.pharmacy}
+                            onChange={(e) => setNewPrescriptionLog(prev => ({ ...prev, pharmacy: e.target.value }))}
+                            placeholder="Pharmacy"
+                            className="h-8 px-3 rounded-lg border border-white/20 bg-slate-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          {prescriptionLogs.map((log) => (
+                            <div key={log.id} className="flex items-center justify-between p-2 bg-slate-700/50 rounded-lg border border-white/10">
+                              <span className="text-sm text-white">
+                                {log.date} — {log.medication} #{log.quantity} — {log.pharmacy} — {log.status}
+                              </span>
+                              <button
+                                onClick={() => handleRemovePrescriptionLog(log.id)}
+                                className="text-red-400 hover:text-red-300 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ))}
+                          {prescriptionLogs.length === 0 && (
+                            <p className="text-xs text-gray-400">No prescription logs</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {savingProblems && (
+                        <div className="flex items-center gap-2 text-xs text-cyan-400">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-cyan-400"></div>
+                          <span>Saving...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
-
-              <div className="bg-[#11161c]/60 rounded-lg p-2 border border-white/5">
-                <AppointmentCalendar
-                  selectedDate={appointmentData.appointmentDate || null}
-                  selectedTime={appointmentData.appointmentTime || null}
-                  onDateSelect={(date) => {
-                    setAppointmentData((prev) => ({ ...prev, appointmentDate: date, appointmentTime: "" }));
-                    setDateTimeMode("time");
-                  }}
-                  onTimeSelect={(time) => setAppointmentData((prev) => ({ ...prev, appointmentTime: time }))}
-                  doctorId="1fd1af57-5529-4d00-a301-e653b4829efc"
-                  mode={dateTimeMode === "date" ? "date" : "time"}
-                />
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setDateTimeDialogOpen(false)}
-                  className="bg-primary-teal text-black font-bold px-4 py-2 rounded-lg text-xs md:text-sm hover:bg-primary-teal/90 w-full md:w-auto"
-                  disabled={!appointmentData.appointmentDate || !appointmentData.appointmentTime}
-                >
-                  Done
-                </button>
-              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Appointment Detail Modal */}
+      <AppointmentDetailModal
+        appointmentId={selectedAppointmentId}
+        isOpen={showAppointmentModal}
+        onClose={() => {
+          setShowAppointmentModal(false)
+          setSelectedAppointmentId(null)
+        }}
+        onStatusChange={handleAppointmentStatusChange}
+      />
+
+      {/* Medication History Panel */}
+      {selectedPatient && (
+        <MedicationHistoryPanel
+          isOpen={showMedicationHistoryPanel}
+          onClose={() => setShowMedicationHistoryPanel(false)}
+          patientId={selectedPatient.id}
+          patientName={`${selectedPatient.first_name} ${selectedPatient.last_name}`}
+          patientDOB={selectedPatient.date_of_birth}
+          onReconcile={(medications) => {
+            // Add reconciled medications to the medication history state
+            const newMeds = medications.map((med, idx) => ({
+              id: `reconciled-${Date.now()}-${idx}`,
+              medication: med.medication_name,
+              provider: med.prescriber || 'Surescripts',
+              date: med.start_date || new Date().toISOString().split('T')[0]
+            }))
+            setMedicationHistory(prev => [...newMeds, ...prev])
+            saveProblemsAndMedications()
+          }}
+          onMedicationAdded={() => {
+            // Refresh chart data when medication is added/edited
+            if (selectedPatient) {
+              fetchPatientChart(selectedPatient.id)
+            }
+          }}
+        />
+      )}
     </div>
-  );
+  )
 }
+
+
+
+
 
 
 
