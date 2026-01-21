@@ -12,6 +12,7 @@ interface AppointmentData {
   requested_date_time: string;
   visit_type: string;
   zoom_meeting_url: string | null;
+  dailyco_meeting_url: string | null;
   patient_phone: string | null;
   doctor_id: string;
   doctor?: {
@@ -119,7 +120,7 @@ function AppointmentContent() {
 
     return () => clearInterval(interval);
   }, [appointment?.requested_date_time]);
-
+  
   const formatDateTime = (dateTimeStr: string) => {
     if (!dateTimeStr) return "Not scheduled";
     
@@ -242,7 +243,7 @@ function AppointmentContent() {
 
           {/* Divider */}
           <div className="border-t border-primary-teal/30 my-4 sm:my-6"></div>
-
+                  
           {/* Countdown Timer Section */}
           <div className="mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4 text-center">Time Until Your Appointment</h2>
@@ -267,11 +268,11 @@ function AppointmentContent() {
           {/* Start Visit Button */}
           <div className="mt-6 sm:mt-8">
             <a
-              href={appointment.zoom_meeting_url || "#"}
+              href={appointment.dailyco_meeting_url || "#"}
               target="_blank"
               rel="noopener noreferrer"
               className={`flex flex-col block w-full text-center font-bold py-4 sm:py-5 px-6 sm:px-8 rounded-lg transition-all shadow-lg ${
-                appointment.zoom_meeting_url
+                appointment.dailyco_meeting_url
                   ? "bg-primary-orange hover:bg-orange-600 text-black"
                   : "bg-gray-600 text-white cursor-not-allowed"
               }`}
@@ -279,7 +280,7 @@ function AppointmentContent() {
               <span className="text-lg">Click Here to Start Visit</span>
               <span className="text-sm mt-3">We also sent it to you by SMS/E-mail</span>
             </a>
-            {!appointment.zoom_meeting_url && (
+            {!appointment.dailyco_meeting_url && (
               <p className="text-center text-xs text-gray-400 mt-2">We also sent it to you by SMS/email</p>
             )}
           </div>

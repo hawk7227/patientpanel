@@ -1,3 +1,4 @@
+import { dailyService } from './daily';
 /**
  * SMTP Email Integration using Nodemailer
  */
@@ -192,6 +193,7 @@ export function generateDoctorAppointmentEmailHTML({
   zoomStartUrl,
   patientEmail,
   patientPhone,
+  dailyMeetingUrl
 }: {
   patientName: string;
   appointmentDate: string;
@@ -201,6 +203,7 @@ export function generateDoctorAppointmentEmailHTML({
   zoomStartUrl?: string | null;
   patientEmail?: string | null;
   patientPhone?: string | null;
+  dailyMeetingUrl?: string | null;
 }): string {
   const visitTypeDisplay = visitType === "video" ? "Video Visit" : visitType === "phone" ? "Phone Visit" : "Consultation";
   
@@ -232,12 +235,12 @@ export function generateDoctorAppointmentEmailHTML({
           ${patientPhone ? `<p style="margin: 5px 0;"><strong>Patient Phone:</strong> ${patientPhone}</p>` : ""}
         </div>
         
-        ${zoomStartUrl ? `
+        ${ dailyMeetingUrl ? `
         <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
           <p style="margin: 0 0 10px 0; color: #856404; font-weight: bold;">⚠️ WARNING: This is a START meeting link - Only for hosts</p>
           <p style="margin: 0 0 10px 0; color: #856404;">Do NOT share this link with patients. This link allows you to start and control the meeting.</p>
           <p style="margin: 0 0 10px 0;"><strong>Start Meeting Link:</strong></p>
-          <p style="margin: 0;"><a href="${zoomStartUrl}" style="color: #0066cc; text-decoration: underline; word-break: break-all;">${zoomStartUrl}</a></p>
+          <p style="margin: 0;"><a href="${dailyMeetingUrl}" style="color: #0066cc; text-decoration: underline; word-break: break-all;">${dailyMeetingUrl}</a></p>
         </div>
         ` : ""}
         

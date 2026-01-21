@@ -22,12 +22,13 @@ interface SMSTemplateVariables {
   visitTypeDisplay: string;
   appointmentLink: string;
   zoomMeetingUrl?: string | null;
+  dailyMeetingUrl?: string | null;
 }
 
 /**
  * Default SMS template
  */
-const DEFAULT_SMS_TEMPLATE = `Hi {patientName}, your {visitTypeDisplay} is confirmed for {appointmentDate} at {appointmentTime}. View details: {appointmentLink}{zoomMeetingUrl}`;
+const DEFAULT_SMS_TEMPLATE = `Hi {patientName}, your {visitTypeDisplay} is confirmed for {appointmentDate} at {appointmentTime}. View details: {appointmentLink}{dailyMeetingUrl}`;
 
 /**
  * Generate SMS message from template
@@ -53,6 +54,14 @@ export function generateSMSMessage(variables: SMSTemplateVariables): string {
   } else {
     // Remove {zoomMeetingUrl} placeholder if no zoom URL
     message = message.replace(/\s*\{zoomMeetingUrl\}/g, '');
+  }
+
+  // Handle optional dailyMeetingUrl
+  if (variables.dailyMeetingUrl) {
+    message = message.replace(/{dailyMeetingUrl}/g, ` Join: ${variables.dailyMeetingUrl}`);
+  } else {
+    // Remove {dailyMeetingUrl} placeholder if no daily URL
+    message = message.replace(/\s*\{dailyMeetingUrl\}/g, '');
   }
 
   // Clean up any remaining placeholders (in case user forgot some)
