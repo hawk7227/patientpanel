@@ -27,7 +27,8 @@ export async function GET(request: Request) {
         zoom_meeting_url,
         zoom_start_url,
         patient_phone,
-        doctor_id
+        doctor_id,
+        dailyco_meeting_url
       `)
       .eq("access_token", token)
       .single();
