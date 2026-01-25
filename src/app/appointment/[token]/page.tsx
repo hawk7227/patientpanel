@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Suspense } from "react";
 import Link from "next/link";
-
+import PatientVideoEmbed from "@/components/PatientVideoEmbed";
 interface AppointmentData {
   id: string;
   patient_first_name: string;
@@ -13,6 +13,8 @@ interface AppointmentData {
   visit_type: string;
   zoom_meeting_url: string | null;
   dailyco_meeting_url: string | null;
+  dailyco_room_name: string | null;      
+  dailyco_owner_token: string | null;   
   patient_phone: string | null;
   doctor_id: string;
   doctor?: {
@@ -267,22 +269,28 @@ function AppointmentContent() {
 
           {/* Start Visit Button */}
           <div className="mt-6 sm:mt-8">
-            <a
-              href={appointment.dailyco_meeting_url || "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex flex-col block w-full text-center font-bold py-4 sm:py-5 px-6 sm:px-8 rounded-lg transition-all shadow-lg ${
-                appointment.dailyco_meeting_url
-                  ? "bg-primary-orange hover:bg-orange-600 text-black"
-                  : "bg-gray-600 text-white cursor-not-allowed"
-              }`}
-            >
-              <span className="text-lg">Click Here to Start Visit</span>
-              <span className="text-sm mt-3">We also sent it to you by SMS/E-mail</span>
-            </a>
-            {!appointment.dailyco_meeting_url && (
-              <p className="text-center text-xs text-gray-400 mt-2">We also sent it to you by SMS/email</p>
+            <PatientVideoEmbed
+              appointment={{
+                id: appointment.id,
+                dailyco_meeting_url: appointment.dailyco_meeting_url,
+                dailyco_room_name: appointment.dailyco_room_name,
+                dailyco_owner_token: appointment.dailyco_owner_token,
+                requested_date_time: appointment.requested_date_time,
+              }}
+              patientName={patientName}
+              doctorName={doctorName}
+            />
+            
+            {/* Fallback link */}
+            {appointment.dailyco_meeting_url && (
+              <p className="text-center text-xs text-gray-500 mt-3">
+                Having trouble? <a href={appointment.dailyco_meeting_url} target="_blank" rel="noopener noreferrer" className="text-primary-teal hover:underline">Open in new tab</a>
+              </p>
             )}
+            
+            <p className="text-center text-xs text-gray-400 mt-2">
+              We also sent the meeting link to you by SMS/Email
+            </p>
           </div>
         </div>
       </div>
@@ -301,4 +309,3 @@ export default function AppointmentPage() {
     </Suspense>
   );
 }
-
