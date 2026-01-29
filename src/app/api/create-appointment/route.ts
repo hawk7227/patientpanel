@@ -1606,7 +1606,61 @@ export async function POST(request: Request) {
         "[CDSS_PRE_GENERATE] waitUntil not available, using fire-and-forget",
       );
     }
+if (appointment?.id && process.env.MEDAZON_SYNC_URL) {
+      const syncToMedazon = async () => {
+        try {
+          console.log("[MEDAZON_SYNC] 🔄 Syncing appointment to Medazon:", appointment.id);
+          
+          const syncData = {
+            supabase_appointment_id: appointment.id,
+            patient_first_name: patientFirstName || "",
+            patient_last_name: patientLastName || "",
+            patient_email: patientEmail || "",
+            patient_phone: patientPhone || undefined,
+            patient_dob: patientDob || undefined,
+            appointment_date: data.appointmentDate,
+            appointment_time: data.appointmentTime,
+            visit_type: visitType,
+            chief_complaint: data.symptoms || data.chief_complaint || "",
+            payment_status: "captured",
+          };
 
+          const syncResponse = await fetch(process.env.MEDAZON_SYNC_URL!, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Sync-Api-Key": process.env.SYNC_API_KEY || "",
+            },
+            body: JSON.stringify(syncData),
+          });
+
+          const syncResult = await syncResponse.json();
+
+          if (syncResponse.ok && syncResult.success) {
+            console.log("[MEDAZON_SYNC] ✅ Synced to Medazon. Booking ID:", syncResult.booking_id);
+            
+            await supabase
+              .from("appointments")
+              .update({
+                medazon_booking_id: syncResult.booking_id,
+                synced_to_medazon: true,
+                synced_at: new Date().toISOString(),
+              })
+              .eq("id", appointment.id);
+          } else {
+            console.error("[MEDAZON_SYNC] ❌ Failed:", syncResult.error);
+          }
+        } catch (syncError) {
+          console.error("[MEDAZON_SYNC] ❌ Error:", syncError);
+        }
+      };
+
+      if (waitUntilFn) {
+        waitUntilFn(syncToMedazon());
+      } else {
+        syncToMedazon();
+      }
+    }
     // Return immediately - patient sees success right away!
     return NextResponse.json({
       success: true,
