@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 
-const SYNC_API_KEY = process.env.SYNC_API_KEY || mEdAz0n_SyNc_2026_xK9mPqL7nR3wT5vA;
+const SYNC_API_KEY = process.env.SYNC_API_KEY || "mEdAz0n_SyNc_2026_xK9mPqL7nR3wT5vA";
 const MEDAZON_SYNC_URL = process.env.MEDAZON_SYNC_URL || "https://medazonhealth.com/api/sync/receive-appointment";
 const DOCTOR_ID = "1fd1af57-5529-4d00-a301-e653b4829efc";
 
