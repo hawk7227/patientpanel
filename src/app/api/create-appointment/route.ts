@@ -803,6 +803,15 @@ export async function POST(request: Request) {
       requested_date_time: requestedDateTime,
       service_type: "uti_treatment",
 
+      // ============================================================
+      // BUG FIX: Save symptoms & chief_complaint to appointments table
+      // Previously these were only saved to clinical_notes, but
+      // PatientHeader reads from appointment?.symptoms and
+      // appointment?.chief_complaint — which were always empty.
+      // ============================================================
+      symptoms: data.symptoms || null,
+      chief_complaint: data.chief_complaint || null,
+
       // Patient information (use data from patients table)
       patient_first_name: patientFirstName,
       patient_last_name: patientLastName,
@@ -929,9 +938,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save chief_complaint to clinical_notes table (normalized structure)
-    const chiefComplaintText =
-      `${data.symptoms} / ${data.chief_complaint}` || null;
+    // ============================================================
+    // BUG FIX: chiefComplaintText construction
+    // OLD: `${data.symptoms} / ${data.chief_complaint}` || null
+    //   → Produces "undefined / undefined" (truthy!) when fields are empty
+    // NEW: Filter out empty values, join only non-empty parts, null if none
+    // ============================================================
+    const chiefComplaintParts = [data.symptoms, data.chief_complaint].filter(Boolean);
+    const chiefComplaintText = chiefComplaintParts.length > 0 ? chiefComplaintParts.join(' / ') : null;
+    
     if (chiefComplaintText && appointment?.id && appointment?.patient_id) {
       try {
         const { error: notesError } = await supabase
