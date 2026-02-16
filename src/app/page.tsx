@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import UrgentCollapse from "@/components/home/UrgentCollapse";
+import ReturningPatientLookup from "@/components/ReturningPatientLookup";
 
 export default function Home() {
    const router = useRouter();
@@ -82,6 +83,9 @@ export default function Home() {
                <span className="flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-full border border-white/5"><MessageSquare size={12} className="text-blue-400"/> Private Messaging Chat</span>
                <span className="flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-full border border-white/5"><FileText size={12} className="text-purple-400"/> Medical Records</span>
             </div>
+
+            {/* ── Returning Patient Express Lookup ── */}
+            <ReturningPatientLookup />
         </div>
       </section>
 
