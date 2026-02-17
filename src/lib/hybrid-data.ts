@@ -52,35 +52,8 @@ export interface HybridPatient {
 export async function lookupPatient(email: string): Promise<{ found: boolean; patient: HybridPatient | null }> {
   const normalizedEmail = email.toLowerCase().trim()
   
-  // 1. Check local IndexedDB first
-  try {
-    const local = await db()
-    const allMatches = await local.patients
-      .where('email')
-      .equalsIgnoreCase(normalizedEmail)
-      .toArray()
-
-    // Prefer patient with drchrono_patient_id set (has medication history)
-    const localPatient = allMatches.find(p => p.drchrono_patient_id) || allMatches[0] || null
-
-    if (localPatient) {
-      console.log('[Hybrid] Patient found in local DB:', localPatient.id, 'drchrono:', localPatient.drchrono_patient_id)
-      
-      // Background: refresh from cloud if online
-      if (isOnline()) {
-        refreshPatientFromCloud(normalizedEmail).catch(() => {})
-      }
-      
-      return {
-        found: true,
-        patient: localPatientToHybrid(localPatient, true),
-      }
-    }
-  } catch (e) {
-    console.log('[Hybrid] Local lookup failed, trying API:', (e as Error).message)
-  }
-
-  // 2. Fall back to API
+  // ALWAYS use API for patient identity — authoritative source
+  // This ensures we get the DrChrono-linked record (not a random duplicate)
   if (isOnline()) {
     try {
       const res = await fetch('/api/express-lookup', {
@@ -100,11 +73,33 @@ export async function lookupPatient(email: string): Promise<{ found: boolean; pa
         }
       }
     } catch (e) {
-      console.log('[Hybrid] API lookup failed:', (e as Error).message)
+      console.log('[Hybrid] API lookup failed, trying local:', (e as Error).message)
     }
   }
 
-  // 3. Neither worked
+  // Offline fallback: check local IndexedDB
+  try {
+    const local = await db()
+    const allMatches = await local.patients
+      .where('email')
+      .equalsIgnoreCase(normalizedEmail)
+      .toArray()
+
+    // Prefer patient with drchrono_patient_id set
+    const localPatient = allMatches.find(p => p.drchrono_patient_id) || allMatches[0] || null
+
+    if (localPatient) {
+      console.log('[Hybrid] Patient found in local DB (offline):', localPatient.id, 'drchrono:', localPatient.drchrono_patient_id)
+      return {
+        found: true,
+        patient: localPatientToHybrid(localPatient, true),
+      }
+    }
+  } catch (e) {
+    console.log('[Hybrid] Local lookup also failed:', (e as Error).message)
+  }
+
+  // Neither worked
   return { found: false, patient: null }
 }
 
