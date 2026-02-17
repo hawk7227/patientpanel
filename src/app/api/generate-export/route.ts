@@ -1,16 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
-// GENERATE PATIENT DATA EXPORT — Saves full JSON to /public/data/
+// GENERATE PATIENT DATA EXPORT — Full backup with pagination
 //
 // GET /api/generate-export
-// Creates: /public/data/patient-medications.json
-//
-// This file can be served statically — works without internet
+// Fetches ALL patients + medications (paginated past 1000-row limit)
+// Saves to Supabase patient_data_exports table
 // ═══════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { writeFileSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -20,55 +17,80 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Paginated fetch — gets ALL rows, not just 1000
+async function fetchAll(table: string, select: string, orderBy: string = "id") {
+  const PAGE_SIZE = 1000;
+  let allRows: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from(table)
+      .select(select)
+      .order(orderBy, { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (error) {
+      console.error(`[Export] ${table} error at offset ${offset}:`, error.message);
+      break;
+    }
+    if (data && data.length > 0) {
+      allRows = allRows.concat(data);
+      offset += data.length;
+      hasMore = data.length === PAGE_SIZE;
+    } else {
+      hasMore = false;
+    }
+  }
+  return allRows;
+}
+
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    console.log("[Export] Starting full patient data export...");
+    console.log("[Export] Starting full patient data export (paginated)...");
 
-    // ── 1. Get all DrChrono patients ──────────────────────────
-    const { data: dcPatients, error: pErr } = await supabase
-      .from("drchrono_patients")
-      .select("drchrono_patient_id, first_name, last_name, email, cell_phone, date_of_birth, address, city, state, zip_code, default_pharmacy")
-      .order("last_name", { ascending: true });
+    // ── 1. Get ALL DrChrono patients (paginated) ─────────────
+    const dcPatients = await fetchAll(
+      "drchrono_patients",
+      "drchrono_patient_id, first_name, last_name, email, cell_phone, date_of_birth, address, city, state, zip_code, default_pharmacy",
+      "drchrono_patient_id"
+    );
+    console.log(`[Export] ${dcPatients.length} patients`);
 
-    if (pErr) {
-      return NextResponse.json({ error: "Patients: " + pErr.message }, { status: 500 });
-    }
-    console.log(`[Export] ${dcPatients?.length || 0} patients`);
+    // ── 2. Get ALL medications (paginated) ───────────────────
+    const allMeds = await fetchAll(
+      "drchrono_medications",
+      "drchrono_patient_id, name, dosage_quantity, dosage_unit, sig, frequency, status, date_prescribed, date_stopped_taking",
+      "id"
+    );
+    console.log(`[Export] ${allMeds.length} medications`);
 
-    // ── 2. Get ALL medications (bulk) ────────────────────────
-    const { data: allMeds, error: mErr } = await supabase
-      .from("drchrono_medications")
-      .select("drchrono_patient_id, name, dosage_quantity, dosage_unit, sig, frequency, status, date_prescribed, date_stopped_taking")
-      .order("date_prescribed", { ascending: false });
-
-    if (mErr) console.error("[Export] Meds error:", mErr.message);
-    console.log(`[Export] ${allMeds?.length || 0} medications`);
-
-    // ── 3. Get ALL allergies (bulk) ──────────────────────────
-    const { data: allAllergies, error: aErr } = await supabase
-      .from("drchrono_allergies")
-      .select("drchrono_patient_id, description, reaction, status, notes")
-      .order("description", { ascending: true });
-
-    if (aErr) console.error("[Export] Allergies error:", aErr.message);
+    // ── 3. Get ALL allergies (paginated) ─────────────────────
+    const allAllergies = await fetchAll(
+      "drchrono_allergies",
+      "drchrono_patient_id, description, reaction, status, notes",
+      "id"
+    );
+    console.log(`[Export] ${allAllergies.length} allergies`);
 
     // ── 4. Build lookup maps ─────────────────────────────────
     const medsMap = new Map<number, any[]>();
-    for (const m of allMeds || []) {
+    for (const m of allMeds) {
       if (!medsMap.has(m.drchrono_patient_id)) medsMap.set(m.drchrono_patient_id, []);
       medsMap.get(m.drchrono_patient_id)!.push(m);
     }
 
     const allergiesMap = new Map<number, any[]>();
-    for (const a of allAllergies || []) {
+    for (const a of allAllergies) {
       if (!allergiesMap.has(a.drchrono_patient_id)) allergiesMap.set(a.drchrono_patient_id, []);
       allergiesMap.get(a.drchrono_patient_id)!.push(a);
     }
 
     // ── 5. Build patient array ───────────────────────────────
-    const patients = (dcPatients || []).map((p) => {
+    const patients = dcPatients.map((p: any) => {
       const dcId = p.drchrono_patient_id;
       const meds = medsMap.get(dcId) || [];
       const allergies = allergiesMap.get(dcId) || [];
@@ -98,9 +120,9 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    // ── 6. Build the export ──────────────────────────────────
-    const totalMeds = patients.reduce((s, p) => s + p.medications.length, 0);
-    const totalAllergies = patients.reduce((s, p) => s + p.allergies.length, 0);
+    // ── 6. Build summary ─────────────────────────────────────
+    const totalMeds = patients.reduce((s: number, p: any) => s + p.medications.length, 0);
+    const totalAllergies = patients.reduce((s: number, p: any) => s + p.allergies.length, 0);
 
     const exportData = {
       generated_at: new Date().toISOString(),
@@ -109,30 +131,17 @@ export async function GET(req: NextRequest) {
         total_patients: patients.length,
         total_medications: totalMeds,
         total_allergies: totalAllergies,
-        patients_with_medications: patients.filter(p => p.medications.length > 0).length,
+        patients_with_medications: patients.filter((p: any) => p.medications.length > 0).length,
       },
       patients,
     };
 
-    // ── 7. Save to /public/data/ ─────────────────────────────
-    try {
-      const dataDir = join(process.cwd(), "public", "data");
-      if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
-
-      const filePath = join(dataDir, "patient-medications.json");
-      writeFileSync(filePath, JSON.stringify(exportData, null, 2));
-      console.log(`[Export] Saved to ${filePath}`);
-    } catch (fsErr: any) {
-      // On Vercel, can't write to filesystem — that's OK, still return the data
-      console.log("[Export] Can't write file (serverless):", fsErr.message);
-    }
-
-    // ── 8. Also save to Supabase for persistence ─────────────
+    // ── 7. Save to Supabase ──────────────────────────────────
     try {
       const { error: saveErr } = await supabase
         .from("patient_data_exports")
         .upsert({
-          id: "00000000-0000-0000-0000-000000000001", // Single row, always overwrite
+          id: "00000000-0000-0000-0000-000000000001",
           export_type: "full_patient_data",
           generated_at: new Date().toISOString(),
           summary: exportData.summary,
@@ -140,20 +149,19 @@ export async function GET(req: NextRequest) {
           medication_count: totalMeds,
           data: patients,
         });
-      if (saveErr) console.log("[Export] Supabase save note:", saveErr.message);
-      else console.log("[Export] Saved to Supabase");
-    } catch {
-      console.log("[Export] Supabase save skipped");
+      if (saveErr) console.log("[Export] Save error:", saveErr.message);
+      else console.log("[Export] Saved to Supabase ✅");
+    } catch (e: any) {
+      console.log("[Export] Save skipped:", e.message);
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[Export] Done: ${patients.length} patients, ${totalMeds} meds in ${duration}ms`);
+    console.log(`[Export] Done: ${patients.length} patients, ${totalMeds} meds, ${totalAllergies} allergies in ${duration}ms`);
 
     return NextResponse.json({
       success: true,
       summary: exportData.summary,
       duration_ms: duration,
-      file: "/data/patient-medications.json",
     });
   } catch (err: any) {
     console.error("[Export] FATAL:", err.message);
