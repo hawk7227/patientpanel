@@ -12,11 +12,16 @@ export async function POST(request: Request) {
     console.log("⚡ [EXPRESS-LOOKUP] Checking:", normalizedEmail);
 
     // 1. Check patients table (primary — has had appointments through our system)
-    const { data: patient } = await supabase
+    // Prefer record with drchrono_patient_id set, then oldest record
+    const { data: patients } = await supabase
       .from("patients")
-      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location")
+      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, drchrono_patient_id, preferred_pharmacy")
       .eq("email", normalizedEmail)
-      .maybeSingle();
+      .order("drchrono_patient_id", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: true })
+      .limit(1);
+
+    const patient = patients?.[0] || null;
 
     if (patient) {
       console.log("⚡ [EXPRESS-LOOKUP] Found in patients table:", patient.id);
@@ -43,6 +48,8 @@ export async function POST(request: Request) {
           phone: patient.phone || "",
           dateOfBirth: patient.date_of_birth || "",
           address: userAddress,
+          pharmacy: patient.preferred_pharmacy || "",
+          drchronoPatientId: patient.drchrono_patient_id || null,
         },
       });
     }
