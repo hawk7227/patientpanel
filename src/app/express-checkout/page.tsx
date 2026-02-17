@@ -347,16 +347,22 @@ export default function ExpressCheckoutPage() {
     }
   }, [router]);
 
-  // ── Fetch medications for Refill (LOCAL-FIRST) ─────────────
+  // ── Fetch medications for Refill (DIRECT API) ──────────────
   useEffect(() => {
     if (visitType === "refill" && patient?.id) {
       setMedsLoading(true);
-      import('@/lib/hybrid-data').then(({ getPatientMedications }) => {
-        getPatientMedications(patient.id!).then(meds => {
-          setMedications(meds.map(m => ({ name: m.name, dosage: m.dosage, source: m.source, is_active: m.is_active })));
+      console.log('[Express] Fetching meds for patient:', patient.id);
+      fetch(`/api/medications?patientId=${patient.id}`)
+        .then(r => r.json())
+        .then(data => {
+          console.log('[Express] Medications response:', data);
+          setMedications(data.medications || []);
           setMedsLoading(false);
-        }).catch(() => setMedsLoading(false));
-      }).catch(() => setMedsLoading(false));
+        })
+        .catch(err => {
+          console.error('[Express] Medications fetch error:', err);
+          setMedsLoading(false);
+        });
     }
   }, [visitType, patient?.id]);
 
