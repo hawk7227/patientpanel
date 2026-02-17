@@ -347,24 +347,48 @@ export default function ExpressCheckoutPage() {
     }
   }, [router]);
 
-  // ── Fetch medications for Refill (DIRECT API) ──────────────
+  // ── Fetch medications for Refill (LIVE → EXPORT FALLBACK) ──
   useEffect(() => {
     if (visitType === "refill" && patient?.id) {
       setMedsLoading(true);
       console.log('[Express] Fetching meds for patient:', patient.id);
+
+      // Try live API first
       fetch(`/api/medications?patientId=${patient.id}`)
         .then(r => r.json())
         .then(data => {
-          console.log('[Express] Medications response:', data);
-          setMedications(data.medications || []);
-          setMedsLoading(false);
+          if (data.medications && data.medications.length > 0) {
+            console.log('[Express] Live medications:', data.count);
+            setMedications(data.medications);
+            setMedsLoading(false);
+          } else {
+            // Live returned 0 — try export fallback
+            console.log('[Express] Live returned 0, trying export fallback...');
+            const email = patient.email || '';
+            return fetch(`/api/medications-from-export?patientId=${patient.id}&email=${encodeURIComponent(email)}`)
+              .then(r2 => r2.json())
+              .then(fallback => {
+                console.log('[Express] Export fallback:', fallback.count, 'source:', fallback.source);
+                setMedications(fallback.medications || []);
+                setMedsLoading(false);
+              });
+          }
         })
         .catch(err => {
-          console.error('[Express] Medications fetch error:', err);
-          setMedsLoading(false);
+          console.error('[Express] Live API failed, trying export fallback...', err);
+          // Live failed entirely — try export fallback
+          const email = patient.email || '';
+          fetch(`/api/medications-from-export?patientId=${patient.id}&email=${encodeURIComponent(email)}`)
+            .then(r => r.json())
+            .then(fallback => {
+              console.log('[Express] Export fallback (after error):', fallback.count);
+              setMedications(fallback.medications || []);
+              setMedsLoading(false);
+            })
+            .catch(() => setMedsLoading(false));
         });
     }
-  }, [visitType, patient?.id]);
+  }, [visitType, patient?.id, patient?.email]);
 
   // ── Check for controlled substances ────────────────────────
   useEffect(() => {
