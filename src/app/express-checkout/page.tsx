@@ -498,15 +498,6 @@ export default function ExpressCheckoutPage() {
           <p className="text-gray-500 text-xs mt-1">{patient.email} · Returning Patient</p>
         </div>
 
-        {/* Privacy Banner */}
-        <div className="flex items-center justify-center gap-2 mb-4 py-2 px-3 rounded-lg bg-primary-teal/5 border border-primary-teal/20">
-          <Shield size={14} className="text-primary-teal flex-shrink-0" />
-          <p className="text-[10px] text-gray-400">
-            <span className="text-primary-teal font-semibold">YOUR PRIVACY MATTERS</span>{" "}
-            · No insurance needed · No records shared · 100% confidential
-          </p>
-        </div>
-
         {/* Booking Form */}
         <div className="space-y-3">
           {/* Reason for Visit */}
@@ -690,33 +681,49 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* ── Price Display + Privacy ───────────────────────── */}
-          <div className="text-center py-3 space-y-2">
-            {/* Privacy banner right above price */}
-            <div className="flex items-center justify-center gap-1.5">
-              <Lock size={12} className="text-primary-teal" />
-              <p className="text-[10px] text-gray-400">
-                <span className="text-primary-teal font-semibold">YOUR PRIVACY MATTERS</span>{" "}
-                · No insurance needed · No records shared · 100% confidential
+          {/* ── Provider Profile + Price + Privacy ─────────────── */}
+          <div className="bg-[#11161c] border border-white/10 rounded-xl p-4 space-y-3">
+            {/* Provider */}
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-full border-2 border-primary-teal overflow-hidden flex-shrink-0">
+                <img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-sm">LaMonica A. Hodges</div>
+                <div className="text-gray-400 text-[10px]">MSN, APRN, FNP-C</div>
+                <div className="text-primary-teal text-[10px] font-medium">Board-Certified · 10+ Years Experience</div>
+              </div>
+            </div>
+
+            {/* Privacy Banner — Large */}
+            <div className="bg-primary-teal/8 border border-primary-teal/20 rounded-lg py-2.5 px-3 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Shield size={16} className="text-primary-teal" />
+                <span className="text-primary-teal font-bold text-sm tracking-wide">YOUR PRIVACY MATTERS</span>
+              </div>
+              <p className="text-gray-400 text-[11px]">
+                No insurance needed · No records shared · 100% confidential
               </p>
             </div>
 
-            <div className="text-2xl font-bold text-white">{currentPrice.display}</div>
-
-            {currentPrice.isAfterHours ? (
-              <div className="space-y-0.5">
-                <div className="text-[11px] text-orange-400 font-medium">
-                  {currentPrice.isHoliday ? "🏛 Holiday" : currentPrice.isWeekend ? "📅 Weekend" : "🌙 After-hours"} rate
+            {/* Price */}
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white">{currentPrice.display}</div>
+              {currentPrice.isAfterHours ? (
+                <div className="mt-1 space-y-0.5">
+                  <div className="text-[11px] text-orange-400 font-semibold">
+                    {currentPrice.isHoliday ? "🏛 Holiday" : currentPrice.isWeekend ? "📅 Weekend" : "🌙 After-hours"} rate
+                  </div>
+                  <div className="text-[10px] text-gray-500">
+                    Regular price: {(visitType === "instant" || visitType === "refill") ? "$189" : "$199"} · Mon–Fri, 9am–5pm your time
+                  </div>
                 </div>
-                <div className="text-[10px] text-gray-500">
-                  Regular price: {(visitType === "instant" || visitType === "refill") ? "$189" : "$199"} (Mon–Fri, 9am–5pm your time)
+              ) : (
+                <div className="text-[11px] text-gray-500 mt-1">
+                  {VISIT_TYPES.find(v => v.key === visitType)?.label} Visit · {currentPrice.label}
                 </div>
-              </div>
-            ) : (
-              <div className="text-[10px] text-gray-500">
-                {currentPrice.label} · {VISIT_TYPES.find(v => v.key === visitType)?.label} Visit
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* ── Payment ───────────────────────────────────────── */}
