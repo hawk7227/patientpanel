@@ -930,12 +930,12 @@ export default function ExpressCheckoutPage() {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // POST-PAYMENT: Controlled Substance Live Visit Scheduler
+  // STEP 3 — POST-PAYMENT: Controlled Substance Live Visit Scheduler
+  // Mobile-app feel, single viewport, synced with doctor availability
   // ═══════════════════════════════════════════════════════════
   if (showControlledScheduler) {
-    // Generate next 7 days of available time slots
     const getAvailableDates = () => {
-      const dates: { label: string; value: string; dayLabel: string }[] = [];
+      const dates: { label: string; value: string; dayLabel: string; monthDay: string }[] = [];
       const now = new Date();
       for (let i = 0; i < 7; i++) {
         const d = new Date(now);
@@ -946,7 +946,8 @@ export default function ExpressCheckoutPage() {
         dates.push({
           label: `${monthNames[d.getMonth()]} ${d.getDate()}`,
           value,
-          dayLabel: i === 0 ? "Today" : i === 1 ? "Tomorrow" : dayNames[d.getDay()],
+          dayLabel: i === 0 ? "Today" : i === 1 ? "Tmrw" : dayNames[d.getDay()],
+          monthDay: `${d.getDate()}`,
         });
       }
       return dates;
@@ -973,145 +974,149 @@ export default function ExpressCheckoutPage() {
     const controlledMeds = selectedMeds.filter(m => isControlledSubstance(m));
 
     return (
-      <div className="min-h-screen bg-background text-foreground font-sans">
-        <div className="max-w-lg mx-auto px-4 py-8">
-          {/* Success Banner */}
-          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 text-center mb-6">
-            <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Check size={28} className="text-green-400" />
+      <div className="fixed inset-0 text-white font-sans overflow-hidden"
+        style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)" }}>
+        <style>{`
+          @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+          @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }
+        `}</style>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col"
+          style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 8px)", paddingLeft: "16px", paddingRight: "16px" }}>
+
+          {/* HEADER — matches Step 1 & 2 */}
+          <div className="flex items-center justify-between pt-1 pb-1">
+            <div className="flex items-center gap-1">
+              <span className="text-white font-black text-[15px] tracking-tight">MEDAZON</span>
+              <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS</span>
+              <span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
             </div>
-            <h2 className="text-xl font-bold text-white mb-1">Payment Successful!</h2>
-            <p className="text-sm text-gray-400">One more step to complete your booking</p>
+            <span className="text-[9px] text-green-400 font-bold">✓ PAID</span>
           </div>
 
-          {/* Controlled Substance Notice — GOOD NEWS */}
-          <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Check size={20} className="text-green-400" />
+          {/* SUCCESS BANNER — compact */}
+          <div className="rounded-xl p-3 mb-2 border border-green-500/25" style={{ background: "rgba(34,197,94,0.06)", animation: "successPulse 3s ease-in-out infinite" }}>
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                <Check size={16} className="text-green-400" />
               </div>
-              <div>
-                <h3 className="text-green-400 font-bold text-sm mb-1">🎉 Great News!</h3>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  The DEA has extended telemedicine flexibilities through <span className="text-green-300 font-semibold">2026</span> — controlled 
-                  substances like <span className="text-white font-semibold">{controlledMeds.join(", ")}</span> can be prescribed via 
-                  telehealth (video or phone) <span className="text-green-300 font-semibold">without an in-person visit</span>.
+              <div className="flex-1 min-w-0">
+                <p className="text-green-400 font-bold text-[12px] mb-0.5">🎉 Great News!</p>
+                <p className="text-[10px] text-gray-300 leading-relaxed">
+                  The DEA has extended telemedicine flexibilities through <span className="text-green-300 font-semibold">2026</span> — controlled substances like{" "}
+                  <span className="text-white font-semibold">{controlledMeds.join(", ") || "your medication"}</span> can be prescribed via telehealth{" "}
+                  <span className="text-green-300 font-semibold">without an in-person visit</span>.
                 </p>
-                <p className="text-xs text-gray-400 leading-relaxed mt-1.5">
-                  All that&apos;s needed is a brief live consultation with your provider. Select a date and 
-                  time below — your visit has been upgraded at <span className="text-white font-semibold">no additional cost</span>.
+                <p className="text-[9px] text-gray-500 leading-relaxed mt-1">
+                  All that&apos;s needed is a brief live consultation. Select a date and time below — your visit has been upgraded at <span className="text-white font-semibold">no additional cost</span>.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Visit Type Toggle */}
-          <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-2 block">Select visit type</label>
+          {/* SCROLLABLE SCHEDULER */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 pb-1" style={{ scrollbarWidth: "none" }}>
+
+            {/* Video / Phone Toggle */}
             <div className="grid grid-cols-2 gap-2">
-              {([
-                { key: "video" as const, icon: Video, label: "Video Call", desc: "Face-to-face via camera" },
-                { key: "phone" as const, icon: Phone, label: "Phone Call", desc: "Private phone line" },
-              ]).map(opt => (
-                <button key={opt.key} onClick={() => setControlledVisitType(opt.key)}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                    controlledVisitType === opt.key
-                      ? "bg-primary-teal/10 border-primary-teal/40 text-white"
-                      : "bg-[#11161c] border-white/10 text-gray-400 hover:border-white/20"
-                  }`}>
-                  <opt.icon size={20} className={controlledVisitType === opt.key ? "text-primary-teal" : "text-gray-500"} />
-                  <div className="text-left">
-                    <div className="text-sm font-semibold">{opt.label}</div>
-                    <div className="text-[10px] opacity-60">{opt.desc}</div>
-                  </div>
-                </button>
-              ))}
+              <button onClick={() => setControlledVisitType("video")}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-[12px] transition-all ${
+                  controlledVisitType === "video"
+                    ? "border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]"
+                    : "border-white/10 bg-[#11161c] text-gray-500"
+                }`}>
+                <Video size={14} />Video Call
+              </button>
+              <button onClick={() => setControlledVisitType("phone")}
+                className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-[12px] transition-all ${
+                  controlledVisitType === "phone"
+                    ? "border-[#a855f7] bg-[#a855f7]/10 text-[#a855f7]"
+                    : "border-white/10 bg-[#11161c] text-gray-500"
+                }`}>
+                <Phone size={14} />Phone Call
+              </button>
             </div>
-          </div>
 
-          {/* Date Selection */}
-          <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-2 block">Select a date</label>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {getAvailableDates().map(d => (
-                <button key={d.value} onClick={() => { setControlledScheduleDate(d.value); setControlledScheduleTime(""); }}
-                  className={`flex-shrink-0 flex flex-col items-center px-3 py-2.5 rounded-xl border transition-all ${
-                    controlledScheduleDate === d.value
-                      ? "bg-primary-teal/10 border-primary-teal/40 text-white"
-                      : "bg-[#11161c] border-white/10 text-gray-400 hover:border-white/20"
-                  }`}>
-                  <span className="text-[10px] font-bold">{d.dayLabel}</span>
-                  <span className="text-sm font-semibold">{d.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Time Selection */}
-          {controlledScheduleDate && (
-            <div className="mb-6">
-              <label className="text-xs text-gray-500 mb-2 block">Select a time</label>
-              <div className="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto">
-                {getTimeSlots().map(t => (
-                  <button key={t.value} onClick={() => setControlledScheduleTime(t.value)}
-                    className={`px-2 py-2 rounded-lg border text-xs font-medium transition-all ${
-                      controlledScheduleTime === t.value
-                        ? "bg-primary-teal/20 border-primary-teal/40 text-primary-teal"
-                        : "bg-[#11161c] border-white/10 text-gray-400 hover:border-white/20"
+            {/* 7-Day Date Picker — horizontal scroll */}
+            <div>
+              <span className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider pl-1">Select a date</span>
+              <div className="flex gap-1.5 mt-1 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                {getAvailableDates().map(d => (
+                  <button key={d.value} onClick={() => { setControlledScheduleDate(d.value); setControlledScheduleTime(""); }}
+                    className={`flex-shrink-0 flex flex-col items-center w-[52px] py-2 rounded-xl border-2 transition-all ${
+                      controlledScheduleDate === d.value
+                        ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-white"
+                        : "border-white/10 bg-[#11161c]/80 text-gray-500 hover:border-white/20"
                     }`}>
-                    {t.label}
+                    <span className="text-[8px] font-bold uppercase">{d.dayLabel}</span>
+                    <span className="text-[16px] font-black">{d.monthDay}</span>
+                    <span className="text-[8px]">{d.label.split(" ")[0]}</span>
                   </button>
                 ))}
               </div>
             </div>
-          )}
+
+            {/* Time Slot Grid */}
+            {controlledScheduleDate && (
+              <div>
+                <span className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider pl-1">Select a time</span>
+                <div className="grid grid-cols-4 gap-1.5 mt-1 max-h-[140px] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                  {getTimeSlots().map(t => (
+                    <button key={t.value} onClick={() => setControlledScheduleTime(t.value)}
+                      className={`py-2 rounded-lg border text-[11px] font-semibold transition-all ${
+                        controlledScheduleTime === t.value
+                          ? "bg-[#2dd4a0]/15 border-[#2dd4a0]/40 text-[#2dd4a0]"
+                          : "bg-[#11161c]/80 border-white/8 text-gray-500 hover:border-white/15"
+                      }`}>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Selected Summary Pill */}
+            {controlledScheduleDate && controlledScheduleTime && (
+              <div className="bg-[#2dd4a0]/5 border border-[#2dd4a0]/20 rounded-xl px-3 py-2 text-center">
+                <p className="text-[11px] text-gray-300">
+                  <span className="text-[#2dd4a0] font-bold">{controlledVisitType === "video" ? "📹 Video" : "📞 Phone"} Visit</span>
+                  {" · "}
+                  <span className="text-white font-semibold">
+                    {new Date(controlledScheduleDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    {" at "}
+                    {(() => { const [h, m] = controlledScheduleTime.split(":").map(Number); const hr = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; })()}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Error */}
           {scheduleError && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs mb-4">{scheduleError}</div>
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-[10px] mb-1">{scheduleError}</div>
           )}
 
-          {/* Confirm Button */}
-          <button
-            onClick={handleControlledSchedule}
-            disabled={!controlledScheduleDate || !controlledScheduleTime || schedulingAppointment}
-            className="w-full bg-primary-teal hover:bg-teal-600 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base shadow-lg"
-          >
-            {schedulingAppointment ? (
-              <>
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                Scheduling...
-              </>
-            ) : (
-              <>
-                <Check size={18} />
-                Confirm {controlledVisitType === "video" ? "Video" : "Phone"} Visit
-              </>
-            )}
-          </button>
+          {/* BOTTOM: Confirm Button */}
+          <div className="flex-shrink-0 pb-2 pt-1">
+            <button onClick={handleControlledSchedule}
+              disabled={!controlledScheduleDate || !controlledScheduleTime || schedulingAppointment}
+              className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: controlledScheduleDate && controlledScheduleTime && !schedulingAppointment ? "#2dd4a0" : "#2dd4a0", color: "#000" }}>
+              {schedulingAppointment ? (
+                <><div className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" />Scheduling...</>
+              ) : (
+                <><Check size={16} />Confirm {controlledVisitType === "video" ? "Video" : "Phone"} Visit</>
+              )}
+            </button>
+            <p className="text-center text-gray-700 text-[8px] mt-1">
+              <Lock size={8} className="inline mr-0.5" />No additional charge · HIPAA Compliant
+            </p>
+          </div>
 
-          {/* Selected summary */}
-          {controlledScheduleDate && controlledScheduleTime && (
-            <div className="mt-3 bg-[#11161c] border border-white/10 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-400">
-                Your <span className="text-primary-teal font-semibold">{controlledVisitType === "video" ? "Video" : "Phone"} Visit</span>{" "}
-                is set for{" "}
-                <span className="text-white font-semibold">
-                  {new Date(controlledScheduleDate + "T" + controlledScheduleTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-                  {" at "}
-                  {(() => {
-                    const [h, m] = controlledScheduleTime.split(":").map(Number);
-                    const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
-                    return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
-                  })()}
-                </span>
-              </p>
-            </div>
-          )}
         </div>
       </div>
     );
   }
+
 
   // ═══════════════════════════════════════════════════════════
   // STEP 2 — REVIEW & PAY — SINGLE VIEWPORT, NO SCROLL
