@@ -86,22 +86,68 @@ export default function Home() {
 
             {/* ── Visit Type Highlights ── */}
             <div className="mt-8 max-w-md mx-auto">
-              <p className="text-center text-[11px] uppercase tracking-widest text-gray-500 font-bold mb-4">How would you like to be seen?</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white/[0.03] border border-primary-teal/20 rounded-xl p-3 text-center hover:border-primary-teal/50 transition-all cursor-default">
-                  <div className="text-xl mb-1">💬</div>
-                  <p className="text-white font-bold text-xs">Get Seen</p>
-                  <p className="text-primary-teal font-black text-[10px] uppercase tracking-wide">Without Being Seen</p>
-                  <p className="text-gray-500 text-[9px] mt-1 leading-tight">No camera. No call. A provider reviews your case & sends treatment directly.</p>
+              <p className="text-center text-[11px] uppercase tracking-widest text-gray-500 font-bold mb-4">Choose How You Want to Be Treated</p>
+              <div className="flex flex-col gap-3">
+
+                {/* NEW — Instant Visit */}
+                <div className="relative bg-gradient-to-r from-primary-teal/10 to-transparent border border-primary-teal/30 rounded-xl p-4 hover:border-primary-teal/60 transition-all">
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="bg-primary-teal text-black text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">✨ New</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl mt-0.5">💬</div>
+                    <div className="flex-1">
+                      <p className="text-white font-bold text-sm">Get Seen <span className="text-primary-teal">Without Being Seen</span></p>
+                      <p className="text-gray-400 text-[11px] mt-1 leading-relaxed">No video. No phone call. Just tell us what&apos;s wrong — a licensed provider reviews your case and sends your treatment plan &amp; prescription directly to your pharmacy.</p>
+                      <div className="flex gap-2 mt-2">
+                        <span className="text-[8px] bg-primary-teal/10 text-primary-teal px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">UTI</span>
+                        <span className="text-[8px] bg-primary-teal/10 text-primary-teal px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">STD</span>
+                        <span className="text-[8px] bg-primary-teal/10 text-primary-teal px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Cold &amp; Flu</span>
+                        <span className="text-[8px] bg-primary-teal/10 text-primary-teal px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Skin Issues</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-white/[0.03] border border-primary-orange/20 rounded-xl p-3 text-center hover:border-primary-orange/50 transition-all cursor-default">
-                  <div className="text-xl mb-1">📹</div>
-                  <p className="text-white font-bold text-xs">Face-to-Face</p>
-                  <p className="text-primary-orange font-black text-[10px] uppercase tracking-wide">From Your Couch</p>
-                  <p className="text-gray-500 text-[9px] mt-1 leading-tight">Live video or phone visit with your provider. Same quality, zero commute.</p>
+
+                {/* NEW — Quick Refill */}
+                <div className="relative bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/30 rounded-xl p-4 hover:border-amber-500/60 transition-all">
+                  <div className="absolute -top-2.5 left-4">
+                    <span className="bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">⚡ Fast</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl mt-0.5">💊</div>
+                    <div className="flex-1">
+                      <p className="text-white font-bold text-sm">Quick Rx Refill — <span className="text-amber-400">Skip the Wait</span></p>
+                      <p className="text-gray-400 text-[11px] mt-1 leading-relaxed">Need a refill on your medication? No appointment needed. Select your meds, a provider approves, and it&apos;s sent straight to your pharmacy. Done.</p>
+                      <div className="flex gap-2 mt-2">
+                        <span className="text-[8px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Blood Pressure</span>
+                        <span className="text-[8px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Birth Control</span>
+                        <span className="text-[8px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Cholesterol</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Video/Phone Visit */}
+                <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 hover:border-white/20 transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl mt-0.5">📹</div>
+                    <div className="flex-1">
+                      <p className="text-white font-bold text-sm">Live Video or Phone Visit</p>
+                      <p className="text-gray-400 text-[11px] mt-1 leading-relaxed">Face-to-face with your provider from the comfort of your couch. Same quality care, zero commute. Schedule a time that works for you.</p>
+                      <div className="flex gap-2 mt-2">
+                        <span className="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">ADHD</span>
+                        <span className="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Anxiety</span>
+                        <span className="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Complex Cases</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+
+              {/* Stats */}
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 <div className="bg-white/[0.02] rounded-lg py-2 px-1 border border-white/5">
                   <p className="text-primary-teal font-black text-sm">2 min</p>
                   <p className="text-gray-500 text-[8px] uppercase tracking-wide">Avg. Intake</p>
