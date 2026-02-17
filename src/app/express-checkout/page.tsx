@@ -347,46 +347,52 @@ export default function ExpressCheckoutPage() {
     }
   }, [router]);
 
-  // ── Fetch medications for Refill (LIVE → EXPORT FALLBACK) ──
+  // ── Fetch medications for Refill (3-TIER FALLBACK) ──────────
+  // 1. Live API (DrChrono)  2. Export API (Supabase)  3. Static JSON (fully offline)
   useEffect(() => {
     if (visitType === "refill" && patient?.id) {
       setMedsLoading(true);
+      const email = patient.email || '';
       console.log('[Express] Fetching meds for patient:', patient.id);
 
-      // Try live API first
+      const tryStaticFile = () => {
+        console.log('[Express] Tier 3: Static JSON file (offline)...');
+        fetch('/data/patient-medications.json')
+          .then(r => r.json())
+          .then(fileData => {
+            const pts = fileData.patients || [];
+            const match = pts.find((p: any) => (p.email || '').toLowerCase() === email.toLowerCase());
+            if (match?.medications?.length > 0) {
+              const seen = new Set<string>();
+              const meds = match.medications
+                .filter((m: any) => { const k = (m.name||'').toLowerCase().trim(); if (!k||k.length<2||seen.has(k)) return false; seen.add(k); return true; })
+                .map((m: any) => ({ name: m.name, dosage: m.dosage||'', source: 'Offline', is_active: m.status!=='inactive'&&!m.date_stopped }));
+              console.log('[Express] Static file:', meds.length, 'meds');
+              setMedications(meds);
+            }
+            setMedsLoading(false);
+          })
+          .catch(() => { console.log('[Express] All 3 tiers failed'); setMedsLoading(false); });
+      };
+
+      const tryExportApi = () => {
+        console.log('[Express] Tier 2: Export API...');
+        fetch(`/api/medications-from-export?patientId=${patient.id}&email=${encodeURIComponent(email)}`)
+          .then(r => r.json())
+          .then(fb => {
+            if (fb.medications?.length > 0) { console.log('[Express] Export:', fb.count, fb.source); setMedications(fb.medications); setMedsLoading(false); }
+            else tryStaticFile();
+          })
+          .catch(() => tryStaticFile());
+      };
+
       fetch(`/api/medications?patientId=${patient.id}`)
         .then(r => r.json())
         .then(data => {
-          if (data.medications && data.medications.length > 0) {
-            console.log('[Express] Live medications:', data.count);
-            setMedications(data.medications);
-            setMedsLoading(false);
-          } else {
-            // Live returned 0 — try export fallback
-            console.log('[Express] Live returned 0, trying export fallback...');
-            const email = patient.email || '';
-            return fetch(`/api/medications-from-export?patientId=${patient.id}&email=${encodeURIComponent(email)}`)
-              .then(r2 => r2.json())
-              .then(fallback => {
-                console.log('[Express] Export fallback:', fallback.count, 'source:', fallback.source);
-                setMedications(fallback.medications || []);
-                setMedsLoading(false);
-              });
-          }
+          if (data.medications?.length > 0) { console.log('[Express] Live:', data.count); setMedications(data.medications); setMedsLoading(false); }
+          else tryExportApi();
         })
-        .catch(err => {
-          console.error('[Express] Live API failed, trying export fallback...', err);
-          // Live failed entirely — try export fallback
-          const email = patient.email || '';
-          fetch(`/api/medications-from-export?patientId=${patient.id}&email=${encodeURIComponent(email)}`)
-            .then(r => r.json())
-            .then(fallback => {
-              console.log('[Express] Export fallback (after error):', fallback.count);
-              setMedications(fallback.medications || []);
-              setMedsLoading(false);
-            })
-            .catch(() => setMedsLoading(false));
-        });
+        .catch(() => tryExportApi());
     }
   }, [visitType, patient?.id, patient?.email]);
 
