@@ -760,13 +760,17 @@ export async function POST(request: Request) {
       requestedDateTime = bestPhoenixUTC.toISOString();
     }
 
-    // Map visit type
+    // Map visit type — supports all 5 types
+    const vtLower = (data.visitType || "").toLowerCase();
     const visitType =
-      data.visitType?.toLowerCase() === "video"
-        ? "video"
-        : data.visitType?.toLowerCase() === "phone"
-          ? "phone"
-          : "async";
+      vtLower === "video" ? "video"
+        : vtLower === "phone" ? "phone"
+          : vtLower === "instant" ? "instant"
+            : vtLower === "refill" ? "refill"
+              : "async";
+
+    // Determine if this is a live (synchronous) visit
+    const isLiveVisit = visitType === "video" || visitType === "phone";
 
     // Generate access token for the appointment (64-character random token)
     const generateToken = () => {
@@ -801,7 +805,7 @@ export async function POST(request: Request) {
       // Visit details
       visit_type: visitType,
       requested_date_time: requestedDateTime,
-      service_type: "uti_treatment",
+      service_type: data.symptoms || data.chief_complaint || "telehealth_visit",
 
       // ============================================================
       // BUG FIX: Save symptoms & chief_complaint to appointments table
@@ -848,7 +852,7 @@ export async function POST(request: Request) {
 
     let dailyMeeting = null;
 
-     if (visitType === "video" && requestedDateTime) {
+     if (isLiveVisit && visitType === "video" && requestedDateTime) {
       // Create Daily.co meeting
       console.log("📹 Creating Daily.co meeting for video appointment...");
       try {
@@ -1491,11 +1495,11 @@ export async function POST(request: Request) {
         : "Patient";
 
     const visitTypeDisplay =
-      visitType === "video"
-        ? "Video Visit"
-        : visitType === "phone"
-          ? "Phone Visit"
-          : "Consultation";
+      visitType === "video" ? "Video Visit"
+        : visitType === "phone" ? "Phone Visit"
+          : visitType === "instant" ? "Instant Visit (Async)"
+            : visitType === "refill" ? "Rx Refill (Async)"
+              : "Consultation";
 
     // Generate SMS message for patient (used in both SMS and email)
     let patientSMSMessage = "";
