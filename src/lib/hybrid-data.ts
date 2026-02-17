@@ -55,13 +55,16 @@ export async function lookupPatient(email: string): Promise<{ found: boolean; pa
   // 1. Check local IndexedDB first
   try {
     const local = await db()
-    const localPatient = await local.patients
+    const allMatches = await local.patients
       .where('email')
       .equalsIgnoreCase(normalizedEmail)
-      .first()
+      .toArray()
+
+    // Prefer patient with drchrono_patient_id set (has medication history)
+    const localPatient = allMatches.find(p => p.drchrono_patient_id) || allMatches[0] || null
 
     if (localPatient) {
-      console.log('[Hybrid] Patient found in local DB:', localPatient.id)
+      console.log('[Hybrid] Patient found in local DB:', localPatient.id, 'drchrono:', localPatient.drchrono_patient_id)
       
       // Background: refresh from cloud if online
       if (isOnline()) {
