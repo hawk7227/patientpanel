@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     // ── 3. Allergies ─────────────────────────────────────────
     const allAllergies = await fetchAll(
       "drchrono_allergies",
-      "drchrono_patient_id, description, reaction, status, notes, onset_date",
+      "drchrono_patient_id, reaction, status, notes, severity, onset_date",
       "id"
     );
     console.log(`[Export] ${allAllergies.length} allergies`);
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     // ── 4. Problems ──────────────────────────────────────────
     const allProblems = await fetchAll(
       "drchrono_problems",
-      "drchrono_patient_id, name, status, date_onset, date_diagnosis, date_changed",
+      "drchrono_patient_id, name, icd_code, status, date_diagnosis, date_changed",
       "id"
     );
     console.log(`[Export] ${allProblems.length} problems`);
@@ -119,15 +119,16 @@ export async function GET(req: NextRequest) {
           date_stopped: m.date_stopped_taking || null,
         })),
         allergies: (allergiesMap.get(dcId) || []).map((a: any) => ({
-          name: a.description || "",
-          reaction: a.reaction || a.notes || "",
+          name: a.reaction || a.notes || "",
+          severity: a.severity || "",
           status: a.status || "active",
           onset_date: a.onset_date || "",
         })),
         problems: (problemsMap.get(dcId) || []).map((pr: any) => ({
           name: pr.name || "",
+          icd_code: pr.icd_code || "",
           status: pr.status || "active",
-          date_onset: pr.date_onset || pr.date_diagnosis || "",
+          date_diagnosis: pr.date_diagnosis || "",
           date_changed: pr.date_changed || "",
         })),
         appointments: (apptsMap.get(dcId) || []).map((ap: any) => ({
