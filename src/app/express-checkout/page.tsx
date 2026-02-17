@@ -621,6 +621,11 @@ export default function ExpressCheckoutPage() {
   const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
 
+  // ── Guided Sequence State ────────────────────────────────
+  const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
+  const [wantToTalk, setWantToTalk] = useState(false);
+  const [additionalMedsAnswer, setAdditionalMedsAnswer] = useState<"yes" | "no" | null>(null);
+
   // Step flow: 1 = booking form, 2 = review & pay
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
@@ -893,6 +898,28 @@ export default function ExpressCheckoutPage() {
     if (isAsync && !hasControlledSelected && !asyncAcknowledged) return "Acknowledge the async visit terms to continue";
     return "Complete all fields to continue";
   }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged, controlledAcknowledged]);
+
+  // ── Guided Sequence: compute active step ────────────────
+  const activeGuideStep = useMemo((): number => {
+    if (!reason) return 1;
+    if (!pharmacy) return 2;
+    if (!visitType) return 3;
+    if (needsCalendar && (!appointmentDate || !appointmentTime)) return 4;
+    if (visitType === "instant" && wantToTalk && (!appointmentDate || !appointmentTime)) return 4;
+    if (visitType === "instant" && !wantToTalk) {
+      if (additionalMedsAnswer === null) return 5;
+    } else if (visitType === "refill") {
+      if (selectedMeds.length === 0) return 4;
+      if (additionalMedsAnswer === null) return 5;
+    } else {
+      if (additionalMedsAnswer === null) return 5;
+    }
+    if (isAsync && !hasControlledSelected && !asyncAcknowledged) return 6;
+    if (hasControlledSelected && !controlledAcknowledged) return 6;
+    return 7;
+  }, [reason, pharmacy, visitType, needsCalendar, appointmentDate, appointmentTime, wantToTalk, additionalMedsAnswer, selectedMeds, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
+
+  const totalSteps = 7;
 
   if (!patient) {
     return (
@@ -1289,408 +1316,196 @@ export default function ExpressCheckoutPage() {
     );
   }
 
+
   // ═══════════════════════════════════════════════════════════
-  // STEP 1 — BOOKING FORM (original render)
+  // STEP 1 — MOBILE APP GUIDED BOOKING FLOW
   // ═══════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════
+  const guideRing = (step: number) =>
+    activeGuideStep === step
+      ? "ring-2 ring-[#f97316] shadow-[0_0_14px_rgba(249,115,22,0.45)] animate-[guidePulse_2s_ease-in-out_infinite]"
+      : "";
+  const completedPill = (step: number) => activeGuideStep > step;
+
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
-      <div className="max-w-lg mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            <span className="text-white">Medazon Health</span>{" "}
-            <span className="text-primary-teal">Express Booking</span>
-          </h1>
-          <div className="mt-3 flex items-center justify-center gap-2">
-            <Zap size={16} className="text-primary-orange" />
-            <span className="text-primary-orange font-semibold text-sm">
-              Welcome back, {patient.firstName}!
-            </span>
+    <div className="fixed inset-0 text-white font-sans overflow-hidden"
+      style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)" }}>
+      <style>{`
+        @keyframes guidePulse { 0%,100% { box-shadow: 0 0 8px rgba(249,115,22,0.3); } 50% { box-shadow: 0 0 18px rgba(249,115,22,0.55); } }
+        @keyframes wanderQ { 0%,100% { opacity:0; transform:scale(0.7); } 30%,70% { opacity:1; transform:scale(1.15); } }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); } 50% { box-shadow: 0 0 16px rgba(249,115,22,0.5); } }
+        @keyframes fadeInBtn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+      `}</style>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 8px)", paddingLeft: "16px", paddingRight: "16px" }}>
+        {/* HEADER */}
+        <div className="flex items-center justify-between pt-1 pb-1">
+          <div className="flex items-center gap-1">
+            <span className="text-white font-black text-[15px] tracking-tight">MEDAZON</span>
+            <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS</span>
+            <span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
           </div>
-          <p className="text-gray-500 text-xs mt-1">{patient.email} · Returning Patient</p>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-gray-500 font-medium">{activeGuideStep < totalSteps ? `${Math.min(activeGuideStep, 6)}/${totalSteps - 1}` : "✓"}</span>
+            <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${Math.min((activeGuideStep / totalSteps) * 100, 100)}%` }} />
+            </div>
+          </div>
         </div>
-
-        {/* Booking Form */}
-        <div className="space-y-3">
-          {/* Reason for Visit */}
-          <button
-            onClick={() => setReasonDialogOpen(true)}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-left ${
-              reason ? "border-primary-teal bg-primary-teal/5" : "border-white/10 bg-[#11161c] hover:border-white/20"
-            }`}
-          >
-            <span className={reason ? "text-white text-sm font-medium" : "text-gray-500 text-sm"}>
-              {reason || "Reason for Visit"}
-            </span>
-            <ChevronDown size={16} className="text-gray-500" />
-          </button>
-
-          {/* Preferred Pharmacy — 2nd field */}
-          <div className="space-y-1">
-            <PharmacySelector
-              value={pharmacy}
-              onChange={(val: string) => setPharmacy(val)}
-              placeholder="Preferred Pharmacy"
-              className="w-full bg-[#11161c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-teal placeholder:text-gray-500"
-            />
-          </div>
-
-          {/* ── 4 Visit Type Buttons ──────────────────────────── */}
-          <div className="grid grid-cols-4 gap-2">
-            {VISIT_TYPES.map((vt) => {
-              const Icon = vt.icon;
-              const isSelected = visitType === vt.key;
-              return (
-                <button key={vt.key} onClick={() => handleVisitTypeChange(vt.key)}
-                  className={`relative flex flex-col items-center py-3 px-1 rounded-xl text-center border transition-all ${
-                    isSelected
-                      ? "border-primary-teal bg-primary-teal/10 text-primary-teal"
-                      : "border-white/10 bg-[#11161c] text-gray-400 hover:border-white/20"
-                  }`}
-                >
-                  {vt.badge && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] bg-primary-orange text-white px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap">
-                      {vt.badge}
-                    </span>
-                  )}
-                  <Icon size={18} className={isSelected ? "text-primary-teal" : "text-gray-500"} />
-                  <span className="text-[11px] font-semibold mt-1">{vt.label}</span>
-                  <span className="text-[8px] text-gray-500 mt-0.5 leading-tight">{vt.desc}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* ── Conditional: Calendar (Video/Phone) ───────────── */}
-          {needsCalendar && (
-            <button
-              onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all text-left ${
-                appointmentDate && appointmentTime
-                  ? "border-primary-teal bg-primary-teal/5"
-                  : "border-white/10 bg-[#11161c] hover:border-white/20"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Calendar size={16} className={appointmentDate ? "text-primary-teal" : "text-gray-500"} />
-                <span className={appointmentDate && appointmentTime ? "text-white text-sm font-medium" : "text-gray-500 text-sm"}>
-                  {formatDisplayDateTime() || "Select Date & Time"}
-                </span>
-              </div>
+        <div className="flex items-center gap-2 pb-2">
+          <Zap size={12} className="text-[#f97316]" />
+          <span className="text-[#f97316] font-semibold text-[11px]">Welcome back, {patient.firstName}!</span>
+          <span className="text-gray-600 text-[9px]">Priority Patient</span>
+        </div>
+        {/* SCROLLABLE FORM */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-2 space-y-2" style={{ scrollbarWidth: "none" }}>
+          {/* STEP 1: Reason */}
+          {completedPill(1) ? (
+            <button onClick={() => { setReason(""); setChiefComplaint(""); }} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2dd4a0]/8 border border-[#2dd4a0]/20">
+              <Check size={12} className="text-[#2dd4a0]" /><span className="text-[#2dd4a0] text-[11px] font-semibold truncate">{reason}</span><span className="text-gray-600 text-[9px] ml-auto">tap to change</span>
+            </button>
+          ) : (
+            <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border bg-[#11161c] text-left ${guideRing(1)} border-[#f97316]/40`}>
+              <div className="flex items-center gap-2"><span className="text-[10px] font-black text-[#f97316] bg-[#f97316]/10 w-5 h-5 rounded-full flex items-center justify-center">1</span><span className="text-gray-400 text-sm">Reason for Visit</span></div>
               <ChevronDown size={16} className="text-gray-500" />
             </button>
           )}
-
-          {/* ── Conditional: Async Fields (Instant/Refill) ────── */}
-          {isAsync && (
-            <div className="space-y-3">
-              {/* Symptoms Text (Instant only) */}
-              {visitType === "instant" && (
-                <textarea
-                  value={symptomsText}
-                  onChange={(e) => setSymptomsText(e.target.value)}
-                  placeholder="Describe your symptoms in detail..."
-                  rows={3}
-                  className="w-full bg-[#11161c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-teal resize-none placeholder:text-gray-500"
-                />
-              )}
-
-              {/* Medication Selector (Refill only) — collapsible */}
-              {visitType === "refill" && (
-                <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2">
-                  <button type="button"
-                    onClick={() => setMedsListOpen(!medsListOpen)}
-                    className="w-full flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">
-                      {selectedMeds.length > 0
-                        ? `${selectedMeds.length} Medication${selectedMeds.length > 1 ? "s" : ""} Selected`
-                        : "Select Medications to Refill"}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {medsLoading && <div className="animate-spin w-3 h-3 border border-primary-teal border-t-transparent rounded-full" />}
-                      <ChevronDown size={14} className={`text-gray-500 transition-transform ${medsListOpen ? "rotate-180" : ""}`} />
-                    </div>
-                  </button>
-
-                  {/* Selected meds summary (shown when collapsed) */}
-                  {!medsListOpen && selectedMeds.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {selectedMeds.map(m => (
-                        <span key={m} className="text-[9px] bg-primary-teal/10 text-primary-teal border border-primary-teal/20 px-1.5 py-0.5 rounded-full font-medium">
-                          {m} {isControlledSubstance(m) ? "⚠️" : "✓"}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Expanded medication list */}
-                  {medsListOpen && (
-                    <>
-                      {medications.length > 0 ? (
-                        <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {medications.map((med) => {
-                            const isControlled = isControlledSubstance(med.name);
-                            const isChecked = selectedMeds.includes(med.name);
-                            return (
-                              <label key={med.name}
-                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs ${
-                                  isChecked ? "bg-primary-teal/10 border border-primary-teal/30" : "hover:bg-white/5"
-                                } ${isControlled ? "border border-red-500/30" : ""}`}
-                              >
-                                <input type="checkbox" checked={isChecked} onChange={() => toggleMed(med.name)}
-                                  className="w-3.5 h-3.5 rounded border-white/20 bg-[#0d1218] text-primary-teal focus:ring-primary-teal"
-                                />
-                                <span className={`flex-1 ${isControlled ? "text-red-400" : "text-white"}`}>
-                                  {med.name} {med.dosage ? `(${med.dosage})` : ""}
-                                </span>
-                                {isControlled && (
-                                  <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">CONTROLLED</span>
-                                )}
-                                <span className="text-[8px] text-gray-600">{med.source}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      ) : !medsLoading ? (
-                        <p className="text-gray-500 text-xs py-2">No medications found. Please describe what you need below.</p>
-                      ) : null}
-
-                      {/* Done / Close button */}
-                      {selectedMeds.length > 0 && (
-                        <button type="button" onClick={() => setMedsListOpen(false)}
-                          className="w-full py-2 rounded-lg bg-primary-teal/10 border border-primary-teal/20 text-primary-teal text-xs font-bold transition-colors hover:bg-primary-teal/20">
-                          Done — {selectedMeds.length} selected ✓
-                        </button>
-                      )}
-                    </>
-                  )}
-
-                  {/* Controlled substance acknowledgment */}
-                  {hasControlledSelected && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 space-y-2">
-                      <div className="flex items-start gap-2 pl-1">
-                        <input type="checkbox" id="controlledAck" checked={controlledAcknowledged}
-                          onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); }}
-                          className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500"
-                        />
-                        <label htmlFor="controlledAck" className="text-[10px] text-gray-400 leading-relaxed">
-                          <span className="text-white font-semibold">I understand and accept</span>{" "}
-                          that this is a controlled substance request. I have read and understand the{" "}
-                          <button type="button" onClick={() => setShowDeaInfoPopup(true)}
-                            className="text-amber-400 underline underline-offset-2 decoration-amber-400/50 font-semibold hover:text-amber-300 transition-colors">
-                            DEA/Ryan Haight Act requirements
-                          </button>. I acknowledge that my selected controlled medication(s) may require a live video or phone 
-                          visit with a licensed provider.
-                        </label>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* DEA Info Popup */}
-                  {showDeaInfoPopup && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
-                      <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-start gap-3">
-                          <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <Shield size={18} className="text-amber-400" />
-                          </div>
-                          <div>
-                            <h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3>
-                            <p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p>
-                          </div>
-                        </div>
-                        <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3">
-                          <p className="text-xs text-gray-300 leading-relaxed">
-                            Under federal law, the <span className="text-white font-semibold">Ryan Haight Online Pharmacy Consumer Protection Act</span> requires 
-                            that controlled substances (Schedule II–V) be prescribed only after a valid practitioner-patient 
-                            relationship has been established. This generally requires at least one <span className="text-white font-semibold">live medical evaluation</span> via 
-                            video or phone consultation before a controlled medication can be prescribed.
-                          </p>
-                          <p className="text-xs text-gray-400 leading-relaxed mt-2">
-                            The DEA has extended telemedicine flexibilities through <span className="text-amber-300 font-semibold">December 31, 2026</span>, allowing 
-                            practitioners to prescribe controlled substances via audio-video telemedicine visits without 
-                            a prior in-person examination. Your provider will conduct a brief live consultation to ensure 
-                            your safety and the appropriateness of the prescribed medication.
-                          </p>
-                        </div>
-                        <button onClick={() => setShowDeaInfoPopup(false)}
-                          className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl transition-colors border border-amber-500/30">
-                          I Understand
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Manual medication entry */}
-                  <textarea
-                    value={symptomsText}
-                    onChange={(e) => setSymptomsText(e.target.value)}
-                    placeholder="Additional medications or notes for the provider..."
-                    rows={2}
-                    className="w-full bg-[#0d1218] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-primary-teal resize-none placeholder:text-gray-600"
-                  />
-                </div>
-              )}
-
-              {/* Photo Upload + Camera Capture */}
-              <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 pl-1">Photo (optional) — Rx label, symptoms, ID, etc.</label>
-                <div className="flex gap-2">
-                  {/* Camera Capture Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.setAttribute('capture', 'environment');
-                      input.onchange = (e: any) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 10 * 1024 * 1024) { alert("File too large. Max 10MB."); return; }
-                        setPhotoFile(file);
-                        setPhotoPreview(URL.createObjectURL(file));
-                      };
-                      input.click();
-                    }}
-                    className="flex items-center gap-2 px-4 py-3 bg-[#11161c] border border-white/10 rounded-xl hover:border-primary-teal/30 transition-all flex-1"
-                  >
-                    <Camera size={16} className="text-primary-teal" />
-                    <span className="text-sm text-gray-300">Take Photo</span>
-                  </button>
-                  {/* File Upload Button */}
-                  <label className="flex items-center gap-2 px-4 py-3 bg-[#11161c] border border-white/10 rounded-xl cursor-pointer hover:border-white/20 transition-all flex-1">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    <span className="text-sm text-gray-400">Upload File</span>
-                    <input type="file" accept="image/*,.pdf" onChange={handlePhotoChange} className="hidden" />
-                  </label>
-                </div>
-                {/* Preview */}
-                {photoPreview && (
-                  <div className="relative inline-block mt-2">
-                    <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-lg object-cover border border-white/10" />
-                    <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                      <X size={10} className="text-white" />
-                    </button>
-                    <span className="text-[9px] text-gray-500 block mt-1">{photoFile?.name}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Async Acknowledgment */}
-              {!hasControlledSelected && (
-                <div className="flex items-start gap-2 bg-[#11161c] border border-white/10 rounded-xl p-3">
-                  <input type="checkbox" id="asyncAck" checked={asyncAcknowledged}
-                    onChange={(e) => { setAsyncAcknowledged(e.target.checked); setClientSecret(""); }}
-                    className="mt-0.5 w-4 h-4 rounded border-primary-teal/50 bg-[#0d1218] text-primary-teal focus:ring-primary-teal"
-                  />
-                  <label htmlFor="asyncAck" className="text-[10px] text-gray-400 leading-relaxed">
-                    <span className="text-white font-semibold">I understand this is an asynchronous visit.</span>{" "}
-                    A provider will review my information and respond within 1–2 hours during business hours.
-                    If my condition requires a live evaluation, I may be asked to schedule a Video or Phone visit.
-                  </label>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Continue to Step 2 (Review & Pay) ─────────────── */}
-          {allFieldsReady && (
-            <button onClick={() => setCurrentStep(2)}
-              className="w-full bg-primary-orange hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 text-base shadow-lg">
-              Continue to Payment <ChevronDown size={16} className="rotate-[-90deg]" />
+          {/* STEP 2: Pharmacy */}
+          {activeGuideStep >= 2 && (completedPill(2) ? (
+            <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); }} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#2dd4a0]/8 border border-[#2dd4a0]/20">
+              <Check size={12} className="text-[#2dd4a0]" /><span className="text-[#2dd4a0] text-[11px] font-semibold truncate">{pharmacy}</span><span className="text-gray-600 text-[9px] ml-auto">tap to change</span>
             </button>
-          )}
-
-          {!allFieldsReady && (
-            <div className="text-center py-4">
-              <p className="text-gray-600 text-xs">{notReadyMessage}</p>
+          ) : (
+            <div className={`rounded-xl ${guideRing(2)}`}>
+              <div className="flex items-center gap-2 px-4 pt-3 pb-1"><span className="text-[10px] font-black text-[#f97316] bg-[#f97316]/10 w-5 h-5 rounded-full flex items-center justify-center">2</span><span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Preferred Pharmacy</span></div>
+              <PharmacySelector value={pharmacy} onChange={(val: string) => setPharmacy(val)} placeholder="Search pharmacy..." className="w-full bg-[#11161c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-gray-600" />
+            </div>
+          ))}
+          {/* STEP 3: Visit Type */}
+          {activeGuideStep >= 3 && (
+            <div className={`rounded-xl p-3 ${activeGuideStep === 3 ? guideRing(3) : ""}`}>
+              <div className="flex items-center gap-2 mb-2"><span className="text-[10px] font-black text-[#f97316] bg-[#f97316]/10 w-5 h-5 rounded-full flex items-center justify-center">3</span><span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Select Visit Type</span></div>
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", borderActive: "border-[#2dd4a0]", badge: "✨ NEW" },
+                  { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", borderActive: "border-[#f59e0b]", badge: "⚡ FAST" },
+                  { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", borderActive: "border-[#3b82f6]", badge: null },
+                  { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", borderActive: "border-[#a855f7]", badge: null },
+                ] as const).map((vt, idx) => {
+                  const Icon = vt.icon; const isSel = visitType === vt.key && activeGuideStep > 3;
+                  return (<button key={vt.key} onClick={() => setVisitTypePopup(vt.key)} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl border-2 transition-all ${isSel ? `${vt.borderActive} shadow-lg` : "border-white/10 bg-[#11161c]/80 hover:border-white/20"}`} style={{ minHeight: "72px", background: isSel ? `${vt.color}15` : undefined }}>
+                    {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
+                    {activeGuideStep === 3 && <span className="absolute top-1 right-1 text-[#f97316] font-black text-[11px]" style={{ animation: `wanderQ 2.5s ease-in-out infinite`, animationDelay: `${idx * 0.6}s` }}>?</span>}
+                    <Icon size={18} style={{ color: isSel ? vt.color : "#6b7280" }} />
+                    <span className="text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line" style={{ color: isSel ? vt.color : "#9ca3af" }}>{vt.label}</span>
+                    {isSel && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full" style={{ background: vt.color }} />}
+                  </button>);
+                })}
+              </div>
             </div>
           )}
+          {/* STEP 4: Conditional */}
+          {activeGuideStep >= 4 && (<div className={`${activeGuideStep === 4 ? guideRing(4) : ""} rounded-xl`}>
+            {visitType === "instant" && (<div className="space-y-2">
+              <div className="bg-[#2dd4a0]/5 border border-[#2dd4a0]/15 rounded-xl p-3"><p className="text-[11px] text-gray-300 leading-relaxed">📋 <span className="text-white font-semibold">Your visit will be submitted now.</span> Provider responds within <span className="text-[#2dd4a0] font-bold">1–2 hours</span>.</p></div>
+              <textarea value={symptomsText} onChange={(e) => setSymptomsText(e.target.value)} placeholder="Describe your symptoms in detail..." rows={2} className="w-full bg-[#11161c] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#2dd4a0] resize-none placeholder:text-gray-600" />
+              <div className="flex items-center gap-3 bg-[#11161c]/60 border border-white/5 rounded-xl px-3 py-2.5">
+                <button onClick={() => setWantToTalk(!wantToTalk)} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${wantToTalk ? "bg-[#2dd4a0]" : "bg-white/10"}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${wantToTalk ? "left-[22px]" : "left-0.5"}`} /></button>
+                <div><p className="text-white text-[11px] font-semibold">Want to talk to your provider?</p><p className="text-gray-500 text-[9px]">Add an optional live video or phone call</p></div>
+              </div>
+              {wantToTalk && (<button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>)}
+            </div>)}
+            {visitType === "refill" && (<div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-2 mb-1"><span className="text-[10px] font-black text-[#f97316] bg-[#f97316]/10 w-5 h-5 rounded-full flex items-center justify-center">4</span><span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Select Medications</span></div>
+              <button type="button" onClick={() => setMedsListOpen(!medsListOpen)} className="w-full flex items-center justify-between"><span className="text-xs font-semibold text-white">{selectedMeds.length > 0 ? `${selectedMeds.length} Medication${selectedMeds.length > 1 ? "s" : ""} Selected` : "Select Medications to Refill"}</span><div className="flex items-center gap-2">{medsLoading && <div className="animate-spin w-3 h-3 border border-[#2dd4a0] border-t-transparent rounded-full" />}<ChevronDown size={14} className={`text-gray-500 transition-transform ${medsListOpen ? "rotate-180" : ""}`} /></div></button>
+              {!medsListOpen && selectedMeds.length > 0 && (<div className="flex flex-wrap gap-1">{selectedMeds.map(m => (<span key={m} className="text-[9px] bg-[#2dd4a0]/10 text-[#2dd4a0] border border-[#2dd4a0]/20 px-1.5 py-0.5 rounded-full font-medium">{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>)}
+              {medsListOpen && (<>{medications.length > 0 ? (<div className="space-y-1 max-h-32 overflow-y-auto">{medications.map((med) => { const ic = isControlledSubstance(med.name); const ck = selectedMeds.includes(med.name); return (<label key={med.name} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs ${ck ? "bg-[#2dd4a0]/10 border border-[#2dd4a0]/30" : "hover:bg-white/5"} ${ic ? "border border-red-500/30" : ""}`}><input type="checkbox" checked={ck} onChange={() => toggleMed(med.name)} className="w-3.5 h-3.5 rounded border-white/20 bg-[#0d1218] text-[#2dd4a0] focus:ring-[#2dd4a0]" /><span className={`flex-1 ${ic ? "text-red-400" : "text-white"}`}>{med.name} {med.dosage ? `(${med.dosage})` : ""}</span>{ic && <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">CTRL</span>}</label>); })}</div>) : !medsLoading ? <p className="text-gray-500 text-xs py-2">No medications found.</p> : null}{selectedMeds.length > 0 && (<button type="button" onClick={() => setMedsListOpen(false)} className="w-full py-2 rounded-lg bg-[#2dd4a0]/10 border border-[#2dd4a0]/20 text-[#2dd4a0] text-xs font-bold">Done — {selectedMeds.length} selected ✓</button>)}</>)}
+              {hasControlledSelected && (<div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5"><div className="flex items-start gap-2 pl-1"><input type="checkbox" id="ctrlAckG" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); }} className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500" /><label htmlFor="ctrlAckG" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label></div></div>)}
+              <textarea value={symptomsText} onChange={(e) => setSymptomsText(e.target.value)} placeholder="Additional medications or notes..." rows={2} className="w-full bg-[#0d1218] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#2dd4a0] resize-none placeholder:text-gray-600" />
+            </div>)}
+            {(visitType === "video" || visitType === "phone") && (<div className="space-y-2">
+              <div className="flex items-center gap-2 px-1 mb-1"><span className="text-[10px] font-black text-[#f97316] bg-[#f97316]/10 w-5 h-5 rounded-full flex items-center justify-center">4</span><span className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Pick Date & Time</span></div>
+              <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>
+            </div>)}
+          </div>)}
+          {/* STEP 5: Additional Meds */}
+          {activeGuideStep >= 5 && (<div className={`rounded-xl p-3 ${activeGuideStep === 5 ? guideRing(5) : ""}`}>
+            <div className="flex items-center gap-2 mb-2"><span className="text-[10px] font-black text-[#f97316] bg-[#f97316]/10 w-5 h-5 rounded-full flex items-center justify-center">5</span><span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider">Need additional medications?</span></div>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setAdditionalMedsAnswer("yes")} className={`py-2.5 rounded-xl text-sm font-bold border-2 ${additionalMedsAnswer === "yes" ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-[#2dd4a0]" : "border-white/10 bg-[#11161c] text-gray-400"}`}>Yes, add meds</button>
+              <button onClick={() => setAdditionalMedsAnswer("no")} className={`py-2.5 rounded-xl text-sm font-bold border-2 ${additionalMedsAnswer === "no" ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-[#2dd4a0]" : "border-white/10 bg-[#11161c] text-gray-400"}`}>{"No, I'm good"}</button>
+            </div>
+            {additionalMedsAnswer === "yes" && (<textarea value={symptomsText} onChange={(e) => setSymptomsText(e.target.value)} placeholder="List any additional medications or notes..." rows={2} className="w-full mt-2 bg-[#0d1218] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#2dd4a0] resize-none placeholder:text-gray-600" />)}
+          </div>)}
+          {/* STEP 6: Acknowledgment */}
+          {activeGuideStep >= 6 && !hasControlledSelected && (<button onClick={() => { setAsyncAcknowledged(!asyncAcknowledged); setClientSecret(""); }} className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-[#f97316]/30 bg-[#11161c]"} ${activeGuideStep === 6 && !asyncAcknowledged ? "animate-[ackPulse_1.5s_ease-in-out_infinite]" : ""}`}>
+            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-[#f97316]/50"}`}>{asyncAcknowledged && <Check size={12} className="text-black" />}</div>
+            <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours. If a live evaluation is needed, I may be asked to schedule one.</p></div>
+          </button>)}
+          {/* Photo upload compact */}
+          {activeGuideStep >= 5 && isAsync && (<div className="flex items-center gap-2"><label className="text-[9px] text-gray-600">Photo (optional):</label><button type="button" onClick={() => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = (e: any) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); } }; i.click(); }} className="text-[9px] text-[#2dd4a0] bg-[#2dd4a0]/10 px-2 py-1 rounded font-semibold"><Camera size={10} className="inline mr-1" />Upload</button>{photoPreview && (<div className="relative"><img src={photoPreview} alt="" className="w-8 h-8 rounded object-cover border border-white/10" /><button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }} className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center"><X size={6} className="text-white" /></button></div>)}</div>)}
+        </div>
+        {/* BOTTOM BUTTON */}
+        <div className="flex-shrink-0 pb-2 pt-1">
+          {allFieldsReady ? (<button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg" style={{ background: "#f97316", color: "#fff", animation: "fadeInBtn 0.4s ease-out" }}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>) : (<div className="text-center py-2"><p className="text-gray-600 text-[10px]">{notReadyMessage}</p></div>)}
+          <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · {currentPrice.display}</p>
         </div>
       </div>
-
-      {/* ══════════ REASON DIALOG ══════════ */}
+      {/* VISIT TYPE POPUP */}
+      {visitTypePopup && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setVisitTypePopup(null)}>
+          <div className="w-full max-w-[430px] rounded-t-2xl overflow-hidden" style={{ animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 space-y-3" style={{ background: "linear-gradient(180deg, #131a20 0%, #0d1218 100%)" }}>
+              {visitTypePopup === "instant" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center"><Zap size={20} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-base">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">No video. No phone call. No waiting room. Your provider reviews your case privately and sends treatment + prescription to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">100% private — no face-to-face</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Treatment in 1–2 hours</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Rx sent straight to your pharmacy</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: UTIs, cold & flu, skin issues, allergies</p></>)}
+              {visitTypePopup === "refill" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center"><Pill size={20} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-base">Your Meds. Refilled. No Appointment.</h3><p className="text-[#f59e0b] text-[10px] font-bold uppercase tracking-wider">Rx Refill · Skip the Wait</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">Running low? Select your medications, provider reviews and approves, refill sent to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#f59e0b]" /><span className="text-white text-[11px] font-medium">No appointment needed</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#f59e0b]" /><span className="text-white text-[11px] font-medium">Same-day pharmacy pickup</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#f59e0b]" /><span className="text-white text-[11px] font-medium">Same provider every refill</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: blood pressure, birth control, cholesterol</p></>)}
+              {visitTypePopup === "video" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#3b82f6]/15 flex items-center justify-center"><Video size={20} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-base">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[10px] font-bold uppercase tracking-wider">Video Visit · Live Consultation</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">See your provider live on video — just like an in-office visit, but from your couch.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Real-time conversation</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Private & encrypted — HIPAA</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Pick a time that works</span></div></div><p className="text-gray-500 text-[9px] italic">Best for: ADHD evaluations, anxiety, complex conditions</p></>)}
+              {visitTypePopup === "phone" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#a855f7]/15 flex items-center justify-center"><Phone size={20} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-base">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[10px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">Connect by phone call or secure text — same quality care with zero screen time.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">No video, no downloads</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Flexible scheduling</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Great for follow-ups</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: medication adjustments, follow-ups, quick questions</p></>)}
+              <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2 mt-1"><Lock size={12} className="text-gray-500" /><span className="text-gray-500 text-[9px]">Full anonymity · Your identity stays private</span></div>
+              <button onClick={() => { handleVisitTypeChange(visitTypePopup); setVisitTypePopup(null); }} className="w-full py-3.5 rounded-xl font-bold text-sm" style={{ background: visitTypePopup === "instant" ? "#2dd4a0" : visitTypePopup === "refill" ? "#f59e0b" : visitTypePopup === "video" ? "#3b82f6" : "#a855f7", color: "#000" }}>Choose {visitTypePopup === "instant" ? "Instant Care" : visitTypePopup === "refill" ? "Rx Refill" : visitTypePopup === "video" ? "Video Visit" : "Phone/SMS"} →</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* REASON DIALOG */}
       {reasonDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
-          <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 w-full max-w-lg space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-white font-bold text-base">Reason For Visit</span>
-              <button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="text-gray-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..."
-                autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-primary-teal" />
-            </div>
-            <div className="max-h-72 overflow-y-auto border border-white/5 rounded-lg">
-              <div className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 font-semibold"
-                onClick={() => { setReason("Something Else"); setReasonDialogOpen(false); setReasonQuery(""); setChiefComplaintDialogOpen(true); }}>
-                Something else
-              </div>
-              {filteredReasons.map((item: { name: string }) => (
-                <div key={item.name}
-                  className="px-3 py-2 text-white hover:bg-primary-teal hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0"
-                  onClick={() => { setReason(item.name); setReasonDialogOpen(false); setReasonQuery(""); setChiefComplaintDialogOpen(true); }}>
-                  {item.name}
-                </div>
-              ))}
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }}>
+          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center"><span className="text-white font-bold text-base">Reason For Visit</span><button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
+            <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /><input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..." autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-[#2dd4a0]" /></div>
+            <div className="max-h-60 overflow-y-auto border border-white/5 rounded-lg">
+              <div className="px-3 py-2 text-white hover:bg-[#2dd4a0] hover:text-black cursor-pointer text-xs border-b border-white/5 font-semibold" onClick={() => { setReason("Something Else"); setReasonDialogOpen(false); setReasonQuery(""); setChiefComplaintDialogOpen(true); }}>Something else</div>
+              {filteredReasons.map((item: { name: string }) => (<div key={item.name} className="px-3 py-2 text-white hover:bg-[#2dd4a0] hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0" onClick={() => { setReason(item.name); setReasonDialogOpen(false); setReasonQuery(""); setChiefComplaintDialogOpen(true); }}>{item.name}</div>))}
             </div>
           </div>
         </div>
       )}
-
-      {/* ══════════ CHIEF COMPLAINT DIALOG ══════════ */}
+      {/* CHIEF COMPLAINT DIALOG */}
       {chiefComplaintDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
-          <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 w-full max-w-lg space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-white font-bold text-base">Describe Your Symptoms</span>
-              <button onClick={() => setChiefComplaintDialogOpen(false)} className="text-gray-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-gray-400 text-xs">
-              Briefly describe what&apos;s going on so the provider can prepare for your visit.
-            </p>
-            <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)}
-              placeholder="e.g., Burning during urination for 3 days, lower abdominal discomfort..." rows={4} autoFocus
-              className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-teal resize-none" />
-            <div className="flex gap-2">
-              <button onClick={() => setChiefComplaintDialogOpen(false)}
-                className="flex-1 bg-white/5 text-gray-400 py-2 rounded-lg text-sm hover:bg-white/10">Skip</button>
-              <button onClick={() => setChiefComplaintDialogOpen(false)}
-                className="flex-1 bg-primary-teal text-black py-2 rounded-lg text-sm font-bold hover:bg-teal-400">Done</button>
-            </div>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setChiefComplaintDialogOpen(false)}>
+          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center"><span className="text-white font-bold text-base">Describe Your Symptoms</span><button onClick={() => setChiefComplaintDialogOpen(false)} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
+            <p className="text-gray-400 text-xs">Briefly describe what&apos;s going on.</p>
+            <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#2dd4a0] resize-none" />
+            <div className="flex gap-2"><button onClick={() => setChiefComplaintDialogOpen(false)} className="flex-1 bg-white/5 text-gray-400 py-2 rounded-lg text-sm">Skip</button><button onClick={() => setChiefComplaintDialogOpen(false)} className="flex-1 bg-[#2dd4a0] text-black py-2 rounded-lg text-sm font-bold">Done</button></div>
           </div>
         </div>
       )}
-
-      {/* ══════════ DATE/TIME DIALOG ══════════ */}
+      {/* DATE/TIME DIALOG */}
       {dateTimeDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
-          <div className="bg-[#0d1218] border border-white/10 rounded-xl p-4 w-full max-w-lg space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-white font-bold text-base">{dateTimeMode === "date" ? "Select Date" : "Select Time"}</span>
-              <button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-            <AppointmentCalendar
-              selectedDate={appointmentDate || null} selectedTime={appointmentTime || null}
-              onDateSelect={(date) => { setAppointmentDate(date); setDateTimeMode("time"); }}
-              onTimeSelect={(time) => { setAppointmentTime(time); setDateTimeDialogOpen(false); }}
-              mode={dateTimeMode === "date" ? "date" : "time"}
-            />
-            {dateTimeMode === "time" && (
-              <button onClick={() => setDateTimeMode("date")}
-                className="w-full text-center text-xs text-primary-teal hover:underline">← Change date</button>
-            )}
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setDateTimeDialogOpen(false)}>
+          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center"><span className="text-white font-bold text-base">{dateTimeMode === "date" ? "Select Date" : "Select Time"}</span><button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
+            <AppointmentCalendar selectedDate={appointmentDate || null} selectedTime={appointmentTime || null} onDateSelect={(date) => { setAppointmentDate(date); setDateTimeMode("time"); }} onTimeSelect={(time) => { setAppointmentTime(time); setDateTimeDialogOpen(false); }} mode={dateTimeMode === "date" ? "date" : "time"} />
+            {dateTimeMode === "time" && (<button onClick={() => setDateTimeMode("date")} className="w-full text-center text-xs text-[#2dd4a0] hover:underline">← Change date</button>)}
+          </div>
+        </div>
+      )}
+      {/* DEA INFO POPUP */}
+      {showDeaInfoPopup && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
+          <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3"><div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0"><Shield size={18} className="text-amber-400" /></div><div><h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3><p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p></div></div>
+            <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3"><p className="text-xs text-gray-300 leading-relaxed">Under federal law, the <span className="text-white font-semibold">Ryan Haight Act</span> requires controlled substances be prescribed only after a valid practitioner-patient relationship with at least one <span className="text-white font-semibold">live medical evaluation</span>.</p><p className="text-xs text-gray-400 leading-relaxed mt-2">DEA telemedicine flexibilities extended through <span className="text-amber-300 font-semibold">December 31, 2026</span>.</p></div>
+            <button onClick={() => setShowDeaInfoPopup(false)} className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl border border-amber-500/30">I Understand</button>
           </div>
         </div>
       )}
