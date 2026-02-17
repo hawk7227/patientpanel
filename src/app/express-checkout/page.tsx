@@ -320,6 +320,7 @@ export default function ExpressCheckoutPage() {
   const [controlledVisitType, setControlledVisitType] = useState<"video" | "phone">("video");
   const [schedulingAppointment, setSchedulingAppointment] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [showDeaInfoPopup, setShowDeaInfoPopup] = useState(false);
 
   // Dialogs
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
@@ -660,19 +661,22 @@ export default function ExpressCheckoutPage() {
             <p className="text-sm text-gray-400">One more step to complete your booking</p>
           </div>
 
-          {/* Controlled Substance Notice */}
-          <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 mb-6">
+          {/* Controlled Substance Notice — GOOD NEWS */}
+          <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-4 mb-6">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <AlertTriangle size={20} className="text-amber-400" />
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check size={20} className="text-green-400" />
               </div>
               <div>
-                <h3 className="text-amber-400 font-bold text-sm mb-1">Live Visit Required</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Your refill includes{" "}
-                  <span className="text-amber-300 font-semibold">{controlledMeds.join(", ")}</span> — a controlled 
-                  medication that requires a brief live consultation with your provider per federal regulations (DEA/Ryan Haight Act). 
-                  Your visit has been upgraded at no additional cost.
+                <h3 className="text-green-400 font-bold text-sm mb-1">🎉 Great News!</h3>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  The DEA has extended telemedicine flexibilities through <span className="text-green-300 font-semibold">2026</span> — controlled 
+                  substances like <span className="text-white font-semibold">{controlledMeds.join(", ")}</span> can be prescribed via 
+                  telehealth (video or phone) <span className="text-green-300 font-semibold">without an in-person visit</span>.
+                </p>
+                <p className="text-xs text-gray-400 leading-relaxed mt-1.5">
+                  All that&apos;s needed is a brief live consultation with your provider. Select a date and 
+                  time below — your visit has been upgraded at <span className="text-white font-semibold">no additional cost</span>.
                 </p>
               </div>
             </div>
@@ -921,28 +925,55 @@ export default function ExpressCheckoutPage() {
                   {/* Controlled substance acknowledgment */}
                   {hasControlledSelected && (
                     <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <AlertTriangle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-amber-400 text-xs font-semibold">Controlled Medication Selected</p>
-                          <p className="text-amber-400/70 text-[10px] mt-0.5 leading-relaxed">
-                            Under federal law (DEA/Ryan Haight Act), controlled substances may require a live 
-                            consultation via video or phone call before a prescription can be issued. After payment, 
-                            you will be asked to select a date and time for a brief live visit with your provider.
-                          </p>
-                        </div>
-                      </div>
                       <div className="flex items-start gap-2 pl-1">
                         <input type="checkbox" id="controlledAck" checked={controlledAcknowledged}
                           onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); }}
                           className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500"
                         />
                         <label htmlFor="controlledAck" className="text-[10px] text-gray-400 leading-relaxed">
-                          <span className="text-white font-semibold">I understand and agree.</span>{" "}
-                          I acknowledge that my selected controlled medication(s) may require a live video or phone 
-                          visit with a licensed provider. I agree to schedule and attend this visit after payment. 
-                          The provider will determine at their clinical discretion whether the prescription is appropriate.
+                          <span className="text-white font-semibold">I understand and accept</span>{" "}
+                          that this is a controlled substance request. I have read and understand the{" "}
+                          <button type="button" onClick={() => setShowDeaInfoPopup(true)}
+                            className="text-amber-400 underline underline-offset-2 decoration-amber-400/50 font-semibold hover:text-amber-300 transition-colors">
+                            DEA/Ryan Haight Act requirements
+                          </button>. I acknowledge that my selected controlled medication(s) may require a live video or phone 
+                          visit with a licensed provider.
                         </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DEA Info Popup */}
+                  {showDeaInfoPopup && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
+                      <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Shield size={18} className="text-amber-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3>
+                            <p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p>
+                          </div>
+                        </div>
+                        <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3">
+                          <p className="text-xs text-gray-300 leading-relaxed">
+                            Under federal law, the <span className="text-white font-semibold">Ryan Haight Online Pharmacy Consumer Protection Act</span> requires 
+                            that controlled substances (Schedule II–V) be prescribed only after a valid practitioner-patient 
+                            relationship has been established. This generally requires at least one <span className="text-white font-semibold">live medical evaluation</span> via 
+                            video or phone consultation before a controlled medication can be prescribed.
+                          </p>
+                          <p className="text-xs text-gray-400 leading-relaxed mt-2">
+                            The DEA has extended telemedicine flexibilities through <span className="text-amber-300 font-semibold">December 31, 2026</span>, allowing 
+                            practitioners to prescribe controlled substances via audio-video telemedicine visits without 
+                            a prior in-person examination. Your provider will conduct a brief live consultation to ensure 
+                            your safety and the appropriateness of the prescribed medication.
+                          </p>
+                        </div>
+                        <button onClick={() => setShowDeaInfoPopup(false)}
+                          className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl transition-colors border border-amber-500/30">
+                          I Understand
+                        </button>
                       </div>
                     </div>
                   )}
