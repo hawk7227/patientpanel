@@ -54,23 +54,35 @@ export async function GET(req: NextRequest) {
   let patientEmail: string | null = null;
 
   try {
-    const { data } = await supabase
+    const { data, error: patientError } = await supabase
       .from("patients")
       .select("drchrono_patient_id, current_medications, intake_data, email")
       .eq("id", patientId)
       .single();
+    
+    if (patientError) {
+      console.log(`[Meds] Patient query error: ${patientError.message} (code: ${patientError.code})`);
+    }
+    
     patientRecord = data;
     drchronoPatientId = data?.drchrono_patient_id || null;
     patientEmail = data?.email || null;
     console.log(`[Meds] Patient ${patientId}, drchrono_id: ${drchronoPatientId}, email: ${patientEmail}`);
   } catch (e) {
-    console.log("[Meds] Patient lookup failed:", (e as Error).message);
+    console.log("[Meds] Patient lookup EXCEPTION:", (e as Error).message);
   }
 
   try {
     // ═══ SOURCE 1: drchrono_medications (MAIN SOURCE) ═══════
     if (drchronoPatientId) {
       try {
+        // Debug: test direct count first
+        const { count: testCount, error: countErr } = await supabase
+          .from("drchrono_medications")
+          .select("*", { count: "exact", head: true })
+          .eq("drchrono_patient_id", drchronoPatientId);
+        console.log(`[Meds] S1 COUNT check: ${testCount} rows for drchrono_id ${drchronoPatientId} (err: ${countErr?.message || 'none'})`);
+
         const { data: dcMeds, error } = await supabase
           .from("drchrono_medications")
           .select("name, dosage_quantity, dosage_unit, sig, frequency, status, date_prescribed, date_stopped_taking")
