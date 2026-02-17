@@ -146,7 +146,25 @@ export default function Home() {
 
               </div>
 
-              {/* Stats */}
+              {/* ── Single File Handling — Personal Care Promise ── */}
+              <div className="mt-4 relative bg-gradient-to-r from-white/[0.04] to-white/[0.01] border border-white/10 rounded-xl p-4 overflow-hidden">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-primary-teal/5 rounded-full blur-2xl" />
+                <div className="flex items-start gap-3 relative">
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-teal flex-shrink-0 shadow-[0_0_12px_rgba(0,203,169,0.25)]">
+                    <Image src="/assets/provider-lamonica.png" alt="Your Provider" width={40} height={40} className="object-cover" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-bold text-sm">Need a face with your care? <span className="text-primary-teal">You&apos;ll always have one.</span></p>
+                    <p className="text-gray-400 text-[11px] mt-1 leading-relaxed">
+                      Every visit type — whether instant, refill, or live — is handled by a <span className="text-white font-semibold">real licensed provider</span>. And at Medazon, we do things differently:
+                    </p>
+                    <div className="mt-2 bg-primary-teal/5 border border-primary-teal/15 rounded-lg px-3 py-2">
+                      <p className="text-primary-teal font-black text-[11px] uppercase tracking-wider">🔒 Single-File Handling</p>
+                      <p className="text-gray-300 text-[10px] mt-0.5 leading-relaxed">One provider. Your provider. From your first visit to every refill — the same person handles your care. We never switch up on you.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 <div className="bg-white/[0.02] rounded-lg py-2 px-1 border border-white/5">
                   <p className="text-primary-teal font-black text-sm">2 min</p>
