@@ -25,26 +25,41 @@ export default function ReturningPatientLookup() {
     setNotFound(false);
 
     try {
-      const res = await fetch("/api/express-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmed }),
-      });
+      // LOCAL-FIRST: Check IndexedDB first, then API, cache result
+      const { lookupPatient } = await import('@/lib/hybrid-data');
+      const result = await lookupPatient(trimmed);
 
-      const data = await res.json();
-
-      if (data.found && data.patient) {
+      if (result.found && result.patient) {
         // Store patient data and redirect to express checkout
         sessionStorage.setItem("expressPatient", JSON.stringify({
-          ...data.patient,
-          source: data.source,
+          ...result.patient,
+          source: result.patient._fromLocal ? 'local' : result.patient.source || 'patients',
         }));
         router.push("/express-checkout");
       } else {
         setNotFound(true);
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      // Last resort: try direct API call if hybrid fails
+      try {
+        const res = await fetch("/api/express-lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmed }),
+        });
+        const data = await res.json();
+        if (data.found && data.patient) {
+          sessionStorage.setItem("expressPatient", JSON.stringify({
+            ...data.patient,
+            source: data.source,
+          }));
+          router.push("/express-checkout");
+        } else {
+          setNotFound(true);
+        }
+      } catch {
+        setError("You appear to be offline and we don't have your info cached yet. Please connect to the internet and try again.");
+      }
     }
 
     setIsChecking(false);
