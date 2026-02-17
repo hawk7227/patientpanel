@@ -50,7 +50,273 @@ const VISIT_TYPES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// Inner Payment Form (needs Stripe context)
+// Step 2 Payment Form — fits iPhone 15 Pro viewport
+// Google Pay → OR PAY WITH CARD → Terms → Processing bar
+// ═══════════════════════════════════════════════════════════════
+function Step2PaymentForm({
+  patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
+  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess,
+}: {
+  patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
+  appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
+  pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
+  symptomsText: string; onSuccess: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [statusText, setStatusText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
+
+  const isTestMode =
+    process.env.NEXT_PUBLIC_SKIP_PAYMENT === "true" ||
+    (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_TEST_MODE === "true");
+
+  const convertDateToISO = (dateStr: string): string => {
+    if (!dateStr) return "";
+    if (dateStr.includes("-") && dateStr.split("-")[0].length === 4) return dateStr;
+    const parts = dateStr.split("/");
+    if (parts.length === 3) return `${parts[2]}-${parts[0].padStart(2, "0")}-${parts[1].padStart(2, "0")}`;
+    return dateStr;
+  };
+
+  const handlePay = async () => {
+    if (!stripe || !elements) return;
+    if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
+
+    setIsProcessing(true);
+    setError(null);
+    setProgress(5);
+    setStatusText("Starting payment process...");
+
+    try {
+      setProgress(15);
+      setStatusText("Checking patient record...");
+
+      let patientId = patient.id;
+      if (!patientId) {
+        setProgress(25);
+        setStatusText("Creating patient record...");
+        const createRes = await fetch("/api/check-create-patient", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
+            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
+            address: patient.address, pharmacy: pharmacy || patient.pharmacy || "",
+            pharmacyAddress: pharmacyAddress || "",
+          }),
+        });
+        const createResult = await createRes.json();
+        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
+        patientId = createResult.patientId;
+      }
+
+      setProgress(45);
+      setStatusText("Processing payment...");
+
+      let paymentIntent: any = null;
+      let paymentError: any = null;
+
+      if (isTestMode) {
+        paymentIntent = {
+          id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          status: "succeeded",
+        };
+        await new Promise((r) => setTimeout(r, 500));
+      } else {
+        setProgress(55);
+        setStatusText("Confirming payment...");
+        const result = await stripe.confirmPayment({
+          elements, redirect: "if_required",
+          confirmParams: {
+            return_url: `${window.location.origin}/success`,
+            payment_method_data: {
+              billing_details: {
+                name: `${patient.firstName} ${patient.lastName}`,
+                email: patient.email, phone: patient.phone,
+              },
+            },
+          },
+        });
+        paymentError = result.error;
+        paymentIntent = result.paymentIntent;
+      }
+
+      if (paymentError) { setError(paymentError.message || "Payment failed."); setIsProcessing(false); return; }
+
+      if (paymentIntent?.status === "succeeded") {
+        setProgress(75);
+        setStatusText("Creating appointment...");
+
+        const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const isAsync = visitType === "instant" || visitType === "refill";
+
+        let fullChiefComplaint = chiefComplaint || reason;
+        if (selectedMedications.length > 0) {
+          fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
+        }
+        if (symptomsText) {
+          fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
+        }
+
+        const appointmentPayload = {
+          payment_intent_id: paymentIntent.id,
+          appointmentData: {
+            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
+            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
+            streetAddress: patient.address,
+            symptoms: reason,
+            chief_complaint: fullChiefComplaint,
+            visitType: visitType,
+            appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
+            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            patientId: patientId,
+            patientTimezone: patientTZ,
+            skipIntake: true,
+            isReturningPatient: true,
+            pharmacy: pharmacy || patient.pharmacy || "",
+            pharmacyAddress: pharmacyAddress || "",
+          },
+        };
+
+        const appointmentRes = await fetch("/api/create-appointment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(appointmentPayload),
+        });
+        const appointmentResult = await appointmentRes.json();
+        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+
+        setProgress(100);
+        setStatusText("Appointment booked!");
+
+        sessionStorage.setItem("appointmentData", JSON.stringify({
+          ...appointmentPayload.appointmentData,
+          appointmentId: appointmentResult.appointmentId,
+          accessToken: appointmentResult.accessToken,
+          payment_intent_id: paymentIntent.id,
+        }));
+
+        await new Promise((r) => setTimeout(r, 800));
+        onSuccess();
+      }
+    } catch (err: any) {
+      console.error("Express checkout error:", err);
+      setError(err.message || "Something went wrong. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
+  // Processing state — full overlay
+  if (isProcessing) {
+    return (
+      <div className="w-full space-y-3 py-2">
+        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+          <div className="h-full bg-[#2dd4a0] rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${Math.min(progress, 100)}%` }} />
+        </div>
+        <p className="text-[13px] text-gray-300 text-center">{statusText}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-2">
+      {/* Error */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-[11px]">{error}</div>
+      )}
+
+      {/* Test mode indicator */}
+      {isTestMode && (
+        <div className="text-center py-1">
+          <span className="text-yellow-400 text-[10px] font-bold">🧪 TEST MODE</span>
+        </div>
+      )}
+
+      {/* ELEMENT 9 — Google Pay / Card Form */}
+      {!showCardForm ? (
+        <>
+          {/* Google Pay Button — white rectangle */}
+          {!isTestMode ? (
+            <div className="rounded-xl overflow-hidden">
+              <PaymentElement
+                options={{
+                  layout: "tabs",
+                  paymentMethodOrder: ["google_pay", "apple_pay", "card"],
+                  wallets: { applePay: "auto", googlePay: "auto" },
+                  fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
+                }}
+              />
+            </div>
+          ) : (
+            <button onClick={handlePay} disabled={!acceptedTerms}
+              className="w-full bg-white rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50">
+              <span className="text-black font-semibold text-base">Test Pay {currentPrice.display}</span>
+            </button>
+          )}
+
+          {/* ELEMENT 10 — OR PAY WITH CARD */}
+          {!isTestMode && (
+            <button onClick={() => setShowCardForm(true)}
+              className="w-full text-center py-1">
+              <span className="text-[#2dd4a0] text-[12px] font-extrabold tracking-wider uppercase">
+                OR PAY WITH CARD
+              </span>
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Expanded card form */}
+          <div className="rounded-xl overflow-hidden">
+            <PaymentElement
+              options={{
+                layout: "tabs",
+                paymentMethodOrder: ["card"],
+                wallets: { applePay: "never", googlePay: "never", link: "never" },
+                fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
+              }}
+            />
+          </div>
+          <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms}
+            className="w-full bg-[#2dd4a0] hover:bg-[#25b88d] text-black font-bold py-3 rounded-xl transition-all disabled:opacity-50 text-[14px]">
+            Pay {currentPrice.display}
+          </button>
+          <button onClick={() => setShowCardForm(false)}
+            className="w-full text-center py-0.5">
+            <span className="text-gray-500 text-[11px]">← Back to other options</span>
+          </button>
+        </>
+      )}
+
+      {/* ELEMENT 11 — Terms Checkbox */}
+      <div className="flex items-start gap-1.5 px-0.5">
+        <input type="checkbox" id="step2Terms" checked={acceptedTerms}
+          onChange={(e) => setAcceptedTerms(e.target.checked)}
+          className="flex-shrink-0 mt-[1px]"
+          style={{ width: '14px', height: '14px', borderRadius: '3px', border: '1.5px solid #555', background: 'transparent', accentColor: '#2dd4a0' }}
+        />
+        <label htmlFor="step2Terms" className="text-[8px] text-[#888] leading-[1.5]">
+          By confirming, I agree to the{" "}
+          <span className="text-[#2dd4a0] underline underline-offset-1">Terms of Service</span>,{" "}
+          <span className="text-[#2dd4a0] underline underline-offset-1">Privacy Policy</span>, and{" "}
+          <span className="text-[#2dd4a0] underline underline-offset-1">Cancellation Policy</span>.{" "}
+          By requesting a provider appointment, I acknowledge that my card will not be charged until a 
+          provider accepts my appointment request. Once accepted, I authorize a one-time charge of{" "}
+          <strong className="text-white">{currentPrice.display}.00</strong> (flat, non-refundable) for this visit.
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Inner Payment Form (needs Stripe context) — Step 1 version
 // ═══════════════════════════════════════════════════════════════
 function ExpressPaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
@@ -328,6 +594,9 @@ export default function ExpressCheckoutPage() {
   const [chiefComplaintDialogOpen, setChiefComplaintDialogOpen] = useState(false);
   const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
+
+  // Step flow: 1 = booking form, 2 = review & pay
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
   // Payment
   const [clientSecret, setClientSecret] = useState("");
@@ -791,6 +1060,254 @@ export default function ExpressCheckoutPage() {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // STEP 2 — REVIEW & PAY (Pixel-Perfect iPhone 15 Pro Layout)
+  // NON-SCROLLABLE. overflow: hidden. 393×852 viewport.
+  // Safe area: 56px top, 34px bottom = 762px usable.
+  // ═══════════════════════════════════════════════════════════
+  if (currentStep === 2) {
+    return (
+      <div className="min-h-screen bg-[#080c10] text-white font-sans flex items-center justify-center">
+
+        {/* STEP 2 label OUTSIDE the phone */}
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50">
+          <span className="text-[12px] font-bold text-[#2dd4a0] uppercase" style={{ letterSpacing: '2px' }}>
+            STEP 2 — REVIEW &amp; PAY
+          </span>
+        </div>
+
+        {/* iPHONE 15 PRO FRAME */}
+        <div className="relative w-full max-w-[393px] mx-auto bg-black"
+          style={{ height: '100dvh', maxHeight: '852px', borderRadius: '55px', border: '3px solid #2a2a2a', overflow: 'hidden' }}>
+
+          {/* Dynamic Island */}
+          <div className="absolute top-[11px] left-1/2 -translate-x-1/2 bg-black z-50"
+            style={{ width: '126px', height: '37px', borderRadius: '20px' }} />
+
+          {/* Home Indicator */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50"
+            style={{ width: '134px', height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.25)' }} />
+
+          {/* Status Bar */}
+          <div className="absolute top-[14px] left-[32px] right-[32px] z-40 flex items-center justify-between">
+            <span className="text-[15px] font-semibold text-white">5:19</span>
+            <div className="flex items-center gap-1">
+              {/* Cellular bars */}
+              <div className="flex items-end gap-[1px]">
+                {[4,6,8,10].map((h,i) => (
+                  <div key={i} style={{ width: '3px', height: `${h}px`, background: '#fff', borderRadius: '1px' }} />
+                ))}
+              </div>
+              {/* Battery */}
+              <div className="ml-1 relative" style={{ width: '25px', height: '12px' }}>
+                <div style={{ width: '22px', height: '12px', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: '70%', height: '100%', background: '#2dd4a0', borderRadius: '1px' }} />
+                </div>
+                <div style={{ position: 'absolute', right: '-3px', top: '3px', width: '2px', height: '5px', background: 'rgba(255,255,255,0.5)', borderRadius: '0 1px 1px 0' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* SCREEN BACKGROUND GRADIENT */}
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, #0a1a15 0%, #080c10 20%)' }} />
+
+          {/* ═══ CONTENT — NO SCROLL ═══ */}
+          <div className="relative z-10 flex flex-col items-center px-4 overflow-hidden"
+            style={{ paddingTop: '56px', paddingBottom: '34px', height: '100%' }}>
+
+            {/* ELEMENT 1 — Privacy Hero Banner (~80px) */}
+            <div className="text-center" style={{ marginBottom: '0px' }}>
+              <div className="text-[11px] font-bold text-[#f97316] tracking-wide">
+                &ldquo;I AM WHEN
+              </div>
+              <div className="flex items-center justify-center gap-2" style={{ marginTop: '2px' }}>
+                <Shield size={18} className="text-[#2dd4a0]" />
+                <span className="text-white font-black tracking-wide" style={{ fontSize: '22px' }}>
+                  YOUR PRIVACY MATTERS
+                </span>
+                <span className="text-[#f97316]" style={{ fontSize: '20px' }}>&rdquo;</span>
+              </div>
+              <div className="text-[#2dd4a0] font-semibold" style={{ fontSize: '12px', marginTop: '2px' }}>
+                Medazon Health
+              </div>
+            </div>
+
+            {/* ELEMENT 2 — Provider Photo (120×120, overlaps banner) */}
+            <div style={{ marginTop: '-4px', marginBottom: '8px' }}>
+              <div className="overflow-hidden" style={{
+                width: '120px', height: '120px', borderRadius: '50%',
+                border: '3px solid #2dd4a0',
+                boxShadow: '0 0 20px rgba(45,212,160,0.3)',
+              }}>
+                <img src="/assets/provider-lamonica.png" alt="LaMonica A. Hodges"
+                  className="w-full h-full object-cover object-top" />
+              </div>
+            </div>
+
+            {/* ELEMENT 3 — Provider Name & Credentials */}
+            <div className="text-center" style={{ marginBottom: '4px' }}>
+              <h2 className="font-black text-white" style={{ fontSize: '26px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+                LaMonica A. Hodges
+              </h2>
+              <p className="font-medium" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
+                MSN, APRN, FNP-C
+              </p>
+              <p className="font-semibold text-[#2dd4a0]" style={{ fontSize: '13px', marginTop: '2px' }}>
+                Board-Certified · 10+ Years Experience
+              </p>
+            </div>
+
+            {/* ELEMENT 4 — CONFIRM APPROVED BOOKING */}
+            <div style={{ marginTop: '6px', marginBottom: '10px' }}>
+              <span className="font-black text-white" style={{ fontSize: '22px' }}>CONFIRM </span>
+              <span className="font-black text-[#f59e0b]" style={{ fontSize: '22px' }}>APPROVED </span>
+              <span className="font-black text-[#2dd4a0]" style={{ fontSize: '22px' }}>BOOKING</span>
+            </div>
+
+            {/* ELEMENT 5 — Service Dropdown */}
+            <button onClick={() => { setCurrentStep(1); }}
+              className="w-full flex items-center justify-between rounded-xl"
+              style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', marginBottom: '8px' }}>
+              <span className="text-white font-medium" style={{ fontSize: '14px' }}>{reason || "Select Service"}</span>
+              <span className="text-[#666]" style={{ fontSize: '12px' }}>▾</span>
+            </button>
+
+            {/* ELEMENT 6 — Visit Type Toggle */}
+            <div className="w-full flex" style={{ gap: '8px', marginBottom: '8px' }}>
+              {([
+                { key: "video" as VisitType, label: "Video Visit" },
+                { key: "phone" as VisitType, label: "Phone Visit" },
+              ]).map(opt => {
+                const isActive = (needsCalendar && visitType === opt.key) || (!needsCalendar && opt.key === "video");
+                return (
+                  <button key={opt.key}
+                    onClick={() => { if (needsCalendar) handleVisitTypeChange(opt.key); }}
+                    className="flex-1 font-bold"
+                    style={{
+                      padding: '12px 0', borderRadius: '12px', fontSize: '13px',
+                      ...(isActive
+                        ? { background: '#2dd4a0', color: '#000' }
+                        : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
+                    }}>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ELEMENT 7 — Date/Time Selector */}
+            {needsCalendar ? (
+              <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }}
+                className="w-full flex items-center justify-between"
+                style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)', marginBottom: '8px' }}>
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: '16px' }}>📅</span>
+                  <span className="text-white font-semibold" style={{ fontSize: '13px' }}>
+                    {formatDisplayDateTime() || "Select Date & Time"}
+                  </span>
+                </div>
+                <span className="text-[#666]" style={{ fontSize: '12px' }}>▾</span>
+              </button>
+            ) : isAsync && selectedMeds.length > 0 ? (
+              <div className="w-full" style={{
+                padding: '12px 16px', borderRadius: '12px',
+                background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)', marginBottom: '8px'
+              }}>
+                <span className="text-[#2dd4a0] font-bold" style={{ fontSize: '12px' }}>
+                  ✓ {selectedMeds.length} medication{selectedMeds.length > 1 ? "s" : ""} selected for refill
+                </span>
+              </div>
+            ) : null}
+
+            {/* ELEMENT 8 — Price */}
+            <div className="text-center" style={{ margin: '6px 0' }}>
+              <span className="text-[#2dd4a0] font-extrabold" style={{ fontSize: '18px' }}>
+                {currentPrice.display} per visit
+              </span>
+            </div>
+
+            {/* ELEMENTS 9-11 — Payment Form (fills remaining space) */}
+            {clientSecret && stripeOptions ? (
+              <div className="w-full flex-1 flex flex-col justify-end" style={{ minHeight: 0 }}>
+                <Elements options={stripeOptions} stripe={stripePromise}>
+                  <Step2PaymentForm
+                    patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType}
+                    appointmentDate={appointmentDate} appointmentTime={appointmentTime}
+                    currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress}
+                    selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess}
+                  />
+                </Elements>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-3">
+                <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
+              </div>
+            )}
+
+            {/* ELEMENT 12 — Bottom breathing space (handled by paddingBottom: 34px) */}
+
+          </div>
+        </div>
+
+        {/* Date/Time dialog overlay */}
+        {dateTimeDialogOpen && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setDateTimeDialogOpen(false)}>
+            <div className="bg-[#0d1218] border-t border-white/10 rounded-t-2xl w-full max-w-lg p-4 pb-8 space-y-3" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center">
+                <span className="text-white font-bold text-sm">
+                  {dateTimeMode === "date" ? "Select Date" : "Select Time"}
+                </span>
+                <button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white"><X size={18} /></button>
+              </div>
+              <AppointmentCalendar
+                mode={dateTimeMode}
+                selectedDate={appointmentDate}
+                selectedTime={appointmentTime}
+                onDateSelect={(d: string) => { setAppointmentDate(d); setDateTimeMode("time"); }}
+                onTimeSelect={(t: string) => { setAppointmentTime(t); setDateTimeDialogOpen(false); setClientSecret(""); }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* DEA Info Popup — needs to be available in Step 2 too */}
+        {showDeaInfoPopup && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
+            <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Shield size={18} className="text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3>
+                  <p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p>
+                </div>
+              </div>
+              <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3">
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Under federal law, the <span className="text-white font-semibold">Ryan Haight Online Pharmacy Consumer Protection Act</span> requires
+                  that controlled substances (Schedule II–V) be prescribed only after a valid practitioner-patient
+                  relationship has been established via a <span className="text-white font-semibold">live medical evaluation</span>.
+                </p>
+                <p className="text-xs text-gray-400 leading-relaxed mt-2">
+                  The DEA has extended telemedicine flexibilities through <span className="text-amber-300 font-semibold">December 31, 2026</span>.
+                </p>
+              </div>
+              <button onClick={() => setShowDeaInfoPopup(false)}
+                className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl transition-colors border border-amber-500/30">
+                I Understand
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // STEP 1 — BOOKING FORM (original render)
+  // ═══════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════
   return (
@@ -1108,23 +1625,12 @@ export default function ExpressCheckoutPage() {
             </div>
           </div>
 
-          {/* ── Payment ───────────────────────────────────────── */}
-          {allFieldsReady && clientSecret && stripeOptions && (
-            <Elements options={stripeOptions} stripe={stripePromise}>
-              <ExpressPaymentForm
-                patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType}
-                appointmentDate={appointmentDate} appointmentTime={appointmentTime}
-                currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress}
-                selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess}
-              />
-            </Elements>
-          )}
-
-          {allFieldsReady && !clientSecret && (
-            <div className="flex items-center justify-center py-4">
-              <div className="animate-spin w-5 h-5 border-2 border-primary-teal border-t-transparent rounded-full" />
-              <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
-            </div>
+          {/* ── Continue to Step 2 (Review & Pay) ─────────────── */}
+          {allFieldsReady && (
+            <button onClick={() => setCurrentStep(2)}
+              className="w-full bg-primary-orange hover:bg-orange-600 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 text-base shadow-lg">
+              Continue to Payment <ChevronDown size={16} className="rotate-[-90deg]" />
+            </button>
           )}
 
           {!allFieldsReady && (
