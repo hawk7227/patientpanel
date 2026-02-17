@@ -691,14 +691,32 @@ export default function ExpressCheckoutPage() {
           )}
 
           {/* ── Price Display + Privacy ───────────────────────── */}
-          <div className="text-center py-2">
-            <div className="text-xl font-bold text-white">{currentPrice.display}</div>
-            <div className="text-[10px] text-gray-500 mt-0.5">
-              {currentPrice.label} · {VISIT_TYPES.find(v => v.key === visitType)?.label} Visit
-              {currentPrice.isAfterHours && (
-                <span className="text-orange-400 ml-1">(after-hours rate)</span>
-              )}
+          <div className="text-center py-3 space-y-2">
+            {/* Privacy banner right above price */}
+            <div className="flex items-center justify-center gap-1.5">
+              <Lock size={12} className="text-primary-teal" />
+              <p className="text-[10px] text-gray-400">
+                <span className="text-primary-teal font-semibold">YOUR PRIVACY MATTERS</span>{" "}
+                · No insurance needed · No records shared · 100% confidential
+              </p>
             </div>
+
+            <div className="text-2xl font-bold text-white">{currentPrice.display}</div>
+
+            {currentPrice.isAfterHours ? (
+              <div className="space-y-0.5">
+                <div className="text-[11px] text-orange-400 font-medium">
+                  {currentPrice.isHoliday ? "🏛 Holiday" : currentPrice.isWeekend ? "📅 Weekend" : "🌙 After-hours"} rate
+                </div>
+                <div className="text-[10px] text-gray-500">
+                  Regular price: {(visitType === "instant" || visitType === "refill") ? "$189" : "$199"} (Mon–Fri, 9am–5pm your time)
+                </div>
+              </div>
+            ) : (
+              <div className="text-[10px] text-gray-500">
+                {currentPrice.label} · {VISIT_TYPES.find(v => v.key === visitType)?.label} Visit
+              </div>
+            )}
           </div>
 
           {/* ── Payment ───────────────────────────────────────── */}
