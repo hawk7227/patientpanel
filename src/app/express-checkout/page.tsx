@@ -1061,194 +1061,150 @@ export default function ExpressCheckoutPage() {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // STEP 2 — REVIEW & PAY (Pixel-Perfect iPhone 15 Pro Layout)
-  // NON-SCROLLABLE. overflow: hidden. 393×852 viewport.
-  // Safe area: 56px top, 34px bottom = 762px usable.
+  // STEP 2 — REVIEW & PAY (matches design image exactly)
   // ═══════════════════════════════════════════════════════════
   if (currentStep === 2) {
     return (
-      <div className="min-h-screen bg-[#080c10] text-white font-sans flex items-center justify-center">
+      <div className="min-h-screen text-white font-sans" style={{ background: 'linear-gradient(to bottom, #0a1a15 0%, #080c10 18%, #080c10 100%)' }}>
+        <div className="max-w-[393px] mx-auto px-4 pb-10">
 
-        {/* STEP 2 label OUTSIDE the phone */}
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50">
-          <span className="text-[12px] font-bold text-[#2dd4a0] uppercase" style={{ letterSpacing: '2px' }}>
-            STEP 2 — REVIEW &amp; PAY
-          </span>
-        </div>
-
-        {/* iPHONE 15 PRO FRAME */}
-        <div className="relative w-full max-w-[393px] mx-auto bg-black"
-          style={{ height: '100dvh', maxHeight: '852px', borderRadius: '55px', border: '3px solid #2a2a2a', overflow: 'hidden' }}>
-
-          {/* Dynamic Island */}
-          <div className="absolute top-[11px] left-1/2 -translate-x-1/2 bg-black z-50"
-            style={{ width: '126px', height: '37px', borderRadius: '20px' }} />
-
-          {/* Home Indicator */}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-50"
-            style={{ width: '134px', height: '5px', borderRadius: '3px', background: 'rgba(255,255,255,0.25)' }} />
-
-          {/* Status Bar */}
-          <div className="absolute top-[14px] left-[32px] right-[32px] z-40 flex items-center justify-between">
-            <span className="text-[15px] font-semibold text-white">5:19</span>
-            <div className="flex items-center gap-1">
-              {/* Cellular bars */}
-              <div className="flex items-end gap-[1px]">
-                {[4,6,8,10].map((h,i) => (
-                  <div key={i} style={{ width: '3px', height: `${h}px`, background: '#fff', borderRadius: '1px' }} />
-                ))}
-              </div>
-              {/* Battery */}
-              <div className="ml-1 relative" style={{ width: '25px', height: '12px' }}>
-                <div style={{ width: '22px', height: '12px', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: '70%', height: '100%', background: '#2dd4a0', borderRadius: '1px' }} />
-                </div>
-                <div style={{ position: 'absolute', right: '-3px', top: '3px', width: '2px', height: '5px', background: 'rgba(255,255,255,0.5)', borderRadius: '0 1px 1px 0' }} />
-              </div>
+          {/* ═══ ELEMENT 1 — Privacy Hero Banner ═══ */}
+          <div className="text-center pt-8 pb-2">
+            <div className="text-[11px] font-bold text-[#f97316] tracking-wide">
+              &quot;I AM WHEN
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <Shield size={18} className="text-[#2dd4a0]" />
+              <span className="text-white font-black tracking-wide" style={{ fontSize: '21px' }}>
+                YOUR PRIVACY MATTERS
+              </span>
+              <span className="text-[#f97316]" style={{ fontSize: '18px' }}>&quot;</span>
+            </div>
+            <div className="text-[#2dd4a0] font-semibold text-[12px] mt-1 italic">
+              Medazon Health
             </div>
           </div>
 
-          {/* SCREEN BACKGROUND GRADIENT */}
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(to bottom, #0a1a15 0%, #080c10 20%)' }} />
-
-          {/* ═══ CONTENT — NO SCROLL ═══ */}
-          <div className="relative z-10 flex flex-col items-center px-4 overflow-hidden"
-            style={{ paddingTop: '56px', paddingBottom: '34px', height: '100%' }}>
-
-            {/* ELEMENT 1 — Privacy Hero Banner (~80px) */}
-            <div className="text-center" style={{ marginBottom: '0px' }}>
-              <div className="text-[11px] font-bold text-[#f97316] tracking-wide">
-                &ldquo;I AM WHEN
-              </div>
-              <div className="flex items-center justify-center gap-2" style={{ marginTop: '2px' }}>
-                <Shield size={18} className="text-[#2dd4a0]" />
-                <span className="text-white font-black tracking-wide" style={{ fontSize: '22px' }}>
-                  YOUR PRIVACY MATTERS
-                </span>
-                <span className="text-[#f97316]" style={{ fontSize: '20px' }}>&rdquo;</span>
-              </div>
-              <div className="text-[#2dd4a0] font-semibold" style={{ fontSize: '12px', marginTop: '2px' }}>
-                Medazon Health
-              </div>
+          {/* ═══ ELEMENT 2 — Provider Photo ═══ */}
+          <div className="flex justify-center -mt-1 mb-3">
+            <div className="overflow-hidden" style={{
+              width: '130px', height: '130px', borderRadius: '50%',
+              border: '3px solid #2dd4a0',
+              boxShadow: '0 0 25px rgba(45,212,160,0.35)',
+            }}>
+              <img src="/assets/provider-lamonica.png" alt="LaMonica A. Hodges"
+                className="w-full h-full object-cover object-top" />
             </div>
+          </div>
 
-            {/* ELEMENT 2 — Provider Photo (120×120, overlaps banner) */}
-            <div style={{ marginTop: '-4px', marginBottom: '8px' }}>
-              <div className="overflow-hidden" style={{
-                width: '120px', height: '120px', borderRadius: '50%',
-                border: '3px solid #2dd4a0',
-                boxShadow: '0 0 20px rgba(45,212,160,0.3)',
+          {/* ═══ ELEMENT 3 — Provider Name & Credentials ═══ */}
+          <div className="text-center mb-1">
+            <h2 className="font-black text-white" style={{ fontSize: '28px', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
+              LaMonica A. Hodges
+            </h2>
+            <p className="font-medium mt-0.5" style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)' }}>
+              MSN, APRN, FNP-C
+            </p>
+            <p className="font-semibold text-[#2dd4a0] mt-0.5" style={{ fontSize: '14px' }}>
+              Board-Certified · 10+ Years Experience
+            </p>
+          </div>
+
+          {/* ═══ ELEMENT 4 — COMFIRM APPROVED BOOKING ═══ */}
+          <div className="text-center mt-2 mb-4">
+            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '24px' }}>COMFIRM </span>
+            <span className="font-black italic text-[#f59e0b]" style={{ fontSize: '24px' }}>APPROVED </span>
+            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '24px' }}>BOOKING</span>
+          </div>
+
+          {/* ═══ ELEMENT 5 — Service Dropdown ═══ */}
+          <button onClick={() => { setCurrentStep(1); }}
+            className="w-full flex items-center justify-between mb-3"
+            style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px' }}>
+            <span className="text-white font-medium" style={{ fontSize: '14px' }}>{reason || "Select Service"}</span>
+            <span style={{ color: '#666', fontSize: '12px' }}>▾</span>
+          </button>
+
+          {/* ═══ ELEMENT 6 — Visit Type Toggle ═══ */}
+          <div className="flex mb-3" style={{ gap: '10px' }}>
+            <button
+              onClick={() => { if (needsCalendar) handleVisitTypeChange("video"); }}
+              className="font-bold"
+              style={{
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                whiteSpace: 'nowrap',
+                ...((needsCalendar ? visitType === "video" : true)
+                  ? { background: '#2dd4a0', color: '#000' }
+                  : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
               }}>
-                <img src="/assets/provider-lamonica.png" alt="LaMonica A. Hodges"
-                  className="w-full h-full object-cover object-top" />
-              </div>
-            </div>
-
-            {/* ELEMENT 3 — Provider Name & Credentials */}
-            <div className="text-center" style={{ marginBottom: '4px' }}>
-              <h2 className="font-black text-white" style={{ fontSize: '26px', textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
-                LaMonica A. Hodges
-              </h2>
-              <p className="font-medium" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginTop: '2px' }}>
-                MSN, APRN, FNP-C
-              </p>
-              <p className="font-semibold text-[#2dd4a0]" style={{ fontSize: '13px', marginTop: '2px' }}>
-                Board-Certified · 10+ Years Experience
-              </p>
-            </div>
-
-            {/* ELEMENT 4 — CONFIRM APPROVED BOOKING */}
-            <div style={{ marginTop: '6px', marginBottom: '10px' }}>
-              <span className="font-black text-white" style={{ fontSize: '22px' }}>CONFIRM </span>
-              <span className="font-black text-[#f59e0b]" style={{ fontSize: '22px' }}>APPROVED </span>
-              <span className="font-black text-[#2dd4a0]" style={{ fontSize: '22px' }}>BOOKING</span>
-            </div>
-
-            {/* ELEMENT 5 — Service Dropdown */}
-            <button onClick={() => { setCurrentStep(1); }}
-              className="w-full flex items-center justify-between rounded-xl"
-              style={{ padding: '14px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', marginBottom: '8px' }}>
-              <span className="text-white font-medium" style={{ fontSize: '14px' }}>{reason || "Select Service"}</span>
-              <span className="text-[#666]" style={{ fontSize: '12px' }}>▾</span>
+              Video Visit
             </button>
-
-            {/* ELEMENT 6 — Visit Type Toggle */}
-            <div className="w-full flex" style={{ gap: '8px', marginBottom: '8px' }}>
-              {([
-                { key: "video" as VisitType, label: "Video Visit" },
-                { key: "phone" as VisitType, label: "Phone Visit" },
-              ]).map(opt => {
-                const isActive = (needsCalendar && visitType === opt.key) || (!needsCalendar && opt.key === "video");
-                return (
-                  <button key={opt.key}
-                    onClick={() => { if (needsCalendar) handleVisitTypeChange(opt.key); }}
-                    className="flex-1 font-bold"
-                    style={{
-                      padding: '12px 0', borderRadius: '12px', fontSize: '13px',
-                      ...(isActive
-                        ? { background: '#2dd4a0', color: '#000' }
-                        : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
-                    }}>
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* ELEMENT 7 — Date/Time Selector */}
-            {needsCalendar ? (
-              <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }}
-                className="w-full flex items-center justify-between"
-                style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)', marginBottom: '8px' }}>
-                <div className="flex items-center gap-2">
-                  <span style={{ fontSize: '16px' }}>📅</span>
-                  <span className="text-white font-semibold" style={{ fontSize: '13px' }}>
-                    {formatDisplayDateTime() || "Select Date & Time"}
-                  </span>
-                </div>
-                <span className="text-[#666]" style={{ fontSize: '12px' }}>▾</span>
-              </button>
-            ) : isAsync && selectedMeds.length > 0 ? (
-              <div className="w-full" style={{
-                padding: '12px 16px', borderRadius: '12px',
-                background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)', marginBottom: '8px'
+            <button
+              onClick={() => { if (needsCalendar) handleVisitTypeChange("phone"); }}
+              className="font-bold"
+              style={{
+                flex: 1,
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontSize: '14px',
+                ...((needsCalendar && visitType === "phone")
+                  ? { background: '#2dd4a0', color: '#000' }
+                  : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
               }}>
-                <span className="text-[#2dd4a0] font-bold" style={{ fontSize: '12px' }}>
-                  ✓ {selectedMeds.length} medication{selectedMeds.length > 1 ? "s" : ""} selected for refill
+              Phone Visit
+            </button>
+          </div>
+
+          {/* ═══ ELEMENT 7 — Date/Time Selector ═══ */}
+          {needsCalendar ? (
+            <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }}
+              className="w-full flex items-center justify-between mb-3"
+              style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)' }}>
+              <div className="flex items-center gap-2">
+                <span style={{ fontSize: '16px' }}>📅</span>
+                <span className="text-white font-semibold" style={{ fontSize: '14px' }}>
+                  {formatDisplayDateTime() || "Select Date & Time"}
                 </span>
               </div>
-            ) : null}
-
-            {/* ELEMENT 8 — Price */}
-            <div className="text-center" style={{ margin: '6px 0' }}>
-              <span className="text-[#2dd4a0] font-extrabold" style={{ fontSize: '18px' }}>
-                {currentPrice.display} per visit
+              <span style={{ color: '#666', fontSize: '12px' }}>▾</span>
+            </button>
+          ) : isAsync && selectedMeds.length > 0 ? (
+            <div className="w-full mb-3" style={{
+              padding: '12px 16px', borderRadius: '12px',
+              background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)'
+            }}>
+              <span className="text-[#2dd4a0] font-bold" style={{ fontSize: '12px' }}>
+                ✓ {selectedMeds.length} medication{selectedMeds.length > 1 ? "s" : ""} selected for refill
               </span>
             </div>
+          ) : null}
 
-            {/* ELEMENTS 9-11 — Payment Form (fills remaining space) */}
-            {clientSecret && stripeOptions ? (
-              <div className="w-full flex-1 flex flex-col justify-end" style={{ minHeight: 0 }}>
-                <Elements options={stripeOptions} stripe={stripePromise}>
-                  <Step2PaymentForm
-                    patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType}
-                    appointmentDate={appointmentDate} appointmentTime={appointmentTime}
-                    currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress}
-                    selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess}
-                  />
-                </Elements>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center py-3">
-                <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
-                <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
-              </div>
-            )}
-
-            {/* ELEMENT 12 — Bottom breathing space (handled by paddingBottom: 34px) */}
-
+          {/* ═══ ELEMENT 8 — Price ═══ */}
+          <div className="text-center mb-3">
+            <span className="text-[#2dd4a0] font-extrabold" style={{ fontSize: '18px' }}>
+              {currentPrice.display} per visit
+            </span>
           </div>
+
+          {/* ═══ ELEMENTS 9-11 — Payment ═══ */}
+          {clientSecret && stripeOptions ? (
+            <Elements options={stripeOptions} stripe={stripePromise}>
+              <Step2PaymentForm
+                patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType}
+                appointmentDate={appointmentDate} appointmentTime={appointmentTime}
+                currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress}
+                selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess}
+              />
+            </Elements>
+          ) : (
+            <div className="flex items-center justify-center py-6">
+              <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+              <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
+            </div>
+          )}
+
         </div>
 
         {/* Date/Time dialog overlay */}
@@ -1272,7 +1228,7 @@ export default function ExpressCheckoutPage() {
           </div>
         )}
 
-        {/* DEA Info Popup — needs to be available in Step 2 too */}
+        {/* DEA Info Popup */}
         {showDeaInfoPopup && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
             <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
