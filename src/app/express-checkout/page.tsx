@@ -716,10 +716,11 @@ export default function ExpressCheckoutPage() {
 
     // Async visits (instant/refill)
     if (visitType === "refill") {
-      // Controlled substances: need controlled ack + async ack
+      // Controlled substances: only need controlled ack (async ack not shown/required)
       if (hasControlledSelected) {
-        return !!(selectedMeds.length > 0 && controlledAcknowledged && asyncAcknowledged);
+        return !!(selectedMeds.length > 0 && controlledAcknowledged);
       }
+      // Non-controlled refill: need async ack
       return !!(selectedMeds.length > 0 && asyncAcknowledged);
     }
 
@@ -889,9 +890,9 @@ export default function ExpressCheckoutPage() {
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return "Select date & time to continue";
     if (visitType === "refill" && selectedMeds.length === 0) return "Select medications to refill";
     if (visitType === "refill" && hasControlledSelected && !controlledAcknowledged) return "Acknowledge controlled substance terms to continue";
-    if (isAsync && !asyncAcknowledged) return "Acknowledge the async visit terms to continue";
+    if (isAsync && !hasControlledSelected && !asyncAcknowledged) return "Acknowledge the async visit terms to continue";
     return "Complete all fields to continue";
-  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged]);
+  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged, controlledAcknowledged]);
 
   if (!patient) {
     return (
