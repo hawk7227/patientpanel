@@ -50,8 +50,9 @@ const VISIT_TYPES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// Step 2 Payment Form — fits iPhone 15 Pro viewport
-// Google Pay → OR PAY WITH CARD → Terms → Processing bar
+// Step 2 Payment Form — single viewport, no scroll
+// Google Pay (Android) / Apple Pay (iOS) auto-detected
+// Card form slides up from bottom as overlay
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
@@ -69,7 +70,7 @@ function Step2PaymentForm({
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [showCardForm, setShowCardForm] = useState(false);
+  const [showCardSlide, setShowCardSlide] = useState(false);
 
   const isTestMode =
     process.env.NEXT_PUBLIC_SKIP_PAYMENT === "true" ||
@@ -211,107 +212,131 @@ function Step2PaymentForm({
     }
   };
 
-  // Processing state — full overlay
+  // Processing state
   if (isProcessing) {
     return (
-      <div className="w-full space-y-3 py-2">
-        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+      <div className="w-full space-y-2 py-1">
+        <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
           <div className="h-full bg-[#2dd4a0] rounded-full transition-all duration-500 ease-out"
             style={{ width: `${Math.min(progress, 100)}%` }} />
         </div>
-        <p className="text-[13px] text-gray-300 text-center">{statusText}</p>
+        <p className="text-[12px] text-gray-300 text-center">{statusText}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-2">
-      {/* Error */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-[11px]">{error}</div>
-      )}
+    <>
+      <div className="w-full space-y-1.5">
+        {/* Error */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}</div>
+        )}
 
-      {/* Test mode indicator */}
-      {isTestMode && (
-        <div className="text-center py-1">
-          <span className="text-yellow-400 text-[10px] font-bold">🧪 TEST MODE</span>
-        </div>
-      )}
-
-      {/* ELEMENT 9 — Google Pay / Card Form */}
-      {!showCardForm ? (
-        <>
-          {/* Google Pay Button — white rectangle */}
-          {!isTestMode ? (
-            <div className="rounded-xl overflow-hidden">
-              <PaymentElement
-                options={{
-                  layout: "tabs",
-                  paymentMethodOrder: ["google_pay", "apple_pay", "card"],
-                  wallets: { applePay: "auto", googlePay: "auto" },
-                  fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
-                }}
-              />
-            </div>
-          ) : (
-            <button onClick={handlePay} disabled={!acceptedTerms}
-              className="w-full bg-white rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50">
-              <span className="text-black font-semibold text-base">Test Pay {currentPrice.display}</span>
-            </button>
-          )}
-
-          {/* ELEMENT 10 — OR PAY WITH CARD */}
-          {!isTestMode && (
-            <button onClick={() => setShowCardForm(true)}
-              className="w-full text-center py-1">
-              <span className="text-[#2dd4a0] text-[12px] font-extrabold tracking-wider uppercase">
-                OR PAY WITH CARD
-              </span>
-            </button>
-          )}
-        </>
-      ) : (
-        <>
-          {/* Expanded card form */}
-          <div className="rounded-xl overflow-hidden">
+        {/* Google Pay / Apple Pay button — auto-detected by device */}
+        {!isTestMode ? (
+          <div className="rounded-xl overflow-hidden" style={{ maxHeight: '48px' }}>
             <PaymentElement
               options={{
-                layout: "tabs",
-                paymentMethodOrder: ["card"],
-                wallets: { applePay: "never", googlePay: "never", link: "never" },
+                layout: { type: "accordion", defaultCollapsed: true, radios: false, spacedAccordionItems: false },
+                paymentMethodOrder: ["google_pay", "apple_pay"],
+                wallets: { applePay: "auto", googlePay: "auto" },
                 fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
               }}
             />
           </div>
-          <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms}
-            className="w-full bg-[#2dd4a0] hover:bg-[#25b88d] text-black font-bold py-3 rounded-xl transition-all disabled:opacity-50 text-[14px]">
-            Pay {currentPrice.display}
+        ) : (
+          <button onClick={handlePay} disabled={!acceptedTerms}
+            className="w-full bg-white rounded-xl py-3 flex items-center justify-center gap-2 disabled:opacity-50">
+            <span className="text-black font-semibold text-sm">Test Pay {currentPrice.display}</span>
           </button>
-          <button onClick={() => setShowCardForm(false)}
-            className="w-full text-center py-0.5">
-            <span className="text-gray-500 text-[11px]">← Back to other options</span>
-          </button>
-        </>
+        )}
+
+        {/* OR PAY WITH CARD — opens slide-up */}
+        <button onClick={() => setShowCardSlide(true)} className="w-full text-center py-0.5">
+          <span className="text-[#2dd4a0] text-[11px] font-extrabold tracking-wider uppercase">
+            OR PAY WITH CARD
+          </span>
+        </button>
+
+        {/* Terms Checkbox — compact */}
+        <div className="flex items-start gap-1.5">
+          <input type="checkbox" id="step2Terms" checked={acceptedTerms}
+            onChange={(e) => setAcceptedTerms(e.target.checked)}
+            className="flex-shrink-0 mt-[1px]"
+            style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }}
+          />
+          <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
+            By confirming, I agree to the{" "}
+            <span className="text-[#2dd4a0] underline">Terms of Service</span>,{" "}
+            <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and{" "}
+            <span className="text-[#2dd4a0] underline">Cancellation Policy</span>.{" "}
+            By requesting a provider appointment, I acknowledge that my card will not be charged until a 
+            provider accepts my appointment request. Once accepted, I authorize a one-time charge of{" "}
+            <strong className="text-white">{currentPrice.display}.00</strong> (flat, non-refundable) for this visit.
+          </label>
+        </div>
+      </div>
+
+      {/* ═══ CARD SLIDE-UP OVERLAY ═══ */}
+      {showCardSlide && (
+        <div className="fixed inset-0 z-[150] flex items-end" onClick={() => setShowCardSlide(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/70" />
+          {/* Slide-up panel */}
+          <div className="relative w-full bg-[#0d1218] border-t border-[#2dd4a0]/30 rounded-t-2xl p-4 pb-8 space-y-3 animate-slide-up"
+            onClick={e => e.stopPropagation()}
+            style={{ animation: 'slideUp 0.3s ease-out' }}>
+            {/* Handle bar */}
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-2" />
+
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock size={14} className="text-[#2dd4a0]" />
+                <span className="text-white font-bold text-sm">Pay with Card</span>
+              </div>
+              <button onClick={() => setShowCardSlide(false)} className="text-gray-400 hover:text-white p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Stripe Card Element */}
+            <div className="rounded-xl overflow-hidden">
+              <PaymentElement
+                options={{
+                  layout: "tabs",
+                  paymentMethodOrder: ["card"],
+                  wallets: { applePay: "never", googlePay: "never", link: "never" },
+                  fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
+                }}
+              />
+            </div>
+
+            {/* Pay Button */}
+            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms}
+              className="w-full text-black font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[15px]"
+              style={{ background: '#2dd4a0' }}>
+              Pay {currentPrice.display} & Book
+            </button>
+
+            {!acceptedTerms && (
+              <p className="text-center text-[10px] text-amber-400">
+                ↑ Please accept the terms above first
+              </p>
+            )}
+          </div>
+        </div>
       )}
 
-      {/* ELEMENT 11 — Terms Checkbox */}
-      <div className="flex items-start gap-1.5 px-0.5">
-        <input type="checkbox" id="step2Terms" checked={acceptedTerms}
-          onChange={(e) => setAcceptedTerms(e.target.checked)}
-          className="flex-shrink-0 mt-[1px]"
-          style={{ width: '14px', height: '14px', borderRadius: '3px', border: '1.5px solid #555', background: 'transparent', accentColor: '#2dd4a0' }}
-        />
-        <label htmlFor="step2Terms" className="text-[8px] text-[#888] leading-[1.5]">
-          By confirming, I agree to the{" "}
-          <span className="text-[#2dd4a0] underline underline-offset-1">Terms of Service</span>,{" "}
-          <span className="text-[#2dd4a0] underline underline-offset-1">Privacy Policy</span>, and{" "}
-          <span className="text-[#2dd4a0] underline underline-offset-1">Cancellation Policy</span>.{" "}
-          By requesting a provider appointment, I acknowledge that my card will not be charged until a 
-          provider accepts my appointment request. Once accepted, I authorize a one-time charge of{" "}
-          <strong className="text-white">{currentPrice.display}.00</strong> (flat, non-refundable) for this visit.
-        </label>
-      </div>
-    </div>
+      {/* Slide-up animation keyframes */}
+      <style jsx>{`
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -1061,80 +1086,82 @@ export default function ExpressCheckoutPage() {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // STEP 2 — REVIEW & PAY (matches design image exactly)
+  // STEP 2 — REVIEW & PAY — SINGLE VIEWPORT, NO SCROLL
+  // Mobile-first: fits entire screen without scrolling
+  // Google Pay (Android) / Apple Pay (iOS) auto-detected
+  // Card form slides up from bottom
   // ═══════════════════════════════════════════════════════════
   if (currentStep === 2) {
     return (
-      <div className="min-h-screen text-white font-sans" style={{ background: 'linear-gradient(to bottom, #0a1a15 0%, #080c10 18%, #080c10 100%)' }}>
-        <div className="max-w-[393px] mx-auto px-4 pb-10">
+      <div className="fixed inset-0 text-white font-sans overflow-hidden"
+        style={{ background: 'linear-gradient(to bottom, #0a1a15 0%, #080c10 18%, #080c10 100%)' }}>
+        <div className="h-full max-w-[393px] mx-auto px-4 flex flex-col"
+          style={{ paddingTop: 'env(safe-area-inset-top, 12px)', paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
 
-          {/* ═══ ELEMENT 1 — Privacy Hero Banner ═══ */}
-          <div className="text-center pt-8 pb-2">
-            <div className="text-[11px] font-bold text-[#f97316] tracking-wide">
+          {/* ═══ ELEMENT 1 — Privacy Hero Banner (compact) ═══ */}
+          <div className="text-center pt-2 pb-1">
+            <div className="text-[10px] font-bold text-[#f97316] tracking-wide">
               &quot;I AM WHEN
             </div>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <Shield size={18} className="text-[#2dd4a0]" />
-              <span className="text-white font-black tracking-wide" style={{ fontSize: '21px' }}>
+            <div className="flex items-center justify-center gap-1.5">
+              <Shield size={15} className="text-[#2dd4a0]" />
+              <span className="text-white font-black tracking-wide" style={{ fontSize: '17px' }}>
                 YOUR PRIVACY MATTERS
               </span>
-              <span className="text-[#f97316]" style={{ fontSize: '18px' }}>&quot;</span>
+              <span className="text-[#f97316]" style={{ fontSize: '15px' }}>&quot;</span>
             </div>
-            <div className="text-[#2dd4a0] font-semibold text-[12px] mt-1 italic">
+            <div className="text-[#2dd4a0] font-semibold text-[10px] italic">
               Medazon Health
             </div>
           </div>
 
-          {/* ═══ ELEMENT 2 — Provider Photo ═══ */}
-          <div className="flex justify-center -mt-1 mb-3">
+          {/* ═══ ELEMENT 2 — Provider Photo (compact) ═══ */}
+          <div className="flex justify-center mb-1">
             <div className="overflow-hidden" style={{
-              width: '130px', height: '130px', borderRadius: '50%',
-              border: '3px solid #2dd4a0',
-              boxShadow: '0 0 25px rgba(45,212,160,0.35)',
+              width: '90px', height: '90px', borderRadius: '50%',
+              border: '2.5px solid #2dd4a0',
+              boxShadow: '0 0 18px rgba(45,212,160,0.3)',
             }}>
               <img src="/assets/provider-lamonica.png" alt="LaMonica A. Hodges"
                 className="w-full h-full object-cover object-top" />
             </div>
           </div>
 
-          {/* ═══ ELEMENT 3 — Provider Name & Credentials ═══ */}
-          <div className="text-center mb-1">
-            <h2 className="font-black text-white" style={{ fontSize: '28px', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
+          {/* ═══ ELEMENT 3 — Provider Name & Credentials (compact) ═══ */}
+          <div className="text-center mb-0.5">
+            <h2 className="font-black text-white" style={{ fontSize: '22px', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
               LaMonica A. Hodges
             </h2>
-            <p className="font-medium mt-0.5" style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)' }}>
+            <p className="font-medium" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)' }}>
               MSN, APRN, FNP-C
             </p>
-            <p className="font-semibold text-[#2dd4a0] mt-0.5" style={{ fontSize: '14px' }}>
+            <p className="font-semibold text-[#2dd4a0]" style={{ fontSize: '11px' }}>
               Board-Certified · 10+ Years Experience
             </p>
           </div>
 
-          {/* ═══ ELEMENT 4 — COMFIRM APPROVED BOOKING ═══ */}
-          <div className="text-center mt-2 mb-4">
-            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '24px' }}>COMFIRM </span>
-            <span className="font-black italic text-[#f59e0b]" style={{ fontSize: '24px' }}>APPROVED </span>
-            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '24px' }}>BOOKING</span>
+          {/* ═══ ELEMENT 4 — COMFIRM APPROVED BOOKING (compact) ═══ */}
+          <div className="text-center mt-1 mb-2">
+            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '19px' }}>COMFIRM </span>
+            <span className="font-black italic text-[#f59e0b]" style={{ fontSize: '19px' }}>APPROVED </span>
+            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '19px' }}>BOOKING</span>
           </div>
 
           {/* ═══ ELEMENT 5 — Service Dropdown ═══ */}
           <button onClick={() => { setCurrentStep(1); }}
-            className="w-full flex items-center justify-between mb-3"
-            style={{ padding: '14px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px' }}>
-            <span className="text-white font-medium" style={{ fontSize: '14px' }}>{reason || "Select Service"}</span>
-            <span style={{ color: '#666', fontSize: '12px' }}>▾</span>
+            className="w-full flex items-center justify-between mb-2"
+            style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px' }}>
+            <span className="text-white font-medium" style={{ fontSize: '13px' }}>{reason || "Select Service"}</span>
+            <span style={{ color: '#666', fontSize: '11px' }}>▾</span>
           </button>
 
           {/* ═══ ELEMENT 6 — Visit Type Toggle ═══ */}
-          <div className="flex mb-3" style={{ gap: '10px' }}>
+          <div className="flex mb-2" style={{ gap: '8px' }}>
             <button
               onClick={() => { if (needsCalendar) handleVisitTypeChange("video"); }}
               className="font-bold"
               style={{
-                padding: '12px 24px',
-                borderRadius: '12px',
-                fontSize: '14px',
-                whiteSpace: 'nowrap',
+                padding: '9px 20px', borderRadius: '10px', fontSize: '13px', whiteSpace: 'nowrap',
                 ...((needsCalendar ? visitType === "video" : true)
                   ? { background: '#2dd4a0', color: '#000' }
                   : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
@@ -1145,10 +1172,7 @@ export default function ExpressCheckoutPage() {
               onClick={() => { if (needsCalendar) handleVisitTypeChange("phone"); }}
               className="font-bold"
               style={{
-                flex: 1,
-                padding: '12px 24px',
-                borderRadius: '12px',
-                fontSize: '14px',
+                flex: 1, padding: '9px 20px', borderRadius: '10px', fontSize: '13px',
                 ...((needsCalendar && visitType === "phone")
                   ? { background: '#2dd4a0', color: '#000' }
                   : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
@@ -1157,53 +1181,55 @@ export default function ExpressCheckoutPage() {
             </button>
           </div>
 
-          {/* ═══ ELEMENT 7 — Date/Time Selector ═══ */}
+          {/* ═══ ELEMENT 7 — Date/Time or Meds summary ═══ */}
           {needsCalendar ? (
             <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }}
-              className="w-full flex items-center justify-between mb-3"
-              style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)' }}>
+              className="w-full flex items-center justify-between mb-2"
+              style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)' }}>
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: '16px' }}>📅</span>
-                <span className="text-white font-semibold" style={{ fontSize: '14px' }}>
+                <span style={{ fontSize: '14px' }}>📅</span>
+                <span className="text-white font-semibold" style={{ fontSize: '13px' }}>
                   {formatDisplayDateTime() || "Select Date & Time"}
                 </span>
               </div>
-              <span style={{ color: '#666', fontSize: '12px' }}>▾</span>
+              <span style={{ color: '#666', fontSize: '11px' }}>▾</span>
             </button>
           ) : isAsync && selectedMeds.length > 0 ? (
-            <div className="w-full mb-3" style={{
-              padding: '12px 16px', borderRadius: '12px',
+            <div className="w-full mb-2" style={{
+              padding: '10px 14px', borderRadius: '10px',
               background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)'
             }}>
-              <span className="text-[#2dd4a0] font-bold" style={{ fontSize: '12px' }}>
+              <span className="text-[#2dd4a0] font-bold" style={{ fontSize: '11px' }}>
                 ✓ {selectedMeds.length} medication{selectedMeds.length > 1 ? "s" : ""} selected for refill
               </span>
             </div>
           ) : null}
 
           {/* ═══ ELEMENT 8 — Price ═══ */}
-          <div className="text-center mb-3">
-            <span className="text-[#2dd4a0] font-extrabold" style={{ fontSize: '18px' }}>
+          <div className="text-center mb-2">
+            <span className="text-[#2dd4a0] font-extrabold" style={{ fontSize: '16px' }}>
               {currentPrice.display} per visit
             </span>
           </div>
 
-          {/* ═══ ELEMENTS 9-11 — Payment ═══ */}
-          {clientSecret && stripeOptions ? (
-            <Elements options={stripeOptions} stripe={stripePromise}>
-              <Step2PaymentForm
-                patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType}
-                appointmentDate={appointmentDate} appointmentTime={appointmentTime}
-                currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress}
-                selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess}
-              />
-            </Elements>
-          ) : (
-            <div className="flex items-center justify-center py-6">
-              <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
-              <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
-            </div>
-          )}
+          {/* ═══ ELEMENTS 9-11 — Payment (fills remaining space) ═══ */}
+          <div className="flex-1 flex flex-col justify-end min-h-0">
+            {clientSecret && stripeOptions ? (
+              <Elements options={stripeOptions} stripe={stripePromise}>
+                <Step2PaymentForm
+                  patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType}
+                  appointmentDate={appointmentDate} appointmentTime={appointmentTime}
+                  currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress}
+                  selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess}
+                />
+              </Elements>
+            ) : (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
+              </div>
+            )}
+          </div>
 
         </div>
 
