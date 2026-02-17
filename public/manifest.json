@@ -1,0 +1,26 @@
+{
+  "name": "Medazon Health - Patient Portal",
+  "short_name": "Medazon",
+  "description": "Book virtual healthcare visits",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1214",
+  "theme_color": "#00CBA9",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["medical", "health"],
+  "lang": "en-US"
+}

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import SyncInitializer from "@/components/SyncInitializer";
+import OfflineBanner from "@/components/OfflineBanner";
 
 export const metadata: Metadata = {
   title: "Instant Virtual Urgent Care in Florida — Medazon Health",
@@ -14,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="manifest" href="/manifest.json" />
         <link rel="canonical" href="https://medazonhealth.com/urgent-care/florida" />
         <meta name="theme-color" content="#0B0F12" />
 
@@ -190,6 +193,8 @@ export default function RootLayout({
         `}} />
       </head>
       <body suppressHydrationWarning>
+        <SyncInitializer />
+        <OfflineBanner />
         {children}
       </body>
     </html>
