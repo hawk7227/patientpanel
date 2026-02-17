@@ -1120,127 +1120,106 @@ export default function ExpressCheckoutPage() {
   // Card form slides up from bottom
   // ═══════════════════════════════════════════════════════════
   if (currentStep === 2) {
+    // Visit type display config
+    const vtConfig: Record<string, { label: string; color: string; icon: string }> = {
+      instant: { label: "Instant Care", color: "#2dd4a0", icon: "⚡" },
+      refill: { label: "Rx Refill", color: "#f59e0b", icon: "💊" },
+      video: { label: "Video Visit", color: "#3b82f6", icon: "📹" },
+      phone: { label: "Phone / SMS", color: "#a855f7", icon: "📞" },
+    };
+    const vt = vtConfig[visitType] || vtConfig.instant;
+    const isAsyncType = visitType === "instant" || visitType === "refill";
+
     return (
       <div className="fixed inset-0 text-white font-sans overflow-hidden"
-        style={{ background: 'linear-gradient(to bottom, #0a1a15 0%, #080c10 18%, #080c10 100%)' }}>
-        <div className="h-full max-w-[393px] mx-auto px-4 flex flex-col"
-          style={{ paddingTop: 'env(safe-area-inset-top, 12px)', paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+        style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)" }}>
+        <style>{`
+          @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+          @keyframes confirmPulse { 0%,100% { opacity:0.7; } 50% { opacity:1; } }
+        `}</style>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col"
+          style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 8px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
-          {/* ═══ ELEMENT 1 — Privacy Hero Banner (compact) ═══ */}
-          <div className="text-center pt-2 pb-1">
-            <div className="text-[10px] font-bold text-[#f97316] tracking-wide">
-              &quot;I AM WHEN
+          {/* HEADER — matches Step 1 */}
+          <div className="flex items-center justify-between pt-1 pb-1">
+            <div className="flex items-center gap-1">
+              <span className="text-white font-black text-[15px] tracking-tight">MEDAZON</span>
+              <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS</span>
+              <span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
             </div>
-            <div className="flex items-center justify-center gap-1.5">
-              <Shield size={15} className="text-[#2dd4a0]" />
-              <span className="text-white font-black tracking-wide" style={{ fontSize: '17px' }}>
-                YOUR PRIVACY MATTERS
-              </span>
-              <span className="text-[#f97316]" style={{ fontSize: '15px' }}>&quot;</span>
-            </div>
-            <div className="text-[#2dd4a0] font-semibold text-[10px] italic">
-              Medazon Health
-            </div>
-          </div>
-
-          {/* ═══ ELEMENT 2 — Provider Photo (compact) ═══ */}
-          <div className="flex justify-center mb-1">
-            <div className="overflow-hidden" style={{
-              width: '90px', height: '90px', borderRadius: '50%',
-              border: '2.5px solid #2dd4a0',
-              boxShadow: '0 0 18px rgba(45,212,160,0.3)',
-            }}>
-              <img src="/assets/provider-lamonica.png" alt="LaMonica A. Hodges"
-                className="w-full h-full object-cover object-top" />
-            </div>
-          </div>
-
-          {/* ═══ ELEMENT 3 — Provider Name & Credentials (compact) ═══ */}
-          <div className="text-center mb-0.5">
-            <h2 className="font-black text-white" style={{ fontSize: '22px', textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
-              LaMonica A. Hodges
-            </h2>
-            <p className="font-medium" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)' }}>
-              MSN, APRN, FNP-C
-            </p>
-            <p className="font-semibold text-[#2dd4a0]" style={{ fontSize: '11px' }}>
-              Board-Certified · 10+ Years Experience
-            </p>
-          </div>
-
-          {/* ═══ ELEMENT 4 — COMFIRM APPROVED BOOKING (compact) ═══ */}
-          <div className="text-center mt-1 mb-2">
-            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '19px' }}>COMFIRM </span>
-            <span className="font-black italic text-[#f59e0b]" style={{ fontSize: '19px' }}>APPROVED </span>
-            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: '19px' }}>BOOKING</span>
-          </div>
-
-          {/* ═══ ELEMENT 5 — Service Dropdown ═══ */}
-          <button onClick={() => { setCurrentStep(1); }}
-            className="w-full flex items-center justify-between mb-2"
-            style={{ padding: '10px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '10px' }}>
-            <span className="text-white font-medium" style={{ fontSize: '13px' }}>{reason || "Select Service"}</span>
-            <span style={{ color: '#666', fontSize: '11px' }}>▾</span>
-          </button>
-
-          {/* ═══ ELEMENT 6 — Visit Type Toggle ═══ */}
-          <div className="flex mb-2" style={{ gap: '8px' }}>
-            <button
-              onClick={() => { if (needsCalendar) handleVisitTypeChange("video"); }}
-              className="font-bold"
-              style={{
-                padding: '9px 20px', borderRadius: '10px', fontSize: '13px', whiteSpace: 'nowrap',
-                ...((needsCalendar ? visitType === "video" : true)
-                  ? { background: '#2dd4a0', color: '#000' }
-                  : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
-              }}>
-              Video Visit
-            </button>
-            <button
-              onClick={() => { if (needsCalendar) handleVisitTypeChange("phone"); }}
-              className="font-bold"
-              style={{
-                flex: 1, padding: '9px 20px', borderRadius: '10px', fontSize: '13px',
-                ...((needsCalendar && visitType === "phone")
-                  ? { background: '#2dd4a0', color: '#000' }
-                  : { background: 'transparent', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }),
-              }}>
-              Phone Visit
+            <button onClick={() => setCurrentStep(1)} className="text-gray-500 text-[10px] font-semibold flex items-center gap-1 hover:text-white">
+              ← Edit
             </button>
           </div>
 
-          {/* ═══ ELEMENT 7 — Date/Time or Meds summary ═══ */}
-          {needsCalendar ? (
-            <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }}
-              className="w-full flex items-center justify-between mb-2"
-              style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)' }}>
-              <div className="flex items-center gap-2">
-                <span style={{ fontSize: '14px' }}>📅</span>
-                <span className="text-white font-semibold" style={{ fontSize: '13px' }}>
-                  {formatDisplayDateTime() || "Select Date & Time"}
-                </span>
+          {/* CONFIRM HEADING */}
+          <div className="text-center py-1">
+            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: "17px" }}>CONFIRM </span>
+            <span className="font-black italic text-[#f59e0b]" style={{ fontSize: "17px" }}>YOUR </span>
+            <span className="font-black italic text-[#2dd4a0]" style={{ fontSize: "17px" }}>BOOKING</span>
+          </div>
+
+          {/* ORDER SUMMARY CARD */}
+          <div className="rounded-xl border border-white/10 overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.02)" }}>
+            {/* Provider row */}
+            <div className="flex items-center gap-3 px-3 py-2 border-b border-white/5">
+              <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 10px rgba(45,212,160,0.2)" }}>
+                <img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" />
               </div>
-              <span style={{ color: '#666', fontSize: '11px' }}>▾</span>
-            </button>
-          ) : isAsync && selectedMeds.length > 0 ? (
-            <div className="w-full mb-2" style={{
-              padding: '10px 14px', borderRadius: '10px',
-              background: 'rgba(45,212,160,0.08)', border: '1px solid rgba(45,212,160,0.2)'
-            }}>
-              <span className="text-[#2dd4a0] font-bold" style={{ fontSize: '11px' }}>
-                ✓ {selectedMeds.length} medication{selectedMeds.length > 1 ? "s" : ""} selected for refill
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-[12px]">LaMonica A. Hodges</p>
+                <p className="text-gray-500 text-[9px]">MSN, APRN, FNP-C · Board-Certified</p>
+              </div>
+              <Shield size={14} className="text-[#2dd4a0] flex-shrink-0" />
+            </div>
+            {/* Summary rows */}
+            <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+              <span className="text-gray-500 text-[10px]">Reason</span>
+              <span className="text-white text-[11px] font-semibold">{reason || "—"}</span>
+            </div>
+            <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+              <span className="text-gray-500 text-[10px]">Visit Type</span>
+              <span className="text-[11px] font-bold flex items-center gap-1" style={{ color: vt.color }}>
+                <span>{vt.icon}</span>{vt.label}
               </span>
             </div>
-          ) : null}
-
-          {/* ═══ ELEMENT 8 — Price ═══ */}
-          <div className="text-center mb-2">
-            <span className="text-[#2dd4a0] font-extrabold" style={{ fontSize: '16px' }}>
-              {currentPrice.display} per visit
-            </span>
+            {pharmacy && (
+              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                <span className="text-gray-500 text-[10px]">Pharmacy</span>
+                <span className="text-white text-[10px] font-medium truncate max-w-[55%] text-right">{pharmacy}</span>
+              </div>
+            )}
+            {!isAsyncType && appointmentDate && appointmentTime ? (
+              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                <span className="text-gray-500 text-[10px]">Date & Time</span>
+                <span className="text-white text-[11px] font-semibold">{formatDisplayDateTime()}</span>
+              </div>
+            ) : isAsyncType ? (
+              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                <span className="text-gray-500 text-[10px]">Delivery</span>
+                <span className="text-[#2dd4a0] text-[10px] font-bold">Provider responds in 1–2 hrs</span>
+              </div>
+            ) : null}
+            {selectedMeds.length > 0 && (
+              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                <span className="text-gray-500 text-[10px]">Medications</span>
+                <span className="text-white text-[10px] font-medium">{selectedMeds.length} selected</span>
+              </div>
+            )}
+            {wantToTalk && visitType === "instant" && appointmentDate && (
+              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                <span className="text-gray-500 text-[10px]">Live Add-on</span>
+                <span className="text-white text-[11px] font-semibold">{formatDisplayDateTime()}</span>
+              </div>
+            )}
+            {/* Price row — emphasized */}
+            <div className="px-3 py-2 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
+              <span className="text-gray-400 text-[11px] font-semibold">Total</span>
+              <span className="text-[#2dd4a0] font-black text-[16px]">{currentPrice.display}</span>
+            </div>
           </div>
 
-          {/* ═══ ELEMENTS 9-11 — Payment (fills remaining space) ═══ */}
+          {/* PAYMENT AREA — fills remaining space */}
           <div className="flex-1 flex flex-col justify-end min-h-0">
             {clientSecret && stripeOptions ? (
               <Elements options={stripeOptions} stripe={stripePromise}>
@@ -1252,70 +1231,35 @@ export default function ExpressCheckoutPage() {
                 />
               </Elements>
             ) : (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-3">
                 <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
                 <span className="ml-2 text-gray-400 text-xs">Loading payment...</span>
               </div>
             )}
           </div>
 
+          {/* BOTTOM TRUST BAR */}
+          <div className="flex-shrink-0 pt-1 pb-1">
+            <p className="text-center text-gray-700 text-[8px]">
+              <Lock size={8} className="inline mr-0.5" />HIPAA Compliant · 256-bit Encryption · Secure Checkout
+            </p>
+          </div>
+
         </div>
 
-        {/* Date/Time dialog overlay */}
-        {dateTimeDialogOpen && (
-          <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setDateTimeDialogOpen(false)}>
-            <div className="bg-[#0d1218] border-t border-white/10 rounded-t-2xl w-full max-w-lg p-4 pb-8 space-y-3" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center">
-                <span className="text-white font-bold text-sm">
-                  {dateTimeMode === "date" ? "Select Date" : "Select Time"}
-                </span>
-                <button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white"><X size={18} /></button>
-              </div>
-              <AppointmentCalendar
-                mode={dateTimeMode}
-                selectedDate={appointmentDate}
-                selectedTime={appointmentTime}
-                onDateSelect={(d: string) => { setAppointmentDate(d); setDateTimeMode("time"); }}
-                onTimeSelect={(t: string) => { setAppointmentTime(t); setDateTimeDialogOpen(false); setClientSecret(""); }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* DEA Info Popup */}
+        {/* DEA Info Popup — reused */}
         {showDeaInfoPopup && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
             <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Shield size={18} className="text-amber-400" />
-                </div>
-                <div>
-                  <h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3>
-                  <p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p>
-                </div>
-              </div>
-              <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3">
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  Under federal law, the <span className="text-white font-semibold">Ryan Haight Online Pharmacy Consumer Protection Act</span> requires
-                  that controlled substances (Schedule II–V) be prescribed only after a valid practitioner-patient
-                  relationship has been established via a <span className="text-white font-semibold">live medical evaluation</span>.
-                </p>
-                <p className="text-xs text-gray-400 leading-relaxed mt-2">
-                  The DEA has extended telemedicine flexibilities through <span className="text-amber-300 font-semibold">December 31, 2026</span>.
-                </p>
-              </div>
-              <button onClick={() => setShowDeaInfoPopup(false)}
-                className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl transition-colors border border-amber-500/30">
-                I Understand
-              </button>
+              <div className="flex items-start gap-3"><div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0"><Shield size={18} className="text-amber-400" /></div><div><h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3><p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p></div></div>
+              <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3"><p className="text-xs text-gray-300 leading-relaxed">Under federal law, the <span className="text-white font-semibold">Ryan Haight Act</span> requires controlled substances be prescribed only after a valid practitioner-patient relationship with at least one <span className="text-white font-semibold">live medical evaluation</span>.</p><p className="text-xs text-gray-400 leading-relaxed mt-2">DEA telemedicine flexibilities extended through <span className="text-amber-300 font-semibold">December 31, 2026</span>.</p></div>
+              <button onClick={() => setShowDeaInfoPopup(false)} className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl border border-amber-500/30">I Understand</button>
             </div>
           </div>
         )}
       </div>
     );
   }
-
 
   // ═══════════════════════════════════════════════════════════
   // STEP 1 — MOBILE APP GUIDED BOOKING FLOW
