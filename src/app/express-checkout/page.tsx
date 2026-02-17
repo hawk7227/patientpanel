@@ -578,6 +578,7 @@ export default function ExpressCheckoutPage() {
   const [medsLoading, setMedsLoading] = useState(false);
   const [hasControlledSelected, setHasControlledSelected] = useState(false);
   const [controlledAcknowledged, setControlledAcknowledged] = useState(false);
+  const [medsListOpen, setMedsListOpen] = useState(true);
 
   // Post-payment controlled substance scheduling
   const [showControlledScheduler, setShowControlledScheduler] = useState(false);
@@ -1343,6 +1344,16 @@ export default function ExpressCheckoutPage() {
             <ChevronDown size={16} className="text-gray-500" />
           </button>
 
+          {/* Preferred Pharmacy — 2nd field */}
+          <div className="space-y-1">
+            <PharmacySelector
+              value={pharmacy}
+              onChange={(val: string) => setPharmacy(val)}
+              placeholder="Preferred Pharmacy"
+              className="w-full bg-[#11161c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-teal placeholder:text-gray-500"
+            />
+          </div>
+
           {/* ── 4 Visit Type Buttons ──────────────────────────── */}
           <div className="grid grid-cols-4 gap-2">
             {VISIT_TYPES.map((vt) => {
@@ -1403,41 +1414,75 @@ export default function ExpressCheckoutPage() {
                 />
               )}
 
-              {/* Medication Selector (Refill only) */}
+              {/* Medication Selector (Refill only) — collapsible */}
               {visitType === "refill" && (
                 <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-white">Select Medications to Refill</span>
-                    {medsLoading && <div className="animate-spin w-3 h-3 border border-primary-teal border-t-transparent rounded-full" />}
-                  </div>
-                  {medications.length > 0 ? (
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
-                      {medications.map((med) => {
-                        const isControlled = isControlledSubstance(med.name);
-                        const isChecked = selectedMeds.includes(med.name);
-                        return (
-                          <label key={med.name}
-                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs ${
-                              isChecked ? "bg-primary-teal/10 border border-primary-teal/30" : "hover:bg-white/5"
-                            } ${isControlled ? "border border-red-500/30" : ""}`}
-                          >
-                            <input type="checkbox" checked={isChecked} onChange={() => toggleMed(med.name)}
-                              className="w-3.5 h-3.5 rounded border-white/20 bg-[#0d1218] text-primary-teal focus:ring-primary-teal"
-                            />
-                            <span className={`flex-1 ${isControlled ? "text-red-400" : "text-white"}`}>
-                              {med.name} {med.dosage ? `(${med.dosage})` : ""}
-                            </span>
-                            {isControlled && (
-                              <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">CONTROLLED</span>
-                            )}
-                            <span className="text-[8px] text-gray-600">{med.source}</span>
-                          </label>
-                        );
-                      })}
+                  <button type="button"
+                    onClick={() => setMedsListOpen(!medsListOpen)}
+                    className="w-full flex items-center justify-between">
+                    <span className="text-xs font-semibold text-white">
+                      {selectedMeds.length > 0
+                        ? `${selectedMeds.length} Medication${selectedMeds.length > 1 ? "s" : ""} Selected`
+                        : "Select Medications to Refill"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {medsLoading && <div className="animate-spin w-3 h-3 border border-primary-teal border-t-transparent rounded-full" />}
+                      <ChevronDown size={14} className={`text-gray-500 transition-transform ${medsListOpen ? "rotate-180" : ""}`} />
                     </div>
-                  ) : !medsLoading ? (
-                    <p className="text-gray-500 text-xs py-2">No medications found. Please describe what you need below.</p>
-                  ) : null}
+                  </button>
+
+                  {/* Selected meds summary (shown when collapsed) */}
+                  {!medsListOpen && selectedMeds.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedMeds.map(m => (
+                        <span key={m} className="text-[9px] bg-primary-teal/10 text-primary-teal border border-primary-teal/20 px-1.5 py-0.5 rounded-full font-medium">
+                          {m} {isControlledSubstance(m) ? "⚠️" : "✓"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Expanded medication list */}
+                  {medsListOpen && (
+                    <>
+                      {medications.length > 0 ? (
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {medications.map((med) => {
+                            const isControlled = isControlledSubstance(med.name);
+                            const isChecked = selectedMeds.includes(med.name);
+                            return (
+                              <label key={med.name}
+                                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all text-xs ${
+                                  isChecked ? "bg-primary-teal/10 border border-primary-teal/30" : "hover:bg-white/5"
+                                } ${isControlled ? "border border-red-500/30" : ""}`}
+                              >
+                                <input type="checkbox" checked={isChecked} onChange={() => toggleMed(med.name)}
+                                  className="w-3.5 h-3.5 rounded border-white/20 bg-[#0d1218] text-primary-teal focus:ring-primary-teal"
+                                />
+                                <span className={`flex-1 ${isControlled ? "text-red-400" : "text-white"}`}>
+                                  {med.name} {med.dosage ? `(${med.dosage})` : ""}
+                                </span>
+                                {isControlled && (
+                                  <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">CONTROLLED</span>
+                                )}
+                                <span className="text-[8px] text-gray-600">{med.source}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : !medsLoading ? (
+                        <p className="text-gray-500 text-xs py-2">No medications found. Please describe what you need below.</p>
+                      ) : null}
+
+                      {/* Done / Close button */}
+                      {selectedMeds.length > 0 && (
+                        <button type="button" onClick={() => setMedsListOpen(false)}
+                          className="w-full py-2 rounded-lg bg-primary-teal/10 border border-primary-teal/20 text-primary-teal text-xs font-bold transition-colors hover:bg-primary-teal/20">
+                          Done — {selectedMeds.length} selected ✓
+                        </button>
+                      )}
+                    </>
+                  )}
 
                   {/* Controlled substance acknowledgment */}
                   {hasControlledSelected && (
@@ -1506,17 +1551,6 @@ export default function ExpressCheckoutPage() {
                 </div>
               )}
 
-              {/* Pharmacy Selector */}
-              <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 pl-1">Preferred Pharmacy</label>
-                <PharmacySelector
-                  value={pharmacy}
-                  onChange={(val: string) => setPharmacy(val)}
-                  placeholder="Search pharmacies near you..."
-                  className="w-full bg-[#11161c] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary-teal placeholder:text-gray-500"
-                />
-              </div>
-
               {/* Photo Upload + Camera Capture */}
               <div className="space-y-1">
                 <label className="text-[10px] text-gray-500 pl-1">Photo (optional) — Rx label, symptoms, ID, etc.</label>
@@ -1579,51 +1613,6 @@ export default function ExpressCheckoutPage() {
               )}
             </div>
           )}
-
-          {/* ── Provider Profile + Price + Privacy ─────────────── */}
-          <div className="bg-[#11161c] border border-white/10 rounded-xl p-4 space-y-3">
-            {/* Provider */}
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-full border-2 border-primary-teal overflow-hidden flex-shrink-0">
-                <img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" />
-              </div>
-              <div>
-                <div className="text-white font-bold text-sm">LaMonica A. Hodges</div>
-                <div className="text-gray-400 text-[10px]">MSN, APRN, FNP-C</div>
-                <div className="text-primary-teal text-[10px] font-medium">Board-Certified · 10+ Years Experience</div>
-              </div>
-            </div>
-
-            {/* Privacy Banner — Large */}
-            <div className="bg-primary-teal/8 border border-primary-teal/20 rounded-lg py-2.5 px-3 text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <Shield size={16} className="text-primary-teal" />
-                <span className="text-primary-teal font-bold text-sm tracking-wide">YOUR PRIVACY MATTERS</span>
-              </div>
-              <p className="text-gray-400 text-[11px]">
-                No insurance needed · No records shared · 100% confidential
-              </p>
-            </div>
-
-            {/* Price */}
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white">{currentPrice.display}</div>
-              {currentPrice.isAfterHours ? (
-                <div className="mt-1 space-y-0.5">
-                  <div className="text-[11px] text-orange-400 font-semibold">
-                    {currentPrice.isHoliday ? "🏛 Holiday" : currentPrice.isWeekend ? "📅 Weekend" : "🌙 After-hours"} rate
-                  </div>
-                  <div className="text-[10px] text-gray-500">
-                    Regular price: {(visitType === "instant" || visitType === "refill") ? "$189" : "$199"} · Mon–Fri, 9am–5pm your time
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[11px] text-gray-500 mt-1">
-                  {VISIT_TYPES.find(v => v.key === visitType)?.label} Visit · {currentPrice.label}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* ── Continue to Step 2 (Review & Pay) ─────────────── */}
           {allFieldsReady && (
