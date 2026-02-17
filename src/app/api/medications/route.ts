@@ -1,9 +1,16 @@
 // ═══════════════════════════════════════════════════════════════
-// MEDICATIONS API — Returns patient medications from 5 sources
+// MEDICATIONS API — Returns patient medications from ALL sources
 //
 // GET /api/medications?patientId=xxx
-// Sources: 1) DrChrono API  2) medication_history  3) clinical_notes
-//          4) appointments  5) intake form data
+//
+// Sources (in priority order):
+//   1) drchrono_medications (via drchrono_patient_id) — MAIN source
+//   2) patient_medications (local prescriptions by doctors)
+//   3) medication_history (legacy table)
+//   4) clinical_notes (prescriptions field)
+//   5) appointments (chief_complaint/symptoms parsing)
+//   6) patients table (current_medications, intake_data)
+//   7) drchrono_medications via email fallback
 // ═══════════════════════════════════════════════════════════════
 
 import { NextRequest, NextResponse } from "next/server";
@@ -32,106 +39,119 @@ export async function GET(req: NextRequest) {
 
   const medications: Medication[] = [];
   const seen = new Set<string>();
+  const skipWords = new Set(["none", "n/a", "no", "yes", "unknown", "other", "null", "undefined", ""]);
 
   const addMed = (name: string, dosage: string, source: string, active: boolean) => {
     const key = name.toLowerCase().trim();
-    if (!key || key.length < 2 || key.length > 100 || seen.has(key)) return;
-    // Skip common non-medication words
-    const skipWords = new Set(["none", "n/a", "no", "yes", "unknown", "other", "null", "undefined", ""]);
-    if (skipWords.has(key)) return;
+    if (!key || key.length < 2 || key.length > 100 || seen.has(key) || skipWords.has(key)) return;
     seen.add(key);
     medications.push({ name: name.trim(), dosage, source, is_active: active });
   };
 
+  // Get patient record for drchrono_patient_id + email
+  let drchronoPatientId: number | null = null;
+  let patientRecord: any = null;
+  let patientEmail: string | null = null;
+
   try {
-    // Source 1: DrChrono API (if configured)
-    try {
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("drchrono_patient_id")
-        .eq("id", patientId)
-        .single();
+    const { data } = await supabase
+      .from("patients")
+      .select("drchrono_patient_id, current_medications, intake_data, email")
+      .eq("id", patientId)
+      .single();
+    patientRecord = data;
+    drchronoPatientId = data?.drchrono_patient_id || null;
+    patientEmail = data?.email || null;
+    console.log(`[Meds] Patient ${patientId}, drchrono_id: ${drchronoPatientId}, email: ${patientEmail}`);
+  } catch (e) {
+    console.log("[Meds] Patient lookup failed:", (e as Error).message);
+  }
 
-      if (patient?.drchrono_patient_id) {
-        const { data: tokenRow } = await supabase
-          .from("drchrono_tokens")
-          .select("access_token")
-          .limit(1)
-          .single();
+  try {
+    // ═══ SOURCE 1: drchrono_medications (MAIN SOURCE) ═══════
+    if (drchronoPatientId) {
+      try {
+        const { data: dcMeds, error } = await supabase
+          .from("drchrono_medications")
+          .select("name, dosage_quantity, dosage_unit, sig, frequency, status, date_prescribed, date_stopped_taking")
+          .eq("drchrono_patient_id", drchronoPatientId)
+          .order("date_prescribed", { ascending: false });
 
-        if (tokenRow?.access_token) {
-          const res = await fetch(
-            `https://app.drchrono.com/api/medications?patient=${patient.drchrono_patient_id}`,
-            { headers: { Authorization: `Bearer ${tokenRow.access_token}` } }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const meds = data.results || data || [];
-            for (const m of (Array.isArray(meds) ? meds : [])) {
-              addMed(
-                m.name || m.medication || "",
-                m.dosage || m.dose || "",
-                "DrChrono",
-                m.status !== "inactive"
-              );
-            }
-          }
+        console.log(`[Meds] S1 drchrono_medications: ${dcMeds?.length || 0} (err: ${error?.message || 'none'})`);
+        for (const m of dcMeds || []) {
+          const dosage = [m.dosage_quantity, m.dosage_unit, m.frequency].filter(Boolean).join(" ") || m.sig || "";
+          addMed(m.name || "", dosage, "DrChrono", m.status !== "inactive" && !m.date_stopped_taking);
         }
+      } catch (e) {
+        console.log("[Meds] S1 skipped:", (e as Error).message);
       }
-    } catch (e) {
-      console.log("[Meds] DrChrono source skipped:", (e as Error).message);
     }
 
-    // Source 2: Supabase medication_history table
+    // ═══ SOURCE 2: patient_medications (doctor-added) ════════
     try {
-      const { data: history } = await supabase
+      const { data: localMeds, error } = await supabase
+        .from("patient_medications")
+        .select("medication_name, name, dosage, sig, status, end_date")
+        .eq("patient_id", patientId)
+        .order("created_at", { ascending: false });
+
+      console.log(`[Meds] S2 patient_medications: ${localMeds?.length || 0} (err: ${error?.message || 'none'})`);
+      for (const m of localMeds || []) {
+        addMed(m.medication_name || m.name || "", m.dosage || m.sig || "", "Prescribed", m.status !== "inactive" && !m.end_date);
+      }
+    } catch (e) {
+      console.log("[Meds] S2 skipped:", (e as Error).message);
+    }
+
+    // ═══ SOURCE 3: medication_history (legacy) ═══════════════
+    try {
+      const { data: history, error } = await supabase
         .from("medication_history")
         .select("medication_name, dosage, end_date")
         .eq("patient_id", patientId);
 
+      console.log(`[Meds] S3 medication_history: ${history?.length || 0} (err: ${error?.message || 'none'})`);
       for (const m of history || []) {
-        addMed(m.medication_name, m.dosage || "", "Records", !m.end_date);
+        addMed(m.medication_name || "", m.dosage || "", "Records", !m.end_date);
       }
     } catch (e) {
-      console.log("[Meds] medication_history skipped:", (e as Error).message);
+      console.log("[Meds] S3 skipped:", (e as Error).message);
     }
 
-    // Source 3: Clinical notes (doctor prescriptions)
+    // ═══ SOURCE 4: clinical_notes ════════════════════════════
     try {
       const { data: notes } = await supabase
         .from("clinical_notes")
-        .select("medications, assessment")
+        .select("medications, prescriptions")
         .eq("patient_id", patientId)
         .order("created_at", { ascending: false })
         .limit(10);
 
       for (const n of notes || []) {
-        // medications field could be JSON array or text
-        if (n.medications) {
+        for (const field of [n.medications, n.prescriptions]) {
+          if (!field) continue;
           try {
-            const medsData = typeof n.medications === "string" ? JSON.parse(n.medications) : n.medications;
-            if (Array.isArray(medsData)) {
-              for (const m of medsData) {
+            const parsed = typeof field === "string" ? JSON.parse(field) : field;
+            if (Array.isArray(parsed)) {
+              for (const m of parsed) {
                 const name = typeof m === "string" ? m : (m.medication || m.name || m.drug || "");
-                const dose = typeof m === "string" ? "" : (m.sig || m.dosage || m.dose || "");
+                const dose = typeof m === "string" ? "" : (m.sig || m.dosage || "");
                 if (name) addMed(name, dose, "Prescribed", true);
               }
             }
           } catch {
-            // Plain text — split by commas or newlines
-            const lines = n.medications.split(/[,;\n]+/);
-            for (const line of lines) {
-              const cleaned = line.replace(/^\d+[\.\)]\s*/, "").trim();
-              if (cleaned.length > 2) addMed(cleaned, "", "Prescribed", true);
-            }
+            String(field).split(/[,;\n]+/).forEach(line => {
+              const c = line.replace(/^\d+[.)]\s*/, "").trim();
+              if (c.length > 2) addMed(c, "", "Prescribed", true);
+            });
           }
         }
       }
     } catch (e) {
-      console.log("[Meds] clinical_notes skipped:", (e as Error).message);
+      console.log("[Meds] S4 skipped:", (e as Error).message);
     }
 
-    // Source 4: Appointment records (chief_complaint, symptoms)
+    // ═══ SOURCE 5: appointments ══════════════════════════════
     try {
       const { data: appts } = await supabase
         .from("appointments")
@@ -141,61 +161,78 @@ export async function GET(req: NextRequest) {
         .limit(10);
 
       for (const a of appts || []) {
-        const text = `${a.symptoms || ""} ${a.chief_complaint || ""} ${a.service_type || ""}`;
-        
-        // Match patterns like "Rx Refill: Adderall 20mg, Xanax"
-        const refillMatch = text.match(/(?:refill|rx refill|medication|prescribed|taking|current meds?)\s*:?\s*(.+)/gi);
-        for (const match of refillMatch || []) {
+        const text = `${a.symptoms || ""} ${a.chief_complaint || ""}`;
+        const matches = text.match(/(?:refill|rx refill|medication|prescribed|taking|current meds?)\s*:?\s*(.+)/gi);
+        for (const match of matches || []) {
           const medsText = match.replace(/^(?:refill|rx refill|medication|prescribed|taking|current meds?)\s*:?\s*/i, "");
-          const parts = medsText.split(/[,;]+/);
-          for (const part of parts) {
-            const cleaned = part.replace(/\.\s*$/, "").trim();
-            if (cleaned.length > 2 && cleaned.length < 80) addMed(cleaned, "", "Visit", true);
-          }
+          medsText.split(/[,;]+/).forEach(part => {
+            const c = part.replace(/\.\s*$/, "").trim();
+            if (c.length > 2 && c.length < 80) addMed(c, "", "Visit", true);
+          });
         }
       }
     } catch (e) {
-      console.log("[Meds] appointments source skipped:", (e as Error).message);
+      console.log("[Meds] S5 skipped:", (e as Error).message);
     }
 
-    // Source 5: Patient intake data (current_medications field)
-    try {
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("current_medications, intake_data")
-        .eq("id", patientId)
-        .single();
-
-      if (patient?.current_medications) {
-        const meds = typeof patient.current_medications === "string"
-          ? patient.current_medications.split(/[,;\n]+/)
-          : Array.isArray(patient.current_medications)
-            ? patient.current_medications
-            : [];
+    // ═══ SOURCE 6: patients table (current_medications) ══════
+    if (patientRecord) {
+      if (patientRecord.current_medications) {
+        const meds = typeof patientRecord.current_medications === "string"
+          ? patientRecord.current_medications.split(/[,;\n]+/)
+          : Array.isArray(patientRecord.current_medications) ? patientRecord.current_medications : [];
         for (const m of meds) {
-          const name = typeof m === "string" ? m.trim() : (m.name || m.medication || "");
+          const name = typeof m === "string" ? m.trim() : (m.name || "");
           if (name) addMed(name, "", "Intake", true);
         }
       }
-
-      if (patient?.intake_data) {
+      if (patientRecord.intake_data) {
         try {
-          const intake = typeof patient.intake_data === "string" ? JSON.parse(patient.intake_data) : patient.intake_data;
+          const intake = typeof patientRecord.intake_data === "string"
+            ? JSON.parse(patientRecord.intake_data) : patientRecord.intake_data;
           const medsField = intake.medications || intake.current_medications || intake.currentMedications || [];
           const medsArr = typeof medsField === "string" ? medsField.split(/[,;\n]+/) : Array.isArray(medsField) ? medsField : [];
           for (const m of medsArr) {
-            const name = typeof m === "string" ? m.trim() : (m.name || m.medication || "");
+            const name = typeof m === "string" ? m.trim() : (m.name || "");
             if (name) addMed(name, "", "Intake", true);
           }
         } catch {}
       }
-    } catch (e) {
-      console.log("[Meds] patient intake skipped:", (e as Error).message);
     }
 
-    console.log(`[Meds] Found ${medications.length} medications for patient ${patientId} from ${new Set(medications.map(m => m.source)).size} sources`);
+    // ═══ SOURCE 7: drchrono_medications via email fallback ═══
+    // If drchrono_patient_id was null on patients table, try finding it via email
+    if (!drchronoPatientId && patientEmail && medications.length === 0) {
+      try {
+        const { data: dcPatient } = await supabase
+          .from("drchrono_patients")
+          .select("drchrono_patient_id")
+          .ilike("email", patientEmail)
+          .limit(1)
+          .single();
 
-    return NextResponse.json({ medications, count: medications.length });
+        if (dcPatient?.drchrono_patient_id) {
+          console.log(`[Meds] S7 email fallback found drchrono_id: ${dcPatient.drchrono_patient_id}`);
+          const { data: dcMeds } = await supabase
+            .from("drchrono_medications")
+            .select("name, dosage_quantity, dosage_unit, sig, frequency, status, date_stopped_taking")
+            .eq("drchrono_patient_id", dcPatient.drchrono_patient_id)
+            .order("date_prescribed", { ascending: false });
+
+          for (const m of dcMeds || []) {
+            const dosage = [m.dosage_quantity, m.dosage_unit, m.frequency].filter(Boolean).join(" ") || m.sig || "";
+            addMed(m.name || "", dosage, "DrChrono", m.status !== "inactive" && !m.date_stopped_taking);
+          }
+        }
+      } catch (e) {
+        console.log("[Meds] S7 skipped:", (e as Error).message);
+      }
+    }
+
+    const sources = [...new Set(medications.map(m => m.source))];
+    console.log(`[Meds] TOTAL: ${medications.length} meds from [${sources.join(", ")}]`);
+
+    return NextResponse.json({ medications, count: medications.length, sources });
   } catch (err: any) {
     console.error("[Meds] Error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
