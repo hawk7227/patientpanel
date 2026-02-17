@@ -84,6 +84,39 @@ export default function Home() {
                <span className="flex items-center gap-1 bg-white/5 px-3 py-1.5 rounded-full border border-white/5"><FileText size={12} className="text-purple-400"/> Medical Records</span>
             </div>
 
+            {/* ── Visit Type Highlights ── */}
+            <div className="mt-8 max-w-md mx-auto">
+              <p className="text-center text-[11px] uppercase tracking-widest text-gray-500 font-bold mb-4">How would you like to be seen?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/[0.03] border border-primary-teal/20 rounded-xl p-3 text-center hover:border-primary-teal/50 transition-all cursor-default">
+                  <div className="text-xl mb-1">💬</div>
+                  <p className="text-white font-bold text-xs">Get Seen</p>
+                  <p className="text-primary-teal font-black text-[10px] uppercase tracking-wide">Without Being Seen</p>
+                  <p className="text-gray-500 text-[9px] mt-1 leading-tight">No camera. No call. A provider reviews your case & sends treatment directly.</p>
+                </div>
+                <div className="bg-white/[0.03] border border-primary-orange/20 rounded-xl p-3 text-center hover:border-primary-orange/50 transition-all cursor-default">
+                  <div className="text-xl mb-1">📹</div>
+                  <p className="text-white font-bold text-xs">Face-to-Face</p>
+                  <p className="text-primary-orange font-black text-[10px] uppercase tracking-wide">From Your Couch</p>
+                  <p className="text-gray-500 text-[9px] mt-1 leading-tight">Live video or phone visit with your provider. Same quality, zero commute.</p>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="bg-white/[0.02] rounded-lg py-2 px-1 border border-white/5">
+                  <p className="text-primary-teal font-black text-sm">2 min</p>
+                  <p className="text-gray-500 text-[8px] uppercase tracking-wide">Avg. Intake</p>
+                </div>
+                <div className="bg-white/[0.02] rounded-lg py-2 px-1 border border-white/5">
+                  <p className="text-primary-orange font-black text-sm">1-2 hr</p>
+                  <p className="text-gray-500 text-[8px] uppercase tracking-wide">Rx to Pharmacy</p>
+                </div>
+                <div className="bg-white/[0.02] rounded-lg py-2 px-1 border border-white/5">
+                  <p className="text-white font-black text-sm">$0</p>
+                  <p className="text-gray-500 text-[8px] uppercase tracking-wide">Hidden Fees</p>
+                </div>
+              </div>
+            </div>
+
             {/* ── Returning Patient Express Lookup ── */}
             <ReturningPatientLookup />
         </div>
