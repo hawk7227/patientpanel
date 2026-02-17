@@ -11,20 +11,28 @@ export async function POST(request: Request) {
 
     console.log("⚡ [EXPRESS-LOOKUP] Checking:", normalizedEmail);
 
-    // 1. Check patients table (primary — has had appointments through our system)
-    // Prefer record with drchrono_patient_id set, then oldest record
-    const { data: patients } = await supabase
+    // 1. Check patients table — PREFER record with drchrono_patient_id linked
+    // First: try to find one with drchrono link (has medication history)
+    const { data: linkedPatient } = await supabase
       .from("patients")
       .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, drchrono_patient_id, preferred_pharmacy")
       .eq("email", normalizedEmail)
-      .order("drchrono_patient_id", { ascending: false, nullsFirst: false })
+      .not("drchrono_patient_id", "is", null)
       .order("created_at", { ascending: true })
-      .limit(1);
+      .limit(1)
+      .maybeSingle();
 
-    const patient = patients?.[0] || null;
+    // Fallback: any record with this email (oldest first)
+    const patient = linkedPatient || (await supabase
+      .from("patients")
+      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, drchrono_patient_id, preferred_pharmacy")
+      .eq("email", normalizedEmail)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle()).data;
 
     if (patient) {
-      console.log("⚡ [EXPRESS-LOOKUP] Found in patients table:", patient.id);
+      console.log("⚡ [EXPRESS-LOOKUP] Found:", patient.id, "drchrono:", patient.drchrono_patient_id, "linked:", !!linkedPatient);
       
       // Also get user record for extra info
       let userAddress = patient.location || "";
