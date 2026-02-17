@@ -22,10 +22,10 @@ const TABLE_MAP: Record<string, string> = {
   patients: 'patients',
   appointments: 'appointments',
   clinicalNotes: 'clinical_notes',
-  medications: 'medication_history',
-  allergies: 'patient_allergies',
-  messages: 'appointment_messages',
-  documents: 'appointment_documents',
+  medications: 'drchrono_medications',
+  allergies: 'drchrono_allergies',
+  messages: 'messages',
+  documents: 'documents',
 }
 
 // Fields to strip before Supabase write (local-only metadata)

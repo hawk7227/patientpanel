@@ -16,15 +16,15 @@ const db = createClient(
 )
 
 // Client table name → { supabase table, select fields, page size }
-const TABLE_CONFIG: Record<string, { table: string; select: string; pageSize: number }> = {
+const TABLE_CONFIG: Record<string, { table: string; select: string; pageSize: number; timeColumn?: string }> = {
   patients: {
     table: 'patients',
-    select: 'id, user_id, first_name, last_name, email, phone, date_of_birth, location, timezone, preferred_pharmacy, allergies, current_medications, active_problems, chief_complaint, ros_general, vitals_bp, vitals_hr, vitals_temp, has_drug_allergies, has_recent_surgeries, recent_surgeries_details, has_ongoing_medical_issues, ongoing_medical_issues_details, sms_enabled, email_enabled, call_enabled, drchrono_patient_id, created_at, updated_at',
+    select: '*',
     pageSize: 500,
   },
   appointments: {
     table: 'appointments',
-    select: 'id, doctor_id, patient_id, service_type, status, visit_type, requested_date_time, payment_intent_id, payment_status, patient_first_name, patient_last_name, patient_email, patient_phone, symptoms, chief_complaint, preferred_pharmacy, pharmacy_address, daily_room_name, daily_room_url, chart_locked, consent_accepted, notes, drchrono_appointment_id, created_at, updated_at',
+    select: '*',
     pageSize: 200,
   },
   clinicalNotes: {
@@ -33,17 +33,19 @@ const TABLE_CONFIG: Record<string, { table: string; select: string; pageSize: nu
     pageSize: 200,
   },
   medications: {
-    table: 'medication_history',
+    table: 'drchrono_medications',
     select: '*',
     pageSize: 500,
+    timeColumn: 'synced_at',
   },
   allergies: {
-    table: 'patient_allergies',
+    table: 'drchrono_allergies',
     select: '*',
     pageSize: 500,
+    timeColumn: 'synced_at',
   },
   messages: {
-    table: 'appointment_messages',
+    table: 'messages',
     select: '*',
     pageSize: 200,
   },
@@ -63,13 +65,35 @@ export async function GET(req: NextRequest) {
     }
 
     const config = TABLE_CONFIG[table]
+    const timeCol = config.timeColumn || 'updated_at'
 
-    const { data: records, error } = await db
+    // Try with the configured time column first, fallback to created_at
+    let records: any[] | null = null
+    let error: any = null
+
+    const result = await db
       .from(config.table)
       .select(config.select)
-      .gt('updated_at', since)
-      .order('updated_at', { ascending: true })
+      .gt(timeCol, since)
+      .order(timeCol, { ascending: true })
       .limit(config.pageSize)
+
+    records = result.data
+    error = result.error
+
+    // If time column doesn't exist, try created_at
+    if (error && (error.message?.includes('column') || error.code === '42703')) {
+      console.log(`[Sync:Pull] ${table}: ${timeCol} failed, trying created_at`)
+      const fallback = await db
+        .from(config.table)
+        .select(config.select)
+        .gt('created_at', since)
+        .order('created_at', { ascending: true })
+        .limit(config.pageSize)
+
+      records = fallback.data
+      error = fallback.error
+    }
 
     if (error) {
       console.error(`[Sync:Pull] ${table} error:`, error.message)
