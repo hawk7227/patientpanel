@@ -311,6 +311,15 @@ export default function ExpressCheckoutPage() {
   const [selectedMeds, setSelectedMeds] = useState<string[]>([]);
   const [medsLoading, setMedsLoading] = useState(false);
   const [hasControlledSelected, setHasControlledSelected] = useState(false);
+  const [controlledAcknowledged, setControlledAcknowledged] = useState(false);
+
+  // Post-payment controlled substance scheduling
+  const [showControlledScheduler, setShowControlledScheduler] = useState(false);
+  const [controlledScheduleDate, setControlledScheduleDate] = useState("");
+  const [controlledScheduleTime, setControlledScheduleTime] = useState("");
+  const [controlledVisitType, setControlledVisitType] = useState<"video" | "phone">("video");
+  const [schedulingAppointment, setSchedulingAppointment] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
 
   // Dialogs
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
@@ -411,12 +420,16 @@ export default function ExpressCheckoutPage() {
 
     // Async visits (instant/refill)
     if (visitType === "refill") {
-      return !!(selectedMeds.length > 0 && !hasControlledSelected && asyncAcknowledged);
+      // Controlled substances: need controlled ack + async ack
+      if (hasControlledSelected) {
+        return !!(selectedMeds.length > 0 && controlledAcknowledged && asyncAcknowledged);
+      }
+      return !!(selectedMeds.length > 0 && asyncAcknowledged);
     }
 
     // Instant
     return !!asyncAcknowledged;
-  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, asyncAcknowledged]);
+  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
   // ── Create payment intent ──────────────────────────────────
   useEffect(() => {
@@ -439,6 +452,7 @@ export default function ExpressCheckoutPage() {
     setAsyncAcknowledged(false);
     setSelectedMeds([]);
     setHasControlledSelected(false);
+    setControlledAcknowledged(false);
   };
 
   // ── Photo handling ─────────────────────────────────────────
@@ -491,6 +505,12 @@ export default function ExpressCheckoutPage() {
   }, [appointmentDate, appointmentTime]);
 
   const handleSuccess = () => {
+    // If controlled substance was selected, show the scheduling screen instead of redirecting
+    if (hasControlledSelected) {
+      setShowControlledScheduler(true);
+      return;
+    }
+    // Normal flow
     const stored = sessionStorage.getItem("appointmentData");
     if (stored) {
       try {
@@ -501,12 +521,78 @@ export default function ExpressCheckoutPage() {
     router.push("/success");
   };
 
+  // ── Schedule controlled substance live visit ────────────────
+  const handleControlledSchedule = async () => {
+    if (!controlledScheduleDate || !controlledScheduleTime) {
+      setScheduleError("Please select a date and time for your live visit.");
+      return;
+    }
+    setSchedulingAppointment(true);
+    setScheduleError(null);
+
+    try {
+      // Update the existing appointment to video/phone with scheduled time
+      const stored = sessionStorage.getItem("appointmentData");
+      const existingData = stored ? JSON.parse(stored) : {};
+
+      const updatePayload = {
+        appointmentId: existingData.appointmentId,
+        visitType: controlledVisitType,
+        appointmentDate: controlledScheduleDate,
+        appointmentTime: controlledScheduleTime,
+        notes: `[AUTO-UPGRADED] Controlled substance refill requires live ${controlledVisitType} visit. Original: Rx Refill. Medications: ${selectedMeds.join(", ")}`,
+      };
+
+      const res = await fetch("/api/update-appointment-type", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!res.ok) {
+        // If update API doesn't exist, create a new appointment
+        const createRes = await fetch("/api/create-appointment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            appointmentData: {
+              ...existingData,
+              visitType: controlledVisitType,
+              appointmentDate: controlledScheduleDate,
+              appointmentTime: controlledScheduleTime,
+              chief_complaint: `[CONTROLLED SUBSTANCE - LIVE VISIT REQUIRED] Rx Refill: ${selectedMeds.join(", ")}. ${existingData.chief_complaint || ""}`,
+            },
+          }),
+        });
+        if (!createRes.ok) throw new Error("Failed to schedule live visit");
+      }
+
+      // Update session storage with new visit type and time
+      sessionStorage.setItem("appointmentData", JSON.stringify({
+        ...existingData,
+        visitType: controlledVisitType,
+        appointmentDate: controlledScheduleDate,
+        appointmentTime: controlledScheduleTime,
+      }));
+
+      // Redirect to success
+      if (existingData.accessToken) {
+        router.push(`/appointment/${existingData.accessToken}`);
+      } else {
+        router.push("/success");
+      }
+    } catch (err: any) {
+      setScheduleError(err.message || "Failed to schedule. Please try again.");
+      setSchedulingAppointment(false);
+    }
+  };
+
   // ── Not-ready prompt ───────────────────────────────────────
   const notReadyMessage = useMemo(() => {
     if (!reason) return "Select a reason for visit to continue";
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return "Select date & time to continue";
     if (visitType === "refill" && selectedMeds.length === 0) return "Select medications to refill";
-    if (visitType === "refill" && hasControlledSelected) return "Controlled substances require a video visit";
+    if (visitType === "refill" && hasControlledSelected && !controlledAcknowledged) return "Acknowledge controlled substance terms to continue";
     if (isAsync && !asyncAcknowledged) return "Acknowledge the async visit terms to continue";
     return "Complete all fields to continue";
   }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged]);
@@ -515,6 +601,187 @@ export default function ExpressCheckoutPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin w-6 h-6 border-2 border-primary-teal border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // POST-PAYMENT: Controlled Substance Live Visit Scheduler
+  // ═══════════════════════════════════════════════════════════
+  if (showControlledScheduler) {
+    // Generate next 7 days of available time slots
+    const getAvailableDates = () => {
+      const dates: { label: string; value: string; dayLabel: string }[] = [];
+      const now = new Date();
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() + i);
+        const value = d.toISOString().split("T")[0];
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        dates.push({
+          label: `${monthNames[d.getMonth()]} ${d.getDate()}`,
+          value,
+          dayLabel: i === 0 ? "Today" : i === 1 ? "Tomorrow" : dayNames[d.getDay()],
+        });
+      }
+      return dates;
+    };
+
+    const getTimeSlots = () => {
+      const slots: { label: string; value: string }[] = [];
+      const isToday = controlledScheduleDate === new Date().toISOString().split("T")[0];
+      const currentHour = new Date().getHours();
+      for (let h = 9; h <= 21; h++) {
+        if (isToday && h <= currentHour) continue;
+        for (const m of [0, 30]) {
+          const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
+          const ampm = h >= 12 ? "PM" : "AM";
+          slots.push({
+            label: `${hr}:${String(m).padStart(2, "0")} ${ampm}`,
+            value: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+          });
+        }
+      }
+      return slots;
+    };
+
+    const controlledMeds = selectedMeds.filter(m => isControlledSubstance(m));
+
+    return (
+      <div className="min-h-screen bg-background text-foreground font-sans">
+        <div className="max-w-lg mx-auto px-4 py-8">
+          {/* Success Banner */}
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5 text-center mb-6">
+            <div className="w-14 h-14 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Check size={28} className="text-green-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-1">Payment Successful!</h2>
+            <p className="text-sm text-gray-400">One more step to complete your booking</p>
+          </div>
+
+          {/* Controlled Substance Notice */}
+          <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertTriangle size={20} className="text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-amber-400 font-bold text-sm mb-1">Live Visit Required</h3>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  Your refill includes{" "}
+                  <span className="text-amber-300 font-semibold">{controlledMeds.join(", ")}</span> — a controlled 
+                  medication that requires a brief live consultation with your provider per federal regulations (DEA/Ryan Haight Act). 
+                  Your visit has been upgraded at no additional cost.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Visit Type Toggle */}
+          <div className="mb-4">
+            <label className="text-xs text-gray-500 mb-2 block">Select visit type</label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { key: "video" as const, icon: Video, label: "Video Call", desc: "Face-to-face via camera" },
+                { key: "phone" as const, icon: Phone, label: "Phone Call", desc: "Private phone line" },
+              ]).map(opt => (
+                <button key={opt.key} onClick={() => setControlledVisitType(opt.key)}
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    controlledVisitType === opt.key
+                      ? "bg-primary-teal/10 border-primary-teal/40 text-white"
+                      : "bg-[#11161c] border-white/10 text-gray-400 hover:border-white/20"
+                  }`}>
+                  <opt.icon size={20} className={controlledVisitType === opt.key ? "text-primary-teal" : "text-gray-500"} />
+                  <div className="text-left">
+                    <div className="text-sm font-semibold">{opt.label}</div>
+                    <div className="text-[10px] opacity-60">{opt.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Selection */}
+          <div className="mb-4">
+            <label className="text-xs text-gray-500 mb-2 block">Select a date</label>
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {getAvailableDates().map(d => (
+                <button key={d.value} onClick={() => { setControlledScheduleDate(d.value); setControlledScheduleTime(""); }}
+                  className={`flex-shrink-0 flex flex-col items-center px-3 py-2.5 rounded-xl border transition-all ${
+                    controlledScheduleDate === d.value
+                      ? "bg-primary-teal/10 border-primary-teal/40 text-white"
+                      : "bg-[#11161c] border-white/10 text-gray-400 hover:border-white/20"
+                  }`}>
+                  <span className="text-[10px] font-bold">{d.dayLabel}</span>
+                  <span className="text-sm font-semibold">{d.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time Selection */}
+          {controlledScheduleDate && (
+            <div className="mb-6">
+              <label className="text-xs text-gray-500 mb-2 block">Select a time</label>
+              <div className="grid grid-cols-4 gap-1.5 max-h-48 overflow-y-auto">
+                {getTimeSlots().map(t => (
+                  <button key={t.value} onClick={() => setControlledScheduleTime(t.value)}
+                    className={`px-2 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      controlledScheduleTime === t.value
+                        ? "bg-primary-teal/20 border-primary-teal/40 text-primary-teal"
+                        : "bg-[#11161c] border-white/10 text-gray-400 hover:border-white/20"
+                    }`}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {scheduleError && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs mb-4">{scheduleError}</div>
+          )}
+
+          {/* Confirm Button */}
+          <button
+            onClick={handleControlledSchedule}
+            disabled={!controlledScheduleDate || !controlledScheduleTime || schedulingAppointment}
+            className="w-full bg-primary-teal hover:bg-teal-600 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base shadow-lg"
+          >
+            {schedulingAppointment ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                Scheduling...
+              </>
+            ) : (
+              <>
+                <Check size={18} />
+                Confirm {controlledVisitType === "video" ? "Video" : "Phone"} Visit
+              </>
+            )}
+          </button>
+
+          {/* Selected summary */}
+          {controlledScheduleDate && controlledScheduleTime && (
+            <div className="mt-3 bg-[#11161c] border border-white/10 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-400">
+                Your <span className="text-primary-teal font-semibold">{controlledVisitType === "video" ? "Video" : "Phone"} Visit</span>{" "}
+                is set for{" "}
+                <span className="text-white font-semibold">
+                  {new Date(controlledScheduleDate + "T" + controlledScheduleTime).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                  {" at "}
+                  {(() => {
+                    const [h, m] = controlledScheduleTime.split(":").map(Number);
+                    const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
+                    return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+                  })()}
+                </span>
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -651,19 +918,31 @@ export default function ExpressCheckoutPage() {
                     <p className="text-gray-500 text-xs py-2">No medications found. Please describe what you need below.</p>
                   ) : null}
 
-                  {/* Controlled substance warning */}
+                  {/* Controlled substance acknowledgment */}
                   {hasControlledSelected && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2.5 flex items-start gap-2">
-                      <AlertTriangle size={14} className="text-red-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-red-400 text-xs font-semibold">Controlled substance selected</p>
-                        <p className="text-red-400/70 text-[10px] mt-0.5">This medication requires a live visit for safety.</p>
-                        <button
-                          onClick={() => handleVisitTypeChange("video")}
-                          className="mt-1.5 text-[10px] bg-red-500/20 text-red-300 px-2 py-1 rounded font-semibold hover:bg-red-500/30 transition-all"
-                        >
-                          Switch to Video Visit →
-                        </button>
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 space-y-2">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-amber-400 text-xs font-semibold">Controlled Medication Selected</p>
+                          <p className="text-amber-400/70 text-[10px] mt-0.5 leading-relaxed">
+                            Under federal law (DEA/Ryan Haight Act), controlled substances may require a live 
+                            consultation via video or phone call before a prescription can be issued. After payment, 
+                            you will be asked to select a date and time for a brief live visit with your provider.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 pl-1">
+                        <input type="checkbox" id="controlledAck" checked={controlledAcknowledged}
+                          onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); }}
+                          className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500"
+                        />
+                        <label htmlFor="controlledAck" className="text-[10px] text-gray-400 leading-relaxed">
+                          <span className="text-white font-semibold">I understand and agree.</span>{" "}
+                          I acknowledge that my selected controlled medication(s) may require a live video or phone 
+                          visit with a licensed provider. I agree to schedule and attend this visit after payment. 
+                          The provider will determine at their clinical discretion whether the prescription is appropriate.
+                        </label>
                       </div>
                     </div>
                   )}
@@ -690,20 +969,50 @@ export default function ExpressCheckoutPage() {
                 />
               </div>
 
-              {/* Photo Upload */}
+              {/* Photo Upload + Camera Capture */}
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 pl-1">Photo (optional) — Rx label, symptoms, etc.</label>
-                <label className="flex items-center gap-3 px-4 py-3 bg-[#11161c] border border-white/10 rounded-xl cursor-pointer hover:border-white/20 transition-all">
-                  <Camera size={16} className="text-gray-500" />
-                  <span className="text-sm text-gray-400 flex-1">
-                    {photoFile ? photoFile.name : "Upload photo"}
-                  </span>
-                  <input type="file" accept="image/*,.pdf" capture="environment" onChange={handlePhotoChange}
-                    className="hidden" />
-                  {photoPreview && (
-                    <img src={photoPreview} alt="Preview" className="w-8 h-8 rounded object-cover" />
-                  )}
-                </label>
+                <label className="text-[10px] text-gray-500 pl-1">Photo (optional) — Rx label, symptoms, ID, etc.</label>
+                <div className="flex gap-2">
+                  {/* Camera Capture Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.setAttribute('capture', 'environment');
+                      input.onchange = (e: any) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 10 * 1024 * 1024) { alert("File too large. Max 10MB."); return; }
+                        setPhotoFile(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                      };
+                      input.click();
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 bg-[#11161c] border border-white/10 rounded-xl hover:border-primary-teal/30 transition-all flex-1"
+                  >
+                    <Camera size={16} className="text-primary-teal" />
+                    <span className="text-sm text-gray-300">Take Photo</span>
+                  </button>
+                  {/* File Upload Button */}
+                  <label className="flex items-center gap-2 px-4 py-3 bg-[#11161c] border border-white/10 rounded-xl cursor-pointer hover:border-white/20 transition-all flex-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span className="text-sm text-gray-400">Upload File</span>
+                    <input type="file" accept="image/*,.pdf" onChange={handlePhotoChange} className="hidden" />
+                  </label>
+                </div>
+                {/* Preview */}
+                {photoPreview && (
+                  <div className="relative inline-block mt-2">
+                    <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-lg object-cover border border-white/10" />
+                    <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                      <X size={10} className="text-white" />
+                    </button>
+                    <span className="text-[9px] text-gray-500 block mt-1">{photoFile?.name}</span>
+                  </div>
+                )}
               </div>
 
               {/* Async Acknowledgment */}
