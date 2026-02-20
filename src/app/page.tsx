@@ -65,14 +65,7 @@ function PairedCTABlock() {
          address: data.patient.address || "",
          source: data.source || "returning",
          pharmacy: data.patient.pharmacy || "",
-          email: email,
-          phone: data.phone || "",
-          dateOfBirth: data.dateOfBirth || "",
-          address: data.address || "",
-          source: "returning",
-          pharmacy: data.pharmacy || "",
-          drchronoPatientId: data.drchronoPatientId || null,
-        }));
+         }));
       } else {
         // NOT FOUND — store email-only stub, express checkout shows "Welcome!"
         sessionStorage.setItem("expressPatient", JSON.stringify({
