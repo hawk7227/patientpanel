@@ -56,9 +56,15 @@ function PairedCTABlock() {
       if (res.ok && data.found && data.patient) {
         // FOUND — store full patient info in sessionStorage
         sessionStorage.setItem("expressPatient", JSON.stringify({
-          id: data.patientId,
-          firstName: data.firstName,
-          lastName: data.lastName || "",
+          id: data.patient.id || null,
+        firstName: data.patient.firstName || "",
+        lastName: data.patient.lastName || "",
+         email: email,
+         phone: data.patient.phone || "",
+         dateOfBirth: data.patient.dateOfBirth || "",
+         address: data.patient.address || "",
+         source: data.source || "returning",
+         pharmacy: data.patient.pharmacy || "",
           email: email,
           phone: data.phone || "",
           dateOfBirth: data.dateOfBirth || "",
