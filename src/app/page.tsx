@@ -53,7 +53,7 @@ function PairedCTABlock() {
       });
       const data = await res.json();
 
-      if (res.ok && data.patientId && data.firstName) {
+      if (res.ok && data.found && data.patient) {
         // FOUND — store full patient info in sessionStorage
         sessionStorage.setItem("expressPatient", JSON.stringify({
           id: data.patientId,
@@ -107,7 +107,7 @@ function PairedCTABlock() {
           </span>
         </div>
         <div className="flex gap-3">
-          <input type="email" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleExpressBook()} placeholder="Email" disabled={searching} className="flex-1 bg-white text-black border border-gray-300 rounded-xl px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
+          <input type="email" name="email" autoComplete="email" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleExpressBook()} placeholder="Email" disabled={searching} className="flex-1 bg-white text-black border border-gray-300 rounded-xl px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
           <button onClick={handleExpressBook} disabled={searching} className="bg-teal-500 text-black font-bold px-6 py-3.5 rounded-xl hover:bg-teal-400 transition-all flex items-center gap-2 text-base whitespace-nowrap disabled:opacity-50">
             {searching ? (
               <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> Searching...</>
