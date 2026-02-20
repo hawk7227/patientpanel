@@ -46,7 +46,7 @@ function PairedCTABlock() {
 
     try {
       // Search for existing patient by email
-      const res = await fetch("/api/check-create-patient", {
+      const res = await fetch("/api/express-lookup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, lookupOnly: true }),
