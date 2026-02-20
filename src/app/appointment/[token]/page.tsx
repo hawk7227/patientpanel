@@ -16,7 +16,7 @@ interface AppointmentData {
   dailyco_meeting_url: string | null;
   dailyco_room_name: string | null;
   dailyco_owner_token: string | null;
-  dailyco_owner_token: appointment.dailyco_owner_token, dailyco_patient_token: appointment.dailyco_patient_token || null, requested_date_time: appointment.requested_date_time
+  dailyco_patient_token: string | null;
   patient_phone: string | null;
   doctor_id: string;
   doctor?: { first_name: string; last_name: string; specialty: string; phone: string | null; };
