@@ -281,7 +281,7 @@ function Step2PaymentForm({
       {showCardSlide && (
         <div className="fixed inset-0 z-[150] flex items-end" onClick={() => setShowCardSlide(false)}>
           <div className="absolute inset-0 bg-black/70" />
-          <div className="relative w-full bg-[#0d1218] border-t border-[#2dd4a0]/30 rounded-t-2xl p-4 pb-8 space-y-3" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.3s ease-out' }}>
+          <div className="relative w-full bg-[#0d1218] border-t border-[#2dd4a0]/30 rounded-t-2xl p-4 pb-8 space-y-3" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-2" />
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2"><Lock size={14} className="text-[#2dd4a0]" /><span className="text-white font-bold text-sm">Pay with Card</span></div>
@@ -295,7 +295,7 @@ function Step2PaymentForm({
           </div>
         </div>
       )}
-      <style jsx>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+      <style jsx>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }`}</style>
     </>
   );
 }
@@ -567,6 +567,19 @@ export default function ExpressCheckoutPage() {
 
   const totalSteps = 8;
 
+  // Auto-show first visit type popup when Step 4 finishes rolling in
+  const [step4PopupFired, setStep4PopupFired] = useState(false);
+  useEffect(() => {
+    if (activeGuideStep === 4 && !visitTypeConfirmed && !step4PopupFired && !visitTypePopup) {
+      // Fire popup when the step-enter animation is about halfway (0.7s * 0.5 ≈ 350ms)
+      const timer = setTimeout(() => {
+        setVisitTypePopup("instant");
+        setStep4PopupFired(true);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [activeGuideStep, visitTypeConfirmed, step4PopupFired, visitTypePopup]);
+
   if (!patient) {
     return (<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin w-6 h-6 border-2 border-primary-teal border-t-transparent rounded-full" /></div>);
   }
@@ -603,7 +616,7 @@ export default function ExpressCheckoutPage() {
 
     return (
       <div className="text-white font-sans overflow-hidden" style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)", height: "100dvh", minHeight: "0" }}>
-        <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
+        <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
         <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="text-center pt-1 pb-1">
             <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span>
@@ -658,7 +671,7 @@ export default function ExpressCheckoutPage() {
 
     return (
       <div className="text-white font-sans overflow-hidden" style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)", height: "100dvh", minHeight: "0" }}>
-        <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+        <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }`}</style>
         <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="flex items-center justify-between pt-1 pb-1">
             <div className="flex-1 text-center">
@@ -711,7 +724,7 @@ export default function ExpressCheckoutPage() {
   const activeOrangeBorder = "border-[3px] border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.5)]";
 
   const CompletedPill = ({ text, onReset, subText }: { text: string; onReset: () => void; subText?: string }) => (
-    <button onClick={onReset} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInStep 0.3s ease-out" }}>
+    <button onClick={onReset} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
       <div className="w-8 h-8 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={18} className="text-black" strokeWidth={3} /></div>
       <span className="text-gray-300 text-[13px] font-semibold truncate flex-1 text-left">{text}</span>
       <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
@@ -720,7 +733,7 @@ export default function ExpressCheckoutPage() {
 
   const PharmacyCompletedView = () => (
     <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null }); }}
-      className="w-full rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all overflow-hidden opacity-80 hover:opacity-100" style={{ animation: "fadeInStep 0.3s ease-out" }}>
+      className="w-full rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all overflow-hidden opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
       <div className="px-3 py-1 border-b border-[#2dd4a0]/20 flex items-center gap-2">
         <div className="w-5 h-5 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={12} className="text-black" strokeWidth={3} /></div>
         <span className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Preferred Pharmacy</span>
@@ -752,11 +765,11 @@ export default function ExpressCheckoutPage() {
     <div className="text-white font-sans overflow-hidden" style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)", height: "100dvh", minHeight: "0" }}>
       <style>{`
         @keyframes guidePulse { 0%,100% { box-shadow: 0 0 8px rgba(249,115,22,0.3); } 50% { box-shadow: 0 0 18px rgba(249,115,22,0.55); } }
-        @keyframes wanderQ { 0%,100% { opacity:0; transform:scale(0.7); } 30%,70% { opacity:1; transform:scale(1.15); } }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }
         @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); } 50% { box-shadow: 0 0 16px rgba(249,115,22,0.5); } }
-        @keyframes fadeInBtn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes fadeInStep { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeInBtn { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes fadeInStep { from { opacity:0; transform:translateY(20px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes fadeInPill { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
       `}</style>
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
@@ -806,7 +819,7 @@ export default function ExpressCheckoutPage() {
           {reason ? (
             <CompletedPill text={reason} subText="Reason for Visit" onReset={() => { setReason(""); setChiefComplaint(""); setChiefComplaintDone(false); saveAnswers({ reason: "", chiefComplaint: "", chiefComplaintDone: false }); }} />
           ) : (
-            <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#11161c] text-left transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.3s ease-out" }}>
+            <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#11161c] text-left transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-sm font-semibold">Reason for Visit</span></div>
               <ChevronDown size={16} className="text-gray-500" />
             </button>
@@ -814,7 +827,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 2: Describe Your Symptoms (inline) */}
           {reason && !chiefComplaintDone && (
-            <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
+            <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">2</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Describe Your Symptoms</span></div>
               <p className="text-white text-[11px]">Briefly describe what&apos;s going on so your provider can prepare.</p>
               <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-600" />
@@ -829,7 +842,7 @@ export default function ExpressCheckoutPage() {
           {reason && chiefComplaintDone && (pharmacy ? (
             <PharmacyCompletedView />
           ) : (
-            <div className={`rounded-xl bg-[#11161c] p-4 space-y-2 transition-all ${activeGuideStep === 3 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
+            <div className={`rounded-xl bg-[#11161c] p-4 space-y-2 transition-all ${activeGuideStep === 3 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">3</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 3 ? "text-white" : "text-gray-500"}`}>Preferred Pharmacy</span></div>
               <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
                 setPharmacy(val);
@@ -847,7 +860,7 @@ export default function ExpressCheckoutPage() {
             visitTypeConfirmed ? (
               <CompletedPill text={visitType === "instant" ? "Instant Care" : visitType === "refill" ? "Rx Refill" : visitType === "video" ? "Video Visit" : "Phone / SMS"} subText="Visit Type" onReset={() => { setVisitTypeConfirmed(false); saveAnswers({ visitTypeConfirmed: false }); }} />
             ) : (
-              <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeGuideStep === 4 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
+              <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeGuideStep === 4 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 4 ? "text-white" : "text-gray-500"}`}>Select Visit Type</span></div>
                 <div className="grid grid-cols-4 gap-2">
                   {([
@@ -873,7 +886,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 5: Visit-type-specific details */}
           {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 5 && (
-            <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
+            <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {visitType === "instant" && (
                 <div className="space-y-2 p-3">
                   <div className="flex items-center gap-3 bg-[#11161c]/60 border border-white/5 rounded-xl px-3 py-2.5">
@@ -904,7 +917,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 6: Additional Medications */}
           {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 6 && (
-            <div className={`rounded-xl p-3 ${activeGuideStep === 6 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
+            <div className={`rounded-xl p-3 ${activeGuideStep === 6 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-3 mb-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">6</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 6 ? "text-white" : "text-gray-500"}`}>Need additional medications?</span></div>
               <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => { setAdditionalMedsAnswer("yes"); saveAnswers({ additionalMedsAnswer: "yes" }); }} className={`py-2.5 rounded-xl text-sm font-bold border-2 ${additionalMedsAnswer === "yes" ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-[#2dd4a0]" : "border-white/10 bg-[#11161c] text-gray-400"}`}>Yes, add meds</button>
@@ -917,7 +930,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 7: Acknowledgment */}
           {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
             <button onClick={() => { const v = !asyncAcknowledged; setAsyncAcknowledged(v); setClientSecret(""); saveAnswers({ asyncAcknowledged: v }); }}
-              className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
+              className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-[#f97316]/50"}`}>{asyncAcknowledged && <Check size={12} className="text-black" />}</div>
               <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours. If a live evaluation is needed, I may be asked to schedule one.</p></div>
             </button>
@@ -925,7 +938,7 @@ export default function ExpressCheckoutPage() {
 
           {/* Photo upload — Rx Label */}
           {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 6 && isAsync && (
-            <div className="rounded-xl bg-[#11161c]/60 border border-white/5 p-3 space-y-2" style={{ animation: "fadeInStep 0.3s ease-out" }}>
+            <div className="rounded-xl bg-[#11161c]/60 border border-white/5 p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-2">
                 <Camera size={14} className="text-[#2dd4a0]" />
                 <span className="text-white text-[11px] font-semibold">Take a Photo of Rx Label</span>
@@ -953,7 +966,7 @@ export default function ExpressCheckoutPage() {
         {/* ═══ BOTTOM BUTTON ═══ */}
         <div className="flex-shrink-0 pb-1 pt-1">
           {allFieldsReady ? (
-            <button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg" style={{ background: "#f97316", color: "#fff", animation: "fadeInBtn 0.4s ease-out" }}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>
+            <button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg" style={{ background: "#f97316", color: "#fff", animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>
           ) : (<div className="text-center py-2"><p className="text-gray-600 text-[10px]">{notReadyMessage}</p></div>)}
           <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · {currentPrice.display}</p>
         </div>
@@ -962,7 +975,7 @@ export default function ExpressCheckoutPage() {
       {/* ═══ VISIT TYPE POPUP — 2 CTAs ═══ */}
       {visitTypePopup && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70" onClick={() => setVisitTypePopup(null)}>
-          <div className="w-full max-w-[430px] rounded-t-2xl overflow-hidden" style={{ animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[430px] rounded-t-2xl overflow-hidden" style={{ animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }} onClick={(e) => e.stopPropagation()}>
             <div className="p-5 space-y-3" style={{ background: "linear-gradient(180deg, #131a20 0%, #0d1218 100%)" }}>
               {visitTypePopup === "instant" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center"><Zap size={20} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-base">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">No video. No phone call. No waiting room. Your provider reviews your case privately and sends treatment + prescription to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">100% private — no face-to-face</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Treatment in 1–2 hours</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Rx sent straight to your pharmacy</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: UTIs, cold & flu, skin issues, allergies</p></>)}
               {visitTypePopup === "refill" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center"><Pill size={20} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-base">Your Meds. Refilled. No Appointment.</h3><p className="text-[#f59e0b] text-[10px] font-bold uppercase tracking-wider">Rx Refill · Skip the Wait</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">Running low? Select your medications, provider reviews and approves, refill sent to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#f59e0b]" /><span className="text-white text-[11px] font-medium">No appointment needed</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#f59e0b]" /><span className="text-white text-[11px] font-medium">Same-day pharmacy pickup</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#f59e0b]" /><span className="text-white text-[11px] font-medium">Same provider every refill</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: blood pressure, birth control, cholesterol</p></>)}
@@ -980,7 +993,7 @@ export default function ExpressCheckoutPage() {
       {/* ═══ REASON DIALOG ═══ */}
       {reasonDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }}>
-          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center"><span className="text-white font-bold text-base">Reason For Visit</span><button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
             <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /><input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..." autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-[#2dd4a0]" /></div>
             <div className="max-h-60 overflow-y-auto border border-white/5 rounded-lg">
@@ -994,7 +1007,7 @@ export default function ExpressCheckoutPage() {
       {/* ═══ DATE/TIME DIALOG ═══ */}
       {dateTimeDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setDateTimeDialogOpen(false)}>
-          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.3s ease-out" }} onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center"><span className="text-white font-bold text-base">{dateTimeMode === "date" ? "Select Date" : "Select Time"}</span><button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
             <AppointmentCalendar selectedDate={appointmentDate || null} selectedTime={appointmentTime || null} onDateSelect={(date) => { setAppointmentDate(date); setDateTimeMode("time"); saveAnswers({ appointmentDate: date }); }} onTimeSelect={(time) => { setAppointmentTime(time); setDateTimeDialogOpen(false); saveAnswers({ appointmentTime: time }); }} mode={dateTimeMode === "date" ? "date" : "time"} />
             {dateTimeMode === "time" && (<button onClick={() => setDateTimeMode("date")} className="w-full text-center text-xs text-[#2dd4a0] hover:underline">← Change date</button>)}
