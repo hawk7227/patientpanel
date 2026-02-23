@@ -100,7 +100,11 @@ function PairedCTABlock() {
         Book My 1st Visit — $1.89 <ArrowRight size={20} />
       </Link>
       <div className="w-full max-w-lg">
-
+        <div className="text-center mb-3">
+          <span className="text-sm font-bold text-orange-400 flex items-center justify-center gap-1.5">
+            <Zap size={14} /> BOOK IN 30 SECONDS
+          </span>
+        </div>
         <div className="flex gap-2 sm:gap-3 w-full">
           <input type="email" name="email" autoComplete="email" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleExpressBook()} placeholder="Email" disabled={searching} className="flex-1 min-w-0 bg-white text-black border border-gray-300 rounded-xl px-4 sm:px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
           <button onClick={handleExpressBook} disabled={searching} className="bg-teal-500 text-black font-bold px-4 sm:px-6 py-3.5 rounded-xl hover:bg-teal-400 transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base flex-shrink-0 disabled:opacity-50">
