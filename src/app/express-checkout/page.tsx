@@ -567,8 +567,6 @@ export default function ExpressCheckoutPage() {
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return 5;
     if (visitType === "instant" && wantToTalk && (!appointmentDate || !appointmentTime)) return 5;
     if (visitType === "refill" && selectedMeds.length === 0 && !symptomsText.trim() && !photoFile) return 5;
-    // Step 6: additional meds — refill only
-    if (visitType === "refill" && additionalMedsAnswer === null) return 6;
     // Step 7: acknowledgment — non-refill async only
     if (visitType !== "refill" && isAsync && !hasControlledSelected && !asyncAcknowledged) return 7;
     if (hasControlledSelected && !controlledAcknowledged) return 7;
@@ -961,17 +959,20 @@ export default function ExpressCheckoutPage() {
                   ) : (
                     <p className="text-gray-500 text-xs">No medications selected</p>
                   )}
-                  {symptomsText && <p className="text-gray-400 text-[10px] italic border-t border-white/5 pt-1.5 mt-1">Notes: {symptomsText}</p>}
-                  {photoPreview && <div className="flex items-center gap-2 border-t border-white/5 pt-1.5 mt-1"><img src={photoPreview} alt="Rx label" className="w-12 h-12 rounded-lg object-cover border border-white/10" /><span className="text-gray-400 text-[10px]">Rx photo attached</span></div>}
-                  {hasControlledSelected && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 mt-1">
-                      <div className="flex items-start gap-2 pl-1">
-                        <input type="checkbox" id="ctrlAckSummary" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500" />
-                        <label htmlFor="ctrlAckSummary" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
-                      </div>
+                  <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-[#f59e0b] text-[10px] font-semibold hover:underline">← Edit medications</button>
+                  {symptomsText && <p className="text-gray-400 text-[10px] italic border-t border-white/5 pt-1.5">Notes: {symptomsText}</p>}
+                  {/* One-line camera link */}
+                  <button type="button" onClick={() => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.setAttribute("capture", "environment"); i.onchange = (e: any) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); } }; i.click(); }} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                    <Camera size={14} className="text-[#2dd4a0]" />
+                    <span className="text-white text-[11px] font-semibold">Take a Photo of Rx Label</span>
+                    <span className="text-gray-500 text-[9px]">(optional)</span>
+                  </button>
+                  {photoPreview && (
+                    <div className="relative inline-block">
+                      <img src={photoPreview} alt="Rx label" className="w-16 h-16 rounded-lg object-cover border border-white/10" />
+                      <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-lg"><X size={10} className="text-white" /></button>
                     </div>
                   )}
-                  <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-[#f59e0b] text-[10px] font-semibold hover:underline">← Edit medications</button>
                 </div>
               )}
               {(visitType === "video" || visitType === "phone") && (
@@ -983,19 +984,7 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 6: Additional Medications — refill only */}
-          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType === "refill" && activeGuideStep >= 6 && (
-            <div className={`rounded-xl p-3 ${activeGuideStep === 6 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center gap-3 mb-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">6</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 6 ? "text-white" : "text-gray-500"}`}>Need additional medications?</span></div>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => { setAdditionalMedsAnswer("yes"); saveAnswers({ additionalMedsAnswer: "yes" }); }} className={`py-2.5 rounded-xl text-sm font-bold border-2 ${additionalMedsAnswer === "yes" ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-[#2dd4a0]" : "border-white/10 bg-[#11161c] text-gray-400"}`}>Yes, add meds</button>
-                <button onClick={() => { setAdditionalMedsAnswer("no"); saveAnswers({ additionalMedsAnswer: "no" }); }} className={`py-2.5 rounded-xl text-sm font-bold border-2 ${additionalMedsAnswer === "no" ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-[#2dd4a0]" : "border-white/10 bg-[#11161c] text-gray-400"}`}>{"No, I'm good"}</button>
-              </div>
-              {additionalMedsAnswer === "yes" && (<textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="List any additional medications or notes..." rows={2} className="w-full mt-2 bg-[#0d1218] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#2dd4a0] resize-none placeholder:text-gray-600" />)}
-            </div>
-          )}
-
-          {/* STEP 7: Acknowledgment */}
+          {/* STEP 7: Acknowledgment — non-refill async */}
           {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
             <button onClick={() => { const v = !asyncAcknowledged; setAsyncAcknowledged(v); setClientSecret(""); saveAnswers({ asyncAcknowledged: v }); }}
               className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
@@ -1004,35 +993,17 @@ export default function ExpressCheckoutPage() {
             </button>
           )}
 
-          {/* Photo upload — Rx Label — refill only */}
-          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType === "refill" && activeGuideStep >= 6 && (
-            <div className="rounded-xl bg-[#11161c]/60 border border-white/5 p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center gap-2">
-                <Camera size={14} className="text-[#2dd4a0]" />
-                <span className="text-white text-[11px] font-semibold">Take a Photo of Rx Label</span>
-                <span className="text-gray-500 text-[9px]">(optional)</span>
-              </div>
-              <p className="text-gray-500 text-[9px] leading-relaxed">Snap a photo of your prescription label or medication bottle to help your provider verify details faster.</p>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.setAttribute("capture", "environment"); i.onchange = (e: any) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); } }; i.click(); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#2dd4a0]/10 border border-[#2dd4a0]/20 text-[#2dd4a0] text-[11px] font-bold hover:bg-[#2dd4a0]/15 transition-colors">
-                  <Camera size={14} />Take Photo
-                </button>
-                <button type="button" onClick={() => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.onchange = (e: any) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); } }; i.click(); }} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-[11px] font-semibold hover:bg-white/10 transition-colors">
-                  <Upload size={14} />Upload File
-                </button>
-              </div>
-              {photoPreview && (
-                <div className="relative inline-block mt-1">
-                  <img src={photoPreview} alt="Rx label" className="w-20 h-20 rounded-lg object-cover border border-white/10" />
-                  <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-lg"><X size={10} className="text-white" /></button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* ═══ BOTTOM BUTTON ═══ */}
-        <div className="flex-shrink-0 pb-1 pt-1">
+        <div className="flex-shrink-0 pb-1 pt-1 space-y-2">
+          {/* Controlled substance acknowledgment — just above CTA */}
+          {hasControlledSelected && visitType === "refill" && visitTypeConfirmed && (
+            <div className="flex items-start gap-2.5 px-1">
+              <input type="checkbox" id="ctrlAckBottom" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-4 h-4 rounded border-white/20 bg-[#0d1218] text-amber-500 focus:ring-amber-500 flex-shrink-0" />
+              <label htmlFor="ctrlAckBottom" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
+            </div>
+          )}
           {allFieldsReady ? (
             <button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg" style={{ background: "#f97316", color: "#fff", animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>
           ) : (<div className="text-center py-2"><p className="text-gray-600 text-[10px]">{notReadyMessage}</p></div>)}
