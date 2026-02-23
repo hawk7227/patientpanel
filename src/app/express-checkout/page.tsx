@@ -466,11 +466,13 @@ export default function ExpressCheckoutPage() {
     if (!reason) return false;
     if (needsCalendar) return !!(appointmentDate && appointmentTime);
     if (visitType === "refill") {
-      if (hasControlledSelected) return !!(selectedMeds.length > 0 && controlledAcknowledged);
-      return !!(selectedMeds.length > 0 && asyncAcknowledged);
+      const hasMedsOrNotes = selectedMeds.length > 0 || symptomsText.trim().length > 0 || !!photoFile;
+      if (!hasMedsOrNotes) return false;
+      if (hasControlledSelected) return !!controlledAcknowledged;
+      return true;
     }
     return !!asyncAcknowledged;
-  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
+  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, symptomsText, photoFile, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
   // ── Create payment intent ──────────────────────────────
   useEffect(() => {
@@ -483,8 +485,13 @@ export default function ExpressCheckoutPage() {
 
   const handleVisitTypeChange = (type: VisitType) => {
     setVisitType(type); setClientSecret(""); setAsyncAcknowledged(false);
-    setSelectedMeds([]); setHasControlledSelected(false); setControlledAcknowledged(false);
-    saveAnswers({ visitType: type, asyncAcknowledged: false, selectedMeds: [], controlledAcknowledged: false });
+    // Only clear meds when switching AWAY from refill, not when selecting refill (meds already chosen in popup)
+    if (type !== "refill") {
+      setSelectedMeds([]); setHasControlledSelected(false); setControlledAcknowledged(false);
+      saveAnswers({ visitType: type, asyncAcknowledged: false, selectedMeds: [], controlledAcknowledged: false });
+    } else {
+      saveAnswers({ visitType: type, asyncAcknowledged: false });
+    }
   };
 
   const toggleMed = (name: string) => {
@@ -556,14 +563,17 @@ export default function ExpressCheckoutPage() {
     if (!chiefComplaintDone) return 2;
     if (!pharmacy) return 3;
     if (!visitTypeConfirmed) return 4;
+    // Step 5: visit-type-specific
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return 5;
     if (visitType === "instant" && wantToTalk && (!appointmentDate || !appointmentTime)) return 5;
-    if (visitType === "refill" && selectedMeds.length === 0) return 5;
-    if (additionalMedsAnswer === null) return 6;
-    if (isAsync && !hasControlledSelected && !asyncAcknowledged) return 7;
+    if (visitType === "refill" && selectedMeds.length === 0 && !symptomsText.trim() && !photoFile) return 5;
+    // Step 6: additional meds — refill only
+    if (visitType === "refill" && additionalMedsAnswer === null) return 6;
+    // Step 7: acknowledgment — non-refill async only
+    if (visitType !== "refill" && isAsync && !hasControlledSelected && !asyncAcknowledged) return 7;
     if (hasControlledSelected && !controlledAcknowledged) return 7;
     return 8;
-  }, [reason, chiefComplaintDone, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, additionalMedsAnswer, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
+  }, [reason, chiefComplaintDone, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, additionalMedsAnswer, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
   const totalSteps = 8;
 
@@ -973,8 +983,8 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 6: Additional Medications */}
-          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 6 && (
+          {/* STEP 6: Additional Medications — refill only */}
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType === "refill" && activeGuideStep >= 6 && (
             <div className={`rounded-xl p-3 ${activeGuideStep === 6 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-3 mb-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">6</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 6 ? "text-white" : "text-gray-500"}`}>Need additional medications?</span></div>
               <div className="grid grid-cols-2 gap-2">
@@ -994,8 +1004,8 @@ export default function ExpressCheckoutPage() {
             </button>
           )}
 
-          {/* Photo upload — Rx Label */}
-          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 6 && isAsync && (
+          {/* Photo upload — Rx Label — refill only */}
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType === "refill" && activeGuideStep >= 6 && (
             <div className="rounded-xl bg-[#11161c]/60 border border-white/5 p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-2">
                 <Camera size={14} className="text-[#2dd4a0]" />
