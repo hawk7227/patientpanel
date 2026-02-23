@@ -180,8 +180,31 @@ export default function PharmacySelector({
   }, []);
 
   const handleSelect = (pharmacy: Pharmacy) => {
-    const fullAddress = pharmacy.formatted_address ? `${pharmacy.name}, ${pharmacy.formatted_address}` : pharmacy.name;
-    onChange(fullAddress);
+    const photoUrl = pharmacy.photos && pharmacy.photos.length > 0 ? getPhotoUrl(pharmacy.photos[0], 200) : "";
+    let isOpenNow: boolean | undefined;
+    if (pharmacy.opening_hours) {
+      if (typeof (pharmacy.opening_hours as any).isOpen === 'function') {
+        isOpenNow = (pharmacy.opening_hours as any).isOpen();
+      } else if ('open_now' in pharmacy.opening_hours) {
+        isOpenNow = (pharmacy.opening_hours as any).open_now;
+      }
+    }
+    const info = {
+      name: pharmacy.name,
+      address: pharmacy.formatted_address,
+      formatted_address: pharmacy.formatted_address,
+      photo: photoUrl,
+      photoUrl: photoUrl,
+      rating: pharmacy.rating,
+      reviewCount: pharmacy.user_ratings_total,
+      user_ratings_total: pharmacy.user_ratings_total,
+      isOpen: isOpenNow,
+      opening_hours: pharmacy.opening_hours,
+      phone: pharmacy.formatted_phone_number,
+      place_id: pharmacy.place_id,
+      distance: pharmacy.distance,
+    };
+    (onChange as any)(pharmacy.name, info);
     if (onPlaceSelect) onPlaceSelect(pharmacy);
     setIsOpen(false);
   };
