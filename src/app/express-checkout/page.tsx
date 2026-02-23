@@ -764,7 +764,7 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
         </div>
-        <span className="text-[#2dd4a0] text-[11px] font-black flex-shrink-0 uppercase tracking-wide">Tap to<br/>Change</span>
+        <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
       </div>
     </button>
   );
@@ -955,7 +955,7 @@ export default function ExpressCheckoutPage() {
                 <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Selected Medications</span></div>
-                    <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-[#2dd4a0] text-[10px] font-semibold leading-tight text-right">Tap to<br/>change</button>
+                    <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-gray-500 text-[10px] font-semibold flex-shrink-0 leading-tight text-right">Tap to<br/>change</button>
                   </div>
                   {selectedMeds.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">{selectedMeds.map(m => (<span key={m} className={`text-[10px] px-2 py-1 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>
