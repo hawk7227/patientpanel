@@ -694,16 +694,16 @@ export default function ExpressCheckoutPage() {
               <div className="flex-1 min-w-0"><p className="text-white font-bold text-[12px]">LaMonica A. Hodges</p><p className="text-gray-500 text-[9px]">MSN, APRN, FNP-C · Board-Certified</p></div>
               <Shield size={14} className="text-[#2dd4a0] flex-shrink-0" />
             </div>
-            <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Reason</span><span className="text-white text-[11px] font-semibold">{reason || "—"}</span></div>
-            <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Visit Type</span><span className="text-[11px] font-bold flex items-center gap-1" style={{ color: vt.color }}><span>{vt.icon}</span>{vt.label}</span></div>
-            {pharmacy && <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Pharmacy</span><span className="text-white text-[10px] font-medium truncate max-w-[55%] text-right">{pharmacy}</span></div>}
+            <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Reason for Visit</p><p className="text-white text-[12px] font-semibold">{reason || "—"}</p></div>
+            <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Visit Type</p><p className="text-[12px] font-bold flex items-center justify-center gap-1" style={{ color: vt.color }}><span>{vt.icon}</span>{vt.label}</p></div>
+            {pharmacy && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Pharmacy</p><p className="text-white text-[11px] font-medium">{pharmacy}</p></div>}
             {!isAsyncType && appointmentDate && appointmentTime ? (
-              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Date & Time</span><span className="text-white text-[11px] font-semibold">{formatDisplayDateTime()}</span></div>
+              <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Date & Time</p><p className="text-white text-[12px] font-semibold">{formatDisplayDateTime()}</p></div>
             ) : isAsyncType ? (
-              <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Delivery</span><span className="text-[#2dd4a0] text-[10px] font-bold">Provider responds in 1–2 hrs</span></div>
+              <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Delivery</p><p className="text-[#2dd4a0] text-[11px] font-bold">Provider responds in 1–2 hrs</p></div>
             ) : null}
-            {selectedMeds.length > 0 && <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Medications</span><span className="text-white text-[10px] font-medium">{selectedMeds.length} selected</span></div>}
-            {wantToTalk && visitType === "instant" && appointmentDate && <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5"><span className="text-gray-500 text-[10px]">Live Add-on</span><span className="text-white text-[11px] font-semibold">{formatDisplayDateTime()}</span></div>}
+            {selectedMeds.length > 0 && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Medications</p><p className="text-white text-[11px] font-medium">{selectedMeds.join(", ")}</p></div>}
+            {wantToTalk && visitType === "instant" && appointmentDate && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Live Add-on</p><p className="text-white text-[12px] font-semibold">{formatDisplayDateTime()}</p></div>}
             <div className="px-3 py-2 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}><span className="text-gray-400 text-[11px] font-semibold">Total</span><span className="text-[#2dd4a0] font-black text-[16px]">{currentPrice.display}</span></div>
           </div>
           <div className="flex-1 flex flex-col justify-end min-h-0">
@@ -823,15 +823,22 @@ export default function ExpressCheckoutPage() {
         {/* ═══ SCROLLABLE GUIDED FORM ═══ */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0" style={{ scrollbarWidth: "none" }}>
 
-          {/* STEP 1: Reason for Visit */}
-          {reason ? (
-            <CompletedPill text={reason} subText="Reason for Visit" onReset={() => { setReason(""); setChiefComplaint(""); setChiefComplaintDone(false); saveAnswers({ reason: "", chiefComplaint: "", chiefComplaintDone: false }); }} />
-          ) : (
+          {/* STEP 1+2: Reason + Symptoms (merged pill when complete) */}
+          {reason && chiefComplaintDone ? (
+            <button onClick={() => { setChiefComplaintDone(false); saveAnswers({ chiefComplaintDone: false }); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="w-8 h-8 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={18} className="text-black" strokeWidth={3} /></div>
+              <div className="flex-1 min-w-0 text-left">
+                <span className="text-gray-300 text-[13px] font-semibold truncate block">{reason}</span>
+                {chiefComplaint && <span className="text-gray-500 text-[10px] truncate block">{chiefComplaint}</span>}
+              </div>
+              <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+            </button>
+          ) : !reason ? (
             <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#11161c] text-left transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-sm font-semibold">Reason for Visit</span></div>
               <ChevronDown size={16} className="text-gray-500" />
             </button>
-          )}
+          ) : null}
 
           {/* STEP 2: Describe Your Symptoms (inline) */}
           {reason && !chiefComplaintDone && (
@@ -841,9 +848,6 @@ export default function ExpressCheckoutPage() {
               <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-600" />
               <button onClick={() => { setChiefComplaintDone(true); saveAnswers({ chiefComplaint, chiefComplaintDone: true }); }} disabled={!chiefComplaint.trim()} className="w-full bg-[#f97316] text-black py-2.5 rounded-xl text-sm font-bold hover:bg-[#fb923c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Done</button>
             </div>
-          )}
-          {reason && chiefComplaintDone && (
-            <CompletedPill text={chiefComplaint || "Skipped"} subText="Symptoms Description" onReset={() => { setChiefComplaintDone(false); saveAnswers({ chiefComplaintDone: false }); }} />
           )}
 
           {/* STEP 3: Preferred Pharmacy */}
@@ -866,7 +870,19 @@ export default function ExpressCheckoutPage() {
           {/* STEP 4: Select Visit Type */}
           {reason && chiefComplaintDone && pharmacy && (
             visitTypeConfirmed ? (
-              <CompletedPill text={visitType === "instant" ? "Instant Care" : visitType === "refill" ? "Rx Refill" : visitType === "video" ? "Video Visit" : "Phone / SMS"} subText="Visit Type" onReset={() => { setVisitTypeConfirmed(false); saveAnswers({ visitTypeConfirmed: false }); }} />
+              visitType === "refill" ? (
+                /* Refill: combined pill with meds */
+                <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-8 h-8 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={18} className="text-black" strokeWidth={3} /></div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <span className="text-gray-300 text-[13px] font-semibold block">Rx Refill</span>
+                    {selectedMeds.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{selectedMeds.map(m => (<span key={m} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>}
+                  </div>
+                  <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+                </button>
+              ) : (
+                <CompletedPill text={visitType === "instant" ? "Instant Care" : visitType === "video" ? "Video Visit" : "Phone / SMS"} subText="Visit Type" onReset={() => { setVisitTypeConfirmed(false); saveAnswers({ visitTypeConfirmed: false }); }} />
+              )
             ) : (
               <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeGuideStep === 4 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 4 ? "text-white" : "text-gray-500"}`}>Select Visit Type</span></div>
@@ -939,8 +955,8 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 5: Visit-type-specific details */}
-          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 5 && (
+          {/* STEP 5: Visit-type-specific details (not refill — refill meds are in combined pill) */}
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
             <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {visitType === "instant" && (
                 <div className="space-y-2 p-3">
@@ -949,32 +965,6 @@ export default function ExpressCheckoutPage() {
                     <div><p className="text-white text-[11px] font-semibold">Want to talk to your provider?</p><p className="text-gray-500 text-[9px]">Add an optional live video or phone call</p></div>
                   </div>
                   {wantToTalk && (<button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>)}
-                </div>
-              )}
-              {visitType === "refill" && (
-                <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Selected Medications</span></div>
-                    <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-gray-500 text-[10px] font-semibold flex-shrink-0 leading-tight text-right">Tap to<br/>change</button>
-                  </div>
-                  {selectedMeds.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">{selectedMeds.map(m => (<span key={m} className={`text-[10px] px-2 py-1 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>
-                  ) : (
-                    <p className="text-gray-500 text-xs">No medications selected</p>
-                  )}
-                  {symptomsText && <p className="text-gray-400 text-[10px] italic border-t border-white/5 pt-1.5">Notes: {symptomsText}</p>}
-                  {/* One-line camera link */}
-                  <button type="button" onClick={() => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.setAttribute("capture", "environment"); i.onchange = (e: any) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); } }; i.click(); }} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                    <Camera size={14} className="text-[#2dd4a0]" />
-                    <span className="text-white text-[11px] font-semibold">Take a Photo of Rx Label</span>
-                    <span className="text-gray-500 text-[9px]">(optional)</span>
-                  </button>
-                  {photoPreview && (
-                    <div className="relative inline-block">
-                      <img src={photoPreview} alt="Rx label" className="w-16 h-16 rounded-lg object-cover border border-white/10" />
-                      <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-lg"><X size={10} className="text-white" /></button>
-                    </div>
-                  )}
                 </div>
               )}
               {(visitType === "video" || visitType === "phone") && (
