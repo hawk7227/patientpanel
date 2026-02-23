@@ -831,6 +831,9 @@ export async function POST(request: Request) {
       preferred_pharmacy: data.pharmacy || null,
       pharmacy_address: data.pharmacyAddress || null,
 
+      // Browser/device info
+      browser_info: data.browserInfo || null,
+
       // Consent (will be set during consent flow)
       consent_accepted: false,
 

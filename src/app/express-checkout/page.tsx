@@ -135,6 +135,7 @@ function Step2PaymentForm({
             appointmentTime: isAsyncVisit ? new Date().toTimeString().slice(0, 5) : appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !!patient.id,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
+            browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
         };
 
@@ -214,6 +215,7 @@ function Step2PaymentForm({
             appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: true,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
+            browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
         };
 
@@ -371,6 +373,14 @@ export default function ExpressCheckoutPage() {
         if (p.id) { import('@/lib/hybrid-data').then(({ warmPatientCache }) => warmPatientCache(p.id!)).catch(() => {}); }
       } catch { router.push("/"); }
     } else { router.push("/"); }
+    // Capture browser info if not already stored (fallback for direct navigation)
+    if (!sessionStorage.getItem("browserInfo")) {
+      try {
+        const ua = navigator.userAgent;
+        const bi = { userAgent: ua, screen: `${window.screen.width}x${window.screen.height}`, language: navigator.language, platform: navigator.platform || "unknown", timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, touchSupport: "ontouchstart" in window || navigator.maxTouchPoints > 0, connectionType: (navigator as any).connection?.effectiveType || "unknown", timestamp: new Date().toISOString() };
+        sessionStorage.setItem("browserInfo", JSON.stringify(bi));
+      } catch {}
+    }
   }, [router]);
 
   // ── Restore saved answers from localStorage ──────────────

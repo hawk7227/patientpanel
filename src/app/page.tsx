@@ -39,11 +39,26 @@ function PairedCTABlock() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  // Collect browser/device info for the provider
+  const getBrowserInfo = () => {
+    const ua = navigator.userAgent;
+    const screen = `${window.screen.width}x${window.screen.height}`;
+    const lang = navigator.language;
+    const platform = navigator.platform || "unknown";
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const touchSupport = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const connectionType = (navigator as any).connection?.effectiveType || "unknown";
+    return { userAgent: ua, screen, language: lang, platform, timezone, touchSupport, connectionType, timestamp: new Date().toISOString() };
+  };
+
   const handleExpressBook = async () => {
     const email = returningEmail.trim();
     if (!email) return;
     setSearching(true);
     setSearchError(null);
+
+    // Store browser info in sessionStorage
+    try { sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); } catch {}
 
     try {
       // Search for existing patient by email
@@ -97,7 +112,7 @@ function PairedCTABlock() {
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
+      <Link href="/express-checkout" onClick={() => { try { sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
         Book My 1st Visit — $1.89 <ArrowRight size={20} />
       </Link>
       <div className="w-full max-w-lg">
