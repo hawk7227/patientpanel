@@ -1025,13 +1025,15 @@ export default function ExpressCheckoutPage() {
 
       {/* ═══ REASON DIALOG ═══ */}
       {reasonDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" style={{ height: "100%", bottom: 0 }} onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }}>
-          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both", maxHeight: "80vh" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center"><span className="text-white font-bold text-base">Reason For Visit</span><button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
-            <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /><input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..." autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-[#2dd4a0]" onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }} /></div>
-            <div className="flex-1 overflow-y-auto border border-white/5 rounded-lg" style={{ maxHeight: "40vh" }}>
-              <div className="px-3 py-2 text-white hover:bg-[#2dd4a0] hover:text-black cursor-pointer text-xs border-b border-white/5 font-semibold" onClick={() => { setReason("Something Else"); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: "Something Else" }); }}>Something else</div>
-              {filteredReasons.map((item: { name: string }) => (<div key={item.name} className="px-3 py-2 text-white hover:bg-[#2dd4a0] hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0" onClick={() => { setReason(item.name); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: item.name }); }}>{item.name}</div>))}
+        <div className="fixed inset-0 z-50 bg-black/70" onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }}>
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center">
+            <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }} onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center"><span className="text-white font-bold text-base">Reason For Visit</span><button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
+              <div className="relative"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" /><input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..." autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:border-[#2dd4a0]" /></div>
+              <div className="overflow-y-auto border border-white/5 rounded-lg" style={{ maxHeight: "35vh" }}>
+                <div className="px-3 py-2 text-white hover:bg-[#2dd4a0] hover:text-black cursor-pointer text-xs border-b border-white/5 font-semibold" onClick={() => { setReason("Something Else"); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: "Something Else" }); }}>Something else</div>
+                {filteredReasons.map((item: { name: string }) => (<div key={item.name} className="px-3 py-2 text-white hover:bg-[#2dd4a0] hover:text-black cursor-pointer text-xs border-b border-white/5 last:border-0" onClick={() => { setReason(item.name); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: item.name }); }}>{item.name}</div>))}
+              </div>
             </div>
           </div>
         </div>
