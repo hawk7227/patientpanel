@@ -96,8 +96,8 @@ function PairedCTABlock() {
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-10 py-5 rounded-xl text-xl hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center">
-        Book My Provider — $1.89 <ArrowRight size={22} />
+      <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
+        Book My 1st Visit — $1.89 <ArrowRight size={20} />
       </Link>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
@@ -105,13 +105,13 @@ function PairedCTABlock() {
             <Zap size={14} /> RETURNING PATIENT? BOOK IN 30 SECONDS
           </span>
         </div>
-        <div className="flex gap-3">
-          <input type="email" name="email" autoComplete="email" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleExpressBook()} placeholder="Email" disabled={searching} className="flex-1 bg-white text-black border border-gray-300 rounded-xl px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
-          <button onClick={handleExpressBook} disabled={searching} className="bg-teal-500 text-black font-bold px-6 py-3.5 rounded-xl hover:bg-teal-400 transition-all flex items-center gap-2 text-base whitespace-nowrap disabled:opacity-50">
+        <div className="flex gap-2 sm:gap-3 w-full">
+          <input type="email" name="email" autoComplete="email" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleExpressBook()} placeholder="Email" disabled={searching} className="flex-1 min-w-0 bg-white text-black border border-gray-300 rounded-xl px-4 sm:px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
+          <button onClick={handleExpressBook} disabled={searching} className="bg-teal-500 text-black font-bold px-4 sm:px-6 py-3.5 rounded-xl hover:bg-teal-400 transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base flex-shrink-0 disabled:opacity-50">
             {searching ? (
-              <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> Searching...</>
+              <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin flex-shrink-0" /> Searching...</>
             ) : (
-              <><ArrowRight size={18} className="rotate-180" /> Returning Patient</>
+              <><ArrowRight size={16} className="rotate-180 flex-shrink-0" /><span className="leading-tight text-center">Return<br className="sm:hidden" /> Patient</span></>
             )}
           </button>
         </div>
@@ -161,7 +161,7 @@ export default function AssessmentPageContent() {
           {/* Desktop CTA */}
           <div className="hidden md:block">
             <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center gap-1.5">
-              Book My Provider — $1.89 <ArrowRight size={14} />
+              Book My 1st Visit — $1.89 <ArrowRight size={14} />
             </Link>
           </div>
 
@@ -186,8 +186,8 @@ export default function AssessmentPageContent() {
               <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">How It Works</a>
               <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">About Your Provider</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">FAQ</a>
-              <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-2 w-full">
-                Book My Provider — $1.89 <ArrowRight size={16} />
+              <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-2 w-full whitespace-nowrap">
+                Book My 1st Visit — $1.89 <ArrowRight size={16} />
               </Link>
             </div>
           </div>
