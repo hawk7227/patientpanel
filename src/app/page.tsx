@@ -197,14 +197,15 @@ export default function AssessmentPageContent() {
 
            <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight font-serif mt-6">
              Instant Private Medical Visits
-             <span className="block text-teal-400 mt-2" style={{ textShadow: '0 0 30px rgba(20,184,166,0.4)' }}>— Book for $1.89</span>
            </h1>
 
-           <div className="flex justify-center mt-6">
+           <div className="flex justify-center mb-4">
              <Link href="/express-checkout" className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 whitespace-nowrap">
                GET TREATMENT FIRST <ArrowRight size={20} />
              </Link>
            </div>
+
+           <p className="text-2xl md:text-4xl font-bold font-serif text-teal-400 mb-4" style={{ textShadow: '0 0 30px rgba(20,184,166,0.4)' }}>— Book for $1.89</p>
 
            {/* Hero Card 1 */}
            <div className="relative max-w-4xl mx-auto mt-10 mb-8">
