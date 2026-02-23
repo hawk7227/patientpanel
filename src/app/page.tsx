@@ -12,6 +12,7 @@ import {
   BarChart2, Shield, Image as ImageIcon, MessageCircle, Check, Lock, Users, RotateCcw, RefreshCw, Star, EyeOff, User
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { CONDITIONS_LIST, EXPANDED_CONDITIONS } from "@/lib/assessment-data";
 
 const getPillColorClass = (color: string) => {
@@ -222,8 +223,14 @@ export default function AssessmentPageContent() {
                    Your own board-certified, private practice provider who personally reviews your case. Same provider. Every visit. You&apos;re only charged if your provider accepts and treats your case.
                  </p>
                  <div className="flex flex-col items-center gap-4 mb-8 py-6 border-t border-b border-teal-500/20">
-                    <div className="w-24 h-24 rounded-full border-[3px] border-teal-400 overflow-hidden bg-teal-500/10 flex items-center justify-center">
-                      <User size={48} className="text-teal-400/60" />
+                    <div className="w-32 h-32 rounded-full border-[3px] border-teal-400 overflow-hidden shadow-[0_0_20px_rgba(0,203,169,0.3)]">
+                      <Image 
+                        src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg" 
+                        alt="LaMonica A. Hodges" 
+                        width={128} 
+                        height={128}
+                        className="object-cover"
+                      />
                     </div>
                     <div className="text-center">
                       <p className="text-white font-bold text-lg">LaMonica A. Hodges, MSN, APRN, FNP-C</p>
