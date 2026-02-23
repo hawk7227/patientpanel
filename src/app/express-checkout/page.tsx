@@ -362,6 +362,24 @@ export default function ExpressCheckoutPage() {
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
 
+  // ── Browser back button: Step 2 → Step 1 (not landing page) ──
+  useEffect(() => {
+    if (currentStep === 2) {
+      window.history.pushState({ step: 2 }, "");
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (currentStep === 2) {
+        e.preventDefault();
+        setCurrentStep(1);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [currentStep]);
+
   // ── Load patient ───────────────────────────────────────
   useEffect(() => {
     const stored = sessionStorage.getItem("expressPatient");
