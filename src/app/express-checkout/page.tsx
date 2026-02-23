@@ -884,6 +884,53 @@ export default function ExpressCheckoutPage() {
             )
           )}
 
+          {/* ═══ VISIT TYPE INFO — inline in scroll flow ═══ */}
+          {visitTypePopup && !visitTypeConfirmed && (
+            <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="p-4 space-y-3 relative bg-[#11161c] border border-white/10 rounded-xl">
+                <button onClick={() => setVisitTypePopup(null)} className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors z-10"><X size={18} /></button>
+                {visitTypePopup === "instant" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center"><Zap size={20} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-base">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">No video. No phone call. No waiting room. Your provider reviews your case privately and sends treatment + prescription to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">100% private — no face-to-face</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Treatment in 1–2 hours</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Rx sent straight to your pharmacy</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: UTIs, cold & flu, skin issues, allergies</p></>)}
+                {visitTypePopup === "refill" && (<>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center"><Pill size={20} className="text-[#f59e0b]" /></div>
+                    <div><h3 className="text-white font-black text-base">Your Meds. Refilled. No Appointment.</h3>
+                      <div className="flex items-center gap-2 flex-wrap"><p className="text-[#f59e0b] text-[10px] font-bold uppercase tracking-wider">Rx Refill · Skip the Wait</p><span className="text-gray-400 text-[10px]">Same-day pharmacy pickup</span></div>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-[12px] leading-relaxed">Running low? Select your medications, provider reviews and approves, refill sent to your pharmacy.</p>
+                  {/* Inline medication list */}
+                  <div className={`rounded-xl bg-[#0d1218] border border-white/10 p-3 space-y-2`}>
+                    <p className="text-white text-[11px] font-semibold">Select Medications to Refill</p>
+                    {medsLoading ? (
+                      <div className="flex items-center justify-center py-3"><div className="animate-spin w-4 h-4 border-2 border-[#f59e0b] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-xs">Loading medications...</span></div>
+                    ) : medications.length > 0 ? (
+                      <div className="space-y-1 max-h-44 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+                        {medications.map((med) => {
+                          const ic = isControlledSubstance(med.name);
+                          const ck = selectedMeds.includes(med.name);
+                          return (
+                            <label key={med.name} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-all ${ck ? "bg-[#f59e0b]/10 border border-[#f59e0b]/30" : "hover:bg-white/5 border border-transparent"} ${ic ? "border-red-500/30" : ""}`}>
+                              <input type="checkbox" checked={ck} onChange={() => toggleMed(med.name)} className="w-4 h-4 rounded border-white/20 bg-[#0d1218] text-[#f59e0b] focus:ring-[#f59e0b] flex-shrink-0" />
+                              <span className={`flex-1 ${ic ? "text-red-400" : "text-white"}`}>{med.name} {med.dosage ? `(${med.dosage})` : ""}</span>
+                              {ic && <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">CTRL</span>}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-xs py-1">No medications found on file.</p>
+                    )}
+                    <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={2} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-gray-600" />
+                  </div>
+                </>)}
+                {visitTypePopup === "video" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#3b82f6]/15 flex items-center justify-center"><Video size={20} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-base">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[10px] font-bold uppercase tracking-wider">Video Visit · Live Consultation</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">See your provider live on video — just like an in-office visit, but from your couch.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Real-time conversation</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Private & encrypted — HIPAA</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Pick a time that works</span></div></div><p className="text-gray-500 text-[9px] italic">Best for: ADHD evaluations, anxiety, complex conditions</p></>)}
+                {visitTypePopup === "phone" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#a855f7]/15 flex items-center justify-center"><Phone size={20} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-base">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[10px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">Connect by phone call or secure text — same quality care with zero screen time.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">No video, no downloads</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Flexible scheduling</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Great for follow-ups</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: medication adjustments, follow-ups, quick questions</p></>)}
+                <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2 mt-1"><Lock size={12} className="text-gray-500" /><span className="text-gray-500 text-[9px]">Full anonymity · Your identity stays private</span></div>
+                <button onClick={() => { handleVisitTypeChange(visitTypePopup); setVisitTypeConfirmed(true); saveAnswers({ visitType: visitTypePopup, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3.5 rounded-xl font-bold text-sm" style={{ background: visitTypePopup === "instant" ? "#2dd4a0" : visitTypePopup === "refill" ? "#f59e0b" : visitTypePopup === "video" ? "#3b82f6" : "#a855f7", color: "#000" }}>Choose {visitTypePopup === "instant" ? "Instant Care" : visitTypePopup === "refill" ? "Rx Refill" : visitTypePopup === "video" ? "Video Visit" : "Phone/SMS"} →</button>
+              </div>
+            </div>
+          )}
+
           {/* STEP 5: Visit-type-specific details */}
           {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 5 && (
             <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
@@ -897,13 +944,24 @@ export default function ExpressCheckoutPage() {
                 </div>
               )}
               {visitType === "refill" && (
-                <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center gap-3 mb-1"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 5 ? "text-white" : "text-gray-500"}`}>Select Medications</span></div>
-                  <button type="button" onClick={() => setMedsListOpen(!medsListOpen)} className="w-full flex items-center justify-between"><span className="text-xs font-semibold text-white">{selectedMeds.length > 0 ? `${selectedMeds.length} Medication${selectedMeds.length > 1 ? "s" : ""} Selected` : "Select Medications to Refill"}</span><div className="flex items-center gap-2">{medsLoading && <div className="animate-spin w-3 h-3 border border-[#2dd4a0] border-t-transparent rounded-full" />}<ChevronDown size={14} className={`text-gray-500 transition-transform ${medsListOpen ? "rotate-180" : ""}`} /></div></button>
-                  {!medsListOpen && selectedMeds.length > 0 && (<div className="flex flex-wrap gap-1">{selectedMeds.map(m => (<span key={m} className="text-[9px] bg-[#2dd4a0]/10 text-[#2dd4a0] border border-[#2dd4a0]/20 px-1.5 py-0.5 rounded-full font-medium">{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>)}
-                  {medsListOpen && (<>{medications.length > 0 ? (<div className="space-y-1 max-h-32 overflow-y-auto">{medications.map((med) => { const ic = isControlledSubstance(med.name); const ck = selectedMeds.includes(med.name); return (<label key={med.name} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs ${ck ? "bg-[#2dd4a0]/10 border border-[#2dd4a0]/30" : "hover:bg-white/5"} ${ic ? "border border-red-500/30" : ""}`}><input type="checkbox" checked={ck} onChange={() => toggleMed(med.name)} className="w-3.5 h-3.5 rounded border-white/20 bg-[#0d1218] text-[#2dd4a0] focus:ring-[#2dd4a0]" /><span className={`flex-1 ${ic ? "text-red-400" : "text-white"}`}>{med.name} {med.dosage ? `(${med.dosage})` : ""}</span>{ic && <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold">CTRL</span>}</label>); })}</div>) : !medsLoading ? <p className="text-gray-500 text-xs py-2">No medications found.</p> : null}{selectedMeds.length > 0 && (<button type="button" onClick={() => setMedsListOpen(false)} className="w-full py-2 rounded-lg bg-[#2dd4a0]/10 border border-[#2dd4a0]/20 text-[#2dd4a0] text-xs font-bold">Done — {selectedMeds.length} selected ✓</button>)}</>)}
-                  {hasControlledSelected && (<div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5"><div className="flex items-start gap-2 pl-1"><input type="checkbox" id="ctrlAckG" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500" /><label htmlFor="ctrlAckG" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label></div></div>)}
-                  <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={2} className="w-full bg-[#0d1218] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#2dd4a0] resize-none placeholder:text-gray-600" />
+                <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="flex items-center gap-3 mb-1"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Selected Medications</span></div>
+                  {selectedMeds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">{selectedMeds.map(m => (<span key={m} className={`text-[10px] px-2 py-1 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>
+                  ) : (
+                    <p className="text-gray-500 text-xs">No medications selected</p>
+                  )}
+                  {symptomsText && <p className="text-gray-400 text-[10px] italic border-t border-white/5 pt-1.5 mt-1">Notes: {symptomsText}</p>}
+                  {photoPreview && <div className="flex items-center gap-2 border-t border-white/5 pt-1.5 mt-1"><img src={photoPreview} alt="Rx label" className="w-12 h-12 rounded-lg object-cover border border-white/10" /><span className="text-gray-400 text-[10px]">Rx photo attached</span></div>}
+                  {hasControlledSelected && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 mt-1">
+                      <div className="flex items-start gap-2 pl-1">
+                        <input type="checkbox" id="ctrlAckSummary" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500" />
+                        <label htmlFor="ctrlAckSummary" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
+                      </div>
+                    </div>
+                  )}
+                  <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-[#f59e0b] text-[10px] font-semibold hover:underline">← Edit medications</button>
                 </div>
               )}
               {(visitType === "video" || visitType === "phone") && (
@@ -972,65 +1030,7 @@ export default function ExpressCheckoutPage() {
         </div>
       </div>
 
-      {/* ═══ VISIT TYPE POPUP — no dark overlay, inline bottom sheet ═══ */}
-      {visitTypePopup && (
-        <div className="fixed inset-x-0 bottom-0 z-[100] flex justify-center" style={{ pointerEvents: "none" }}>
-          <div className="w-full max-w-[430px] rounded-t-2xl overflow-hidden" style={{ animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both", pointerEvents: "auto" }}>
-            <div className="p-5 space-y-3 relative" style={{ background: "linear-gradient(180deg, #131a20 0%, #0d1218 100%)", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-              <button onClick={() => setVisitTypePopup(null)} className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors z-10"><X size={20} /></button>
-              {visitTypePopup === "instant" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center"><Zap size={20} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-base">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">No video. No phone call. No waiting room. Your provider reviews your case privately and sends treatment + prescription to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">100% private — no face-to-face</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Treatment in 1–2 hours</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Rx sent straight to your pharmacy</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: UTIs, cold & flu, skin issues, allergies</p></>)}
-              {visitTypePopup === "refill" && (<>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center"><Pill size={20} className="text-[#f59e0b]" /></div>
-                  <div><h3 className="text-white font-black text-base">Your Meds. Refilled. No Appointment.</h3>
-                    <div className="flex items-center gap-2 flex-wrap"><p className="text-[#f59e0b] text-[10px] font-bold uppercase tracking-wider">Rx Refill · Skip the Wait</p><span className="text-gray-400 text-[10px]">Same-day pharmacy pickup</span></div>
-                  </div>
-                </div>
-                <p className="text-gray-300 text-[12px] leading-relaxed">Running low? Select your medications, provider reviews and approves, refill sent to your pharmacy.</p>
-                {/* Medication list */}
-                <div className={`rounded-xl bg-[#11161c] border ${activeGuideStep === 5 ? "border-[#f97316]" : "border-white/10"} p-3 space-y-2`}>
-                  <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Select Medications</span></div>
-                  <p className="text-gray-400 text-[11px]">Select Medications to Refill</p>
-                  {medsLoading ? (
-                    <div className="flex items-center justify-center py-3"><div className="animate-spin w-4 h-4 border-2 border-[#f59e0b] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-xs">Loading medications...</span></div>
-                  ) : medications.length > 0 ? (
-                    <div className="space-y-1 max-h-40 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
-                      {medications.map((med) => {
-                        const ic = isControlledSubstance(med.name);
-                        const ck = selectedMeds.includes(med.name);
-                        return (
-                          <label key={med.name} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-all ${ck ? "bg-[#f59e0b]/10 border border-[#f59e0b]/30" : "hover:bg-white/5 border border-transparent"} ${ic ? "border-red-500/30" : ""}`}>
-                            <input type="checkbox" checked={ck} onChange={() => toggleMed(med.name)} className="w-4 h-4 rounded border-white/20 bg-[#0d1218] text-[#f59e0b] focus:ring-[#f59e0b] flex-shrink-0" />
-                            <span className={`flex-1 ${ic ? "text-red-400" : "text-white"}`}>{med.name} {med.dosage ? `(${med.dosage})` : ""}</span>
-                            {ic && <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">CTRL</span>}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-xs py-2">No medications found on file.</p>
-                  )}
-                  {hasControlledSelected && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5">
-                      <div className="flex items-start gap-2 pl-1">
-                        <input type="checkbox" id="ctrlAckPopup" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-4 h-4 rounded border-amber-500/50 bg-[#0d1218] text-amber-500 focus:ring-amber-500" />
-                        <label htmlFor="ctrlAckPopup" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
-                      </div>
-                    </div>
-                  )}
-                  <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={2} className="w-full bg-[#0d1218] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-gray-600" />
-                </div>
-              </>)}
-              {visitTypePopup === "video" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#3b82f6]/15 flex items-center justify-center"><Video size={20} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-base">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[10px] font-bold uppercase tracking-wider">Video Visit · Live Consultation</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">See your provider live on video — just like an in-office visit, but from your couch.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Real-time conversation</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Private & encrypted — HIPAA</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Pick a time that works</span></div></div><p className="text-gray-500 text-[9px] italic">Best for: ADHD evaluations, anxiety, complex conditions</p></>)}
-              {visitTypePopup === "phone" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#a855f7]/15 flex items-center justify-center"><Phone size={20} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-base">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[10px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">Connect by phone call or secure text — same quality care with zero screen time.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">No video, no downloads</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Flexible scheduling</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Great for follow-ups</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: medication adjustments, follow-ups, quick questions</p></>)}
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2 mt-1"><Lock size={12} className="text-gray-500" /><span className="text-gray-500 text-[9px]">Full anonymity · Your identity stays private</span></div>
-              <div className="space-y-2">
-                <button onClick={() => { handleVisitTypeChange(visitTypePopup); setVisitTypeConfirmed(true); saveAnswers({ visitType: visitTypePopup, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3.5 rounded-xl font-bold text-sm" style={{ background: visitTypePopup === "instant" ? "#2dd4a0" : visitTypePopup === "refill" ? "#f59e0b" : visitTypePopup === "video" ? "#3b82f6" : "#a855f7", color: "#000" }}>Choose {visitTypePopup === "instant" ? "Instant Care" : visitTypePopup === "refill" ? "Rx Refill" : visitTypePopup === "video" ? "Video Visit" : "Phone/SMS"} →</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Visit type popup moved inline into scroll flow */}
 
       {/* ═══ REASON DIALOG ═══ */}
       {reasonDialogOpen && (

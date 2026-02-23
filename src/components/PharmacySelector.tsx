@@ -183,10 +183,10 @@ export default function PharmacySelector({
     const photoUrl = pharmacy.photos && pharmacy.photos.length > 0 ? getPhotoUrl(pharmacy.photos[0], 200) : "";
     let isOpenNow: boolean | undefined;
     if (pharmacy.opening_hours) {
-      if (typeof (pharmacy.opening_hours as any).isOpen === 'function') {
-        isOpenNow = (pharmacy.opening_hours as any).isOpen();
-      } else if ('open_now' in pharmacy.opening_hours) {
+      if ('open_now' in pharmacy.opening_hours) {
         isOpenNow = (pharmacy.opening_hours as any).open_now;
+      } else if (typeof (pharmacy.opening_hours as any).isOpen === 'function') {
+        try { isOpenNow = (pharmacy.opening_hours as any).isOpen(); } catch { isOpenNow = undefined; }
       }
     }
     const info = {
@@ -236,15 +236,16 @@ export default function PharmacySelector({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {pharmacy.rating && <div className="flex items-center gap-0.5 text-[10px] leading-tight"><Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400 flex-shrink-0" /><span className="text-yellow-400 whitespace-nowrap">{pharmacy.rating}</span>{pharmacy.user_ratings_total && <span className="text-gray-400 whitespace-nowrap">({pharmacy.user_ratings_total})</span>}</div>}
                         {pharmacy.opening_hours && (() => {
-                          let isOpen = false;
-                          if (pharmacy.opening_hours && typeof (pharmacy.opening_hours as any).isOpen === 'function') {
-                            isOpen = (pharmacy.opening_hours as any).isOpen();
-                          } else if (pharmacy.opening_hours && 'open_now' in pharmacy.opening_hours) {
-                            isOpen = (pharmacy.opening_hours as any).open_now ?? false;
+                          let isOpenNow = false;
+                          // Prefer open_now boolean (most reliable from getDetails)
+                          if (pharmacy.opening_hours && 'open_now' in pharmacy.opening_hours) {
+                            isOpenNow = (pharmacy.opening_hours as any).open_now ?? false;
+                          } else if (pharmacy.opening_hours && typeof (pharmacy.opening_hours as any).isOpen === 'function') {
+                            try { isOpenNow = (pharmacy.opening_hours as any).isOpen(); } catch { isOpenNow = false; }
                           }
                           return (
-                            <div className={`text-[10px] whitespace-nowrap leading-tight ${isOpen ? "text-green-400" : "text-red-400"}`}>
-                              {isOpen ? "Open Now" : "Closed Now"}
+                            <div className={`text-[10px] whitespace-nowrap leading-tight ${isOpenNow ? "text-green-400" : "text-red-400"}`}>
+                              {isOpenNow ? "Open Now" : "Closed Now"}
                             </div>
                           );
                         })()}
