@@ -953,13 +953,15 @@ export default function ExpressCheckoutPage() {
               )}
               {visitType === "refill" && (
                 <div className="bg-[#11161c] border border-white/10 rounded-xl p-3 space-y-2" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="flex items-center gap-3 mb-1"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Selected Medications</span></div>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Selected Medications</span></div>
+                    <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-[#2dd4a0] text-[10px] font-semibold leading-tight text-right">Tap to<br/>change</button>
+                  </div>
                   {selectedMeds.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">{selectedMeds.map(m => (<span key={m} className={`text-[10px] px-2 py-1 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>
                   ) : (
                     <p className="text-gray-500 text-xs">No medications selected</p>
                   )}
-                  <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="text-[#f59e0b] text-[10px] font-semibold hover:underline">← Edit medications</button>
                   {symptomsText && <p className="text-gray-400 text-[10px] italic border-t border-white/5 pt-1.5">Notes: {symptomsText}</p>}
                   {/* One-line camera link */}
                   <button type="button" onClick={() => { const i = document.createElement("input"); i.type = "file"; i.accept = "image/*"; i.setAttribute("capture", "environment"); i.onchange = (e: any) => { const f = e.target.files?.[0]; if (f) { setPhotoFile(f); setPhotoPreview(URL.createObjectURL(f)); } }; i.click(); }} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -997,16 +999,15 @@ export default function ExpressCheckoutPage() {
 
         {/* ═══ BOTTOM BUTTON ═══ */}
         <div className="flex-shrink-0 pb-1 pt-1 space-y-2">
-          {/* Controlled substance acknowledgment — just above CTA */}
+          {/* Controlled substance acknowledgment — blinking checkbox */}
           {hasControlledSelected && visitType === "refill" && visitTypeConfirmed && (
             <div className="flex items-start gap-2.5 px-1">
-              <input type="checkbox" id="ctrlAckBottom" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-4 h-4 rounded border-white/20 bg-[#0d1218] text-amber-500 focus:ring-amber-500 flex-shrink-0" />
-              <label htmlFor="ctrlAckBottom" className="text-[10px] text-gray-400 leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
+              <input type="checkbox" id="ctrlAckBottom" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-5 h-5 rounded border-2 border-[#f97316] bg-[#0d1218] text-[#f97316] focus:ring-[#f97316] flex-shrink-0 cursor-pointer" style={!controlledAcknowledged ? { animation: "ackPulse 1.5s ease-in-out infinite" } : {}} />
+              <label htmlFor="ctrlAckBottom" className="text-[11px] text-gray-400 leading-relaxed cursor-pointer"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
             </div>
           )}
-          {allFieldsReady ? (
-            <button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg" style={{ background: "#f97316", color: "#fff", animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>
-          ) : (<div className="text-center py-2"><p className="text-gray-600 text-[10px]">{notReadyMessage}</p></div>)}
+          {/* CTA always visible — disabled grey until ready, orange when ready */}
+          <button onClick={() => { if (allFieldsReady) setCurrentStep(2); }} disabled={!allFieldsReady} className={`w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all ${allFieldsReady ? "bg-[#f97316] text-white" : "bg-white/10 text-gray-500 cursor-not-allowed"}`} style={allFieldsReady ? { animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" } : {}}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>
           <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · {currentPrice.display}</p>
         </div>
       </div>
