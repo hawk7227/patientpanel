@@ -732,9 +732,9 @@ export default function ExpressCheckoutPage() {
   const activeOrangeBorder = "border-[3px] border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.5)]";
 
   const CompletedPill = ({ text, onReset, subText }: { text: string; onReset: () => void; subText?: string }) => (
-    <button onClick={onReset} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-      <div className="w-8 h-8 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={18} className="text-black" strokeWidth={3} /></div>
-      <span className="text-gray-300 text-[13px] font-semibold truncate flex-1 text-left">{text}</span>
+    <button onClick={onReset} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
+      <span className="text-gray-300 text-[12px] font-semibold truncate flex-1 text-left">{text}</span>
       <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
     </button>
   );
@@ -770,8 +770,9 @@ export default function ExpressCheckoutPage() {
   );
 
   return (
-    <div className="text-white font-sans overflow-hidden" style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)", height: "100dvh", minHeight: "0" }}>
+    <div className="text-white font-sans overflow-hidden" style={{ background: "linear-gradient(168deg, #091211 0%, #080c10 40%, #0a0e14 100%)", height: "100svh", minHeight: "0" }}>
       <style>{`
+        @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
         @keyframes guidePulse { 0%,100% { box-shadow: 0 0 8px rgba(249,115,22,0.3); } 50% { box-shadow: 0 0 18px rgba(249,115,22,0.55); } }
         @keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }
         @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); } 50% { box-shadow: 0 0 16px rgba(249,115,22,0.5); } }
@@ -788,6 +789,8 @@ export default function ExpressCheckoutPage() {
             <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS</span>
             <span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
           </div>
+          {/* Version marker — remove after confirming deploy */}
+          <span className="text-gray-700 text-[7px]">v2.1</span>
         </div>
 
         {/* ═══ WELCOME + PRIORITY BADGE + DOCTOR CARD ═══ */}
@@ -825,10 +828,10 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 1+2: Reason + Symptoms (merged pill when complete) */}
           {reason && chiefComplaintDone ? (
-            <button onClick={() => { setChiefComplaintDone(false); saveAnswers({ chiefComplaintDone: false }); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="w-8 h-8 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={18} className="text-black" strokeWidth={3} /></div>
+            <button onClick={() => { setChiefComplaintDone(false); saveAnswers({ chiefComplaintDone: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
               <div className="flex-1 min-w-0 text-left">
-                <span className="text-gray-300 text-[13px] font-semibold truncate block">{reason}</span>
+                <span className="text-gray-300 text-[12px] font-semibold truncate block">{reason}</span>
                 {chiefComplaint && <span className="text-gray-500 text-[10px] truncate block">{chiefComplaint}</span>}
               </div>
               <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
@@ -872,10 +875,10 @@ export default function ExpressCheckoutPage() {
             visitTypeConfirmed ? (
               visitType === "refill" ? (
                 /* Refill: combined pill with meds */
-                <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="w-8 h-8 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={18} className="text-black" strokeWidth={3} /></div>
+                <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
                   <div className="flex-1 min-w-0 text-left">
-                    <span className="text-gray-300 text-[13px] font-semibold block">Rx Refill</span>
+                    <span className="text-gray-300 text-[12px] font-semibold block">Rx Refill</span>
                     {selectedMeds.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{selectedMeds.map(m => (<span key={m} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>}
                   </div>
                   <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
