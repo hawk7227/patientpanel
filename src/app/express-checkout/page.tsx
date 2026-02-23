@@ -387,7 +387,6 @@ export default function ExpressCheckoutPage() {
       try {
         const p = JSON.parse(stored);
         setPatient(p);
-        if (p.pharmacy) setPharmacy(p.pharmacy);
         if (p.id) { import('@/lib/hybrid-data').then(({ warmPatientCache }) => warmPatientCache(p.id!)).catch(() => {}); }
       } catch { router.push("/"); }
     } else { router.push("/"); }
