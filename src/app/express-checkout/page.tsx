@@ -869,50 +869,41 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 3: Preferred Pharmacy — always visible, locked if steps 1+2 not done */}
-          {(() => {
-            const step3Locked = !reason || !chiefComplaintDone;
-            if (pharmacy && !step3Locked) return <PharmacyCompletedView />;
-            return (
-              <div className={`rounded-xl bg-[#11161c] p-4 space-y-2 transition-all ${step3Locked ? "opacity-40 border border-white/5" : activeGuideStep === 3 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">3</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${!step3Locked && activeGuideStep === 3 ? "text-white" : "text-gray-500"}`}>Preferred Pharmacy</span></div>
-                {step3Locked ? (
-                  <p className="text-gray-600 text-[10px]">Complete steps above first</p>
-                ) : (
-                  <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
-                    setPharmacy(val);
-                    if (info) {
-                      const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined };
-                      setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
-                      saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
-                    } else { saveAnswers({ pharmacy: val }); }
-                  }} placeholder="Search pharmacy..." className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-gray-600" />
-                )}
-              </div>
-            );
-          })()}
+          {/* STEP 3: Preferred Pharmacy */}
+          {reason && chiefComplaintDone && (pharmacy ? (
+            <PharmacyCompletedView />
+          ) : (
+            <div className={`rounded-xl bg-[#11161c] p-4 space-y-2 transition-all ${activeGuideStep === 3 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">3</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 3 ? "text-white" : "text-gray-500"}`}>Preferred Pharmacy</span></div>
+              <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
+                setPharmacy(val);
+                if (info) {
+                  const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined };
+                  setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
+                  saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
+                } else { saveAnswers({ pharmacy: val }); }
+              }} placeholder="Search pharmacy..." className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-gray-600" />
+            </div>
+          ))}
 
-          {/* STEP 4: Select Visit Type — always visible, locked if steps 1-3 not done */}
-          {(() => {
-            const step4Locked = !reason || !chiefComplaintDone || !pharmacy;
-            if (visitTypeConfirmed && !step4Locked) {
-              if (visitType === "refill") {
-                return (
-                  <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                    <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <span className="text-gray-300 text-[12px] font-semibold block">Rx Refill</span>
-                      {selectedMeds.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{selectedMeds.map(m => (<span key={m} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>}
-                    </div>
-                    <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
-                  </button>
-                );
-              }
-              return <CompletedPill text={visitType === "instant" ? "Instant Care" : visitType === "video" ? "Video Visit" : "Phone / SMS"} subText="Visit Type" onReset={() => { setVisitTypeConfirmed(false); saveAnswers({ visitTypeConfirmed: false }); }} />;
-            }
-            return (
-              <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${step4Locked ? "opacity-40 border border-white/5" : activeGuideStep === 4 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${!step4Locked && activeGuideStep === 4 ? "text-white" : "text-gray-500"}`}>Select Visit Type</span></div>
+          {/* STEP 4: Select Visit Type */}
+          {reason && chiefComplaintDone && pharmacy && (
+            visitTypeConfirmed ? (
+              visitType === "refill" ? (
+                <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <span className="text-gray-300 text-[12px] font-semibold block">Rx Refill</span>
+                    {selectedMeds.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{selectedMeds.map(m => (<span key={m} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>}
+                  </div>
+                  <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+                </button>
+              ) : (
+                <CompletedPill text={visitType === "instant" ? "Instant Care" : visitType === "video" ? "Video Visit" : "Phone / SMS"} subText="Visit Type" onReset={() => { setVisitTypeConfirmed(false); saveAnswers({ visitTypeConfirmed: false }); }} />
+              )
+            ) : (
+              <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeGuideStep === 4 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 4 ? "text-white" : "text-gray-500"}`}>Select Visit Type</span></div>
                 <div className="grid grid-cols-4 gap-2">
                   {([
                     { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
@@ -922,20 +913,18 @@ export default function ExpressCheckoutPage() {
                   ] as const).map((vt) => {
                     const Icon = vt.icon;
                     const isActive = visitTypePopup === vt.key;
-                    const borderClass = step4Locked
-                      ? "border-2 border-white/5"
-                      : isActive
-                        ? "border-[3px] border-[#2dd4a0] shadow-[0_0_16px_rgba(45,212,160,0.4)]"
-                        : "border-2 border-white/10 hover:border-white/20";
-                    return (<button key={vt.key} onClick={() => { if (!step4Locked) setVisitTypePopup(vt.key); }} disabled={step4Locked} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl bg-[#11161c]/80 transition-all ${borderClass}`} style={{ minHeight: "72px" }}>
-                      {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: step4Locked ? "#333" : vt.color, color: "#000" }}>{vt.badge}</span>}
-                      <Icon size={18} style={{ color: step4Locked ? "#333" : isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${step4Locked ? "text-gray-700" : isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
+                    const borderClass = isActive
+                      ? "border-[3px] border-[#2dd4a0] shadow-[0_0_16px_rgba(45,212,160,0.4)]"
+                      : "border-2 border-white/10 hover:border-white/20";
+                    return (<button key={vt.key} onClick={() => setVisitTypePopup(vt.key)} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl bg-[#11161c]/80 transition-all ${borderClass}`} style={{ minHeight: "72px" }}>
+                      {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
+                      <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
                     </button>);
                   })}
                 </div>
               </div>
-            );
-          })()}
+            )
+          )}
 
           {/* ═══ VISIT TYPE INFO — inline in scroll flow ═══ */}
           {visitTypePopup && !visitTypeConfirmed && (
@@ -984,7 +973,7 @@ export default function ExpressCheckoutPage() {
           )}
 
           {/* STEP 5: Visit-type-specific details (not refill — refill meds are in combined pill) */}
-          {visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
             <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {visitType === "instant" && (
                 <div className="space-y-2 p-3">
@@ -1005,7 +994,7 @@ export default function ExpressCheckoutPage() {
           )}
 
           {/* STEP 7: Acknowledgment — non-refill async */}
-          {visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
             <button onClick={() => { const v = !asyncAcknowledged; setAsyncAcknowledged(v); setClientSecret(""); saveAnswers({ asyncAcknowledged: v }); }}
               className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-[#f97316]/50"}`}>{asyncAcknowledged && <Check size={12} className="text-black" />}</div>
