@@ -352,7 +352,6 @@ export default function ExpressCheckoutPage() {
   const [additionalMedsAnswer, setAdditionalMedsAnswer] = useState<"yes" | "no" | null>(null);
   const [chiefComplaintDone, setChiefComplaintDone] = useState(false);
   const [visitTypeConfirmed, setVisitTypeConfirmed] = useState(false);
-  const [dismissedVisitTypes, setDismissedVisitTypes] = useState<VisitType[]>([]);
   const [autoPopupFired, setAutoPopupFired] = useState(false);
 
   // Step flow: 1 = booking form, 2 = review & pay
@@ -570,17 +569,11 @@ export default function ExpressCheckoutPage() {
 
   const totalSteps = 8;
 
-  // Visit type order for sequential suggestion
-  const visitTypeOrder: VisitType[] = ["instant", "refill", "video", "phone"];
-
-  // The next visit type to suggest (green trim) — first non-dismissed option
+  // The first visit type to auto-popup when step 4 becomes active
   const nextSuggestedType = useMemo((): VisitType | null => {
     if (visitTypeConfirmed) return null;
-    for (const vt of visitTypeOrder) {
-      if (!dismissedVisitTypes.includes(vt)) return vt;
-    }
-    return null;
-  }, [visitTypeConfirmed, dismissedVisitTypes]);
+    return "instant";
+  }, [visitTypeConfirmed]);
 
   // Auto-popup the first visit type when step 4 becomes active (once)
   useEffect(() => {
@@ -884,20 +877,15 @@ export default function ExpressCheckoutPage() {
                     { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
                     { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
                     { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
-                  ] as const).map((vt, idx) => {
+                  ] as const).map((vt) => {
                     const Icon = vt.icon;
-                    const isDismissed = dismissedVisitTypes.includes(vt.key);
-                    const isNextSuggested = nextSuggestedType === vt.key;
-                    const borderClass = isDismissed
-                      ? "border-2 border-white/5 opacity-40"
-                      : isNextSuggested
-                        ? "border-[3px] border-[#2dd4a0] shadow-[0_0_16px_rgba(45,212,160,0.4)]"
-                        : "border-2 border-white/10 hover:border-white/20";
+                    const isActive = visitTypePopup === vt.key;
+                    const borderClass = isActive
+                      ? "border-[3px] border-[#2dd4a0] shadow-[0_0_16px_rgba(45,212,160,0.4)]"
+                      : "border-2 border-white/10 hover:border-white/20";
                     return (<button key={vt.key} onClick={() => setVisitTypePopup(vt.key)} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl bg-[#11161c]/80 transition-all ${borderClass}`} style={{ minHeight: "72px" }}>
-                      {vt.badge && !isDismissed && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                      {activeGuideStep === 4 && isNextSuggested && <span className="absolute top-1 right-1 text-[#2dd4a0] font-black text-[11px]" style={{ animation: `wanderQ 2.5s ease-in-out infinite`, animationDelay: `${idx * 0.6}s` }}>?</span>}
-                      <Icon size={18} style={{ color: isDismissed ? "#374151" : isNextSuggested ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isDismissed ? "text-gray-700" : isNextSuggested ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
-                      {isDismissed && <span className="absolute inset-0 flex items-center justify-center"><X size={14} className="text-gray-600" /></span>}
+                      {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
+                      <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
                     </button>);
                   })}
                 </div>
@@ -1005,7 +993,6 @@ export default function ExpressCheckoutPage() {
               <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2 mt-1"><Lock size={12} className="text-gray-500" /><span className="text-gray-500 text-[9px]">Full anonymity · Your identity stays private</span></div>
               <div className="space-y-2">
                 <button onClick={() => { handleVisitTypeChange(visitTypePopup); setVisitTypeConfirmed(true); saveAnswers({ visitType: visitTypePopup, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3.5 rounded-xl font-bold text-sm" style={{ background: visitTypePopup === "instant" ? "#2dd4a0" : visitTypePopup === "refill" ? "#f59e0b" : visitTypePopup === "video" ? "#3b82f6" : "#a855f7", color: "#000" }}>Choose {visitTypePopup === "instant" ? "Instant Care" : visitTypePopup === "refill" ? "Rx Refill" : visitTypePopup === "video" ? "Video Visit" : "Phone/SMS"} →</button>
-                <button onClick={() => { if (visitTypePopup) { setDismissedVisitTypes(prev => [...prev, visitTypePopup]); } setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-semibold text-sm border border-white/15 text-gray-400 hover:text-white hover:border-white/25 transition-all bg-white/[0.03]">Not This Time</button>
               </div>
             </div>
           </div>
