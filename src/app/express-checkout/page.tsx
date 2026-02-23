@@ -352,8 +352,6 @@ export default function ExpressCheckoutPage() {
   const [additionalMedsAnswer, setAdditionalMedsAnswer] = useState<"yes" | "no" | null>(null);
   const [chiefComplaintDone, setChiefComplaintDone] = useState(false);
   const [visitTypeConfirmed, setVisitTypeConfirmed] = useState(false);
-  const [autoPopupFired, setAutoPopupFired] = useState(false);
-
   // Step flow: 1 = booking form, 2 = review & pay
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [clientSecret, setClientSecret] = useState("");
@@ -568,26 +566,6 @@ export default function ExpressCheckoutPage() {
   }, [reason, chiefComplaintDone, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, additionalMedsAnswer, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
   const totalSteps = 8;
-
-  // The first visit type to auto-popup when step 4 becomes active
-  const nextSuggestedType = useMemo((): VisitType | null => {
-    if (visitTypeConfirmed) return null;
-    return "instant";
-  }, [visitTypeConfirmed]);
-
-  // Auto-popup the first visit type when step 4 becomes active (once)
-  useEffect(() => {
-    if (activeGuideStep === 4 && !visitTypeConfirmed && !autoPopupFired && !visitTypePopup) {
-      // Small delay so the step 4 card renders first, then popup slides up
-      const timer = setTimeout(() => {
-        if (nextSuggestedType) {
-          setVisitTypePopup(nextSuggestedType);
-          setAutoPopupFired(true);
-        }
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [activeGuideStep, visitTypeConfirmed, autoPopupFired, visitTypePopup, nextSuggestedType]);
 
   if (!patient) {
     return (<div className="min-h-screen bg-background flex items-center justify-center"><div className="animate-spin w-6 h-6 border-2 border-primary-teal border-t-transparent rounded-full" /></div>);
