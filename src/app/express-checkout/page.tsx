@@ -846,12 +846,9 @@ export default function ExpressCheckoutPage() {
           {reason && !chiefComplaintDone && (
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.4s ease-out" }}>
               <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">2</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Describe Your Symptoms</span></div>
-              <p className="text-gray-500 text-[11px]">Briefly describe what&apos;s going on so your provider can prepare.</p>
+              <p className="text-white text-[11px]">Briefly describe what&apos;s going on so your provider can prepare.</p>
               <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-600" />
-              <div className="flex gap-2">
-                <button onClick={() => { setChiefComplaintDone(true); saveAnswers({ chiefComplaintDone: true }); }} className="flex-1 bg-white/5 text-gray-400 py-2.5 rounded-xl text-sm font-semibold hover:bg-white/10 transition-colors">Skip</button>
-                <button onClick={() => { setChiefComplaintDone(true); saveAnswers({ chiefComplaint, chiefComplaintDone: true }); }} className="flex-1 bg-[#f97316] text-black py-2.5 rounded-xl text-sm font-bold hover:bg-[#fb923c] transition-colors">Done</button>
-              </div>
+              <button onClick={() => { setChiefComplaintDone(true); saveAnswers({ chiefComplaint, chiefComplaintDone: true }); }} disabled={!chiefComplaint.trim()} className="w-full bg-[#f97316] text-black py-2.5 rounded-xl text-sm font-bold hover:bg-[#fb923c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Done</button>
             </div>
           )}
           {reason && chiefComplaintDone && (
