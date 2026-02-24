@@ -867,23 +867,23 @@ export default function ExpressCheckoutPage() {
               <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
             </button>
           ) : (
-            <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>
-              {/* Reason selector */}
-              <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 text-left transition-all ${reason ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60"}`}>
-                <span className={`text-[15px] ${reason ? "text-white font-medium" : "text-gray-300"}`}>{reason || "Select a reason..."}</span>
-                <ChevronDown size={14} className="text-gray-500" />
+            <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${reason ? "border border-white/10" : activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              {!reason && <div className="flex items-center justify-center gap-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>}
+              {/* Reason selector — greyed once answered */}
+              <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${reason ? "border-white/10 bg-white/[0.02]" : "border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60"}`}>
+                <span className={`${reason ? "text-gray-400 text-[13px]" : "text-gray-300 text-[15px]"}`}>{reason || "Select a reason..."}</span>
+                {reason ? <span className="text-white text-[10px] font-semibold flex-shrink-0">tap to change</span> : <ChevronDown size={14} className="text-gray-500" />}
               </button>
-              {/* Symptoms textarea — appears after reason */}
+              {/* Symptoms — teal bordered, stands out */}
               {reason && (
-                <div className="space-y-2" style={{ animation: "fadeInStep 0.4s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                <div className={`rounded-xl p-3 space-y-2 border-2 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30 bg-[#2dd4a0]/[0.03]" : "border-[#2dd4a0]/50"}`} style={{ animation: "fadeInStep 0.4s cubic-bezier(0.22, 1, 0.36, 1) both", ...( chiefComplaint.length < 10 ? { boxShadow: "0 0 16px rgba(45,212,160,0.15)" } : {}) }}>
                   <div className="flex items-center gap-2">
-                    <span className="text-[#f97316] text-[14px]">👇</span>
-                    <p className="text-[#f97316] text-[13px] font-bold">Briefly describe your symptoms to continue</p>
+                    <span className="text-[#2dd4a0] text-[14px]">✏️</span>
+                    <p className="text-[#2dd4a0] text-[13px] font-bold">Briefly describe your symptoms to continue</p>
                   </div>
-                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/60" : "border-[#f97316]/50 focus:border-[#f97316]"}`} style={chiefComplaint.length < 10 ? { animation: "ackPulse 2s ease-in-out infinite" } : {}} />
+                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/40" : "border-[#2dd4a0]/30 focus:border-[#2dd4a0]"}`} />
                   {chiefComplaint.length === 0 && (<p className="text-gray-400 text-[10px]">Type at least a short description to unlock the next step</p>)}
-                  {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-[#f97316] text-[10px] font-semibold">Keep going — {10 - chiefComplaint.length} more characters needed</p>)}
+                  {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-[#2dd4a0] text-[10px] font-semibold">Keep going — {10 - chiefComplaint.length} more characters needed</p>)}
                   {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[11px] font-bold">✓ Great — next step unlocked below</p>)}
                 </div>
               )}
