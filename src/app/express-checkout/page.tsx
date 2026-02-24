@@ -870,6 +870,7 @@ export default function ExpressCheckoutPage() {
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${reason ? "border border-white/10" : activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {!reason && <div className="flex items-center justify-center gap-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>}
               {/* Reason selector — greyed once answered */}
+              {reason && <p className="text-gray-500 text-[9px] font-semibold uppercase tracking-widest text-center">Reason for Visit</p>}
               <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${reason ? "border-white/10 bg-white/[0.02]" : "border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60"}`}>
                 <span className={`${reason ? "text-gray-400 text-[13px]" : "text-gray-300 text-[15px]"}`}>{reason || "Select a reason..."}</span>
                 {reason ? <span className="text-white text-[10px] font-semibold flex-shrink-0">tap to change</span> : <ChevronDown size={14} className="text-gray-500" />}
