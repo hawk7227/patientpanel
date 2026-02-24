@@ -345,6 +345,8 @@ export default function ExpressCheckoutPage() {
   const [reasonQuery, setReasonQuery] = useState("");
   const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
   const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
+  const [viewYear, setViewYear] = useState(new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
 
   // Guided Sequence State
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
@@ -998,13 +1000,13 @@ export default function ExpressCheckoutPage() {
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">See your provider live on video — just like an in-office visit.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Real-time</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">HIPAA encrypted</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Pick a time</span></div></div>
-                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("video"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "video", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#3b82f6] bg-[#3b82f6] text-black">Choose →</button></div>
+                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("video"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "video", visitTypeConfirmed: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#3b82f6] bg-[#3b82f6] text-black">Choose →</button></div>
                 </>)}
                 {visitTypePopup === "phone" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#a855f7]/15 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[9px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Connect by phone or text — same quality care, no video.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
-                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("phone"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "phone", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#a855f7] bg-[#a855f7] text-black">Choose →</button></div>
+                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("phone"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "phone", visitTypeConfirmed: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#a855f7] bg-[#a855f7] text-black">Choose →</button></div>
                 </>)}
                 <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
               </div>
@@ -1012,7 +1014,7 @@ export default function ExpressCheckoutPage() {
           )}
           </div>
 
-          {/* STEP 5: Visit-type-specific details (not refill — refill meds are in combined pill) */}
+          {/* STEP 5: Visit-type-specific details */}
           {reason && symptomsDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
             <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {visitType === "instant" && (
@@ -1024,11 +1026,13 @@ export default function ExpressCheckoutPage() {
                   {wantToTalk && (<button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>)}
                 </div>
               )}
-              {(visitType === "video" || visitType === "phone") && (
-                <div className="space-y-2 p-3">
-                  <div className="flex items-center gap-3 mb-1"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 5 ? "text-white" : "text-gray-500"}`}>Pick Date & Time</span></div>
-                  <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>
-                </div>
+              {/* Video/Phone: date selected pill (calendar opens from Choose button) */}
+              {(visitType === "video" || visitType === "phone") && appointmentDate && appointmentTime && (
+                <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all">
+                  <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Calendar size={12} className="text-gray-500" /></div>
+                  <span className="text-gray-500 text-[11px] font-semibold flex-1 text-left">{formatDisplayDateTime()}</span>
+                  <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+                </button>
               )}
             </div>
           )}
@@ -1111,16 +1115,104 @@ export default function ExpressCheckoutPage() {
         </div>
       )}
 
-      {/* ═══ DATE/TIME DIALOG ═══ */}
-      {dateTimeDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70" onClick={() => setDateTimeDialogOpen(false)}>
-          <div className="w-full max-w-[430px] rounded-t-2xl p-4 space-y-3" style={{ background: "#0d1218", animation: "slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center"><span className="text-white font-bold text-base">{dateTimeMode === "date" ? "Select Date" : "Select Time"}</span><button onClick={() => setDateTimeDialogOpen(false)} className="text-gray-400 hover:text-white"><X size={18} /></button></div>
-            <AppointmentCalendar selectedDate={appointmentDate || null} selectedTime={appointmentTime || null} onDateSelect={(date) => { setAppointmentDate(date); setDateTimeMode("time"); saveAnswers({ appointmentDate: date }); }} onTimeSelect={(time) => { setAppointmentTime(time); setDateTimeDialogOpen(false); saveAnswers({ appointmentTime: time }); }} mode={dateTimeMode === "date" ? "date" : "time"} />
-            {dateTimeMode === "time" && (<button onClick={() => setDateTimeMode("date")} className="w-full text-center text-xs text-[#2dd4a0] hover:underline">← Change date</button>)}
+      {/* ═══ DATE/TIME DIALOG — FULLSCREEN MOBILE CALENDAR ═══ */}
+      {dateTimeDialogOpen && (() => {
+        const today = new Date();
+        const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+        const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
+        const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        const dayLabels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+        const isDatePast = (day: number) => {
+          const d = new Date(viewYear, viewMonth, day);
+          const t = new Date(); t.setHours(0,0,0,0);
+          return d < t;
+        };
+
+        const formatDateStr = (day: number) => `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"];
+
+        const convertTo24 = (t: string) => {
+          const [time, period] = t.split(" ");
+          let [h, m] = time.split(":").map(Number);
+          if (period === "PM" && h !== 12) h += 12;
+          if (period === "AM" && h === 12) h = 0;
+          return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+        };
+
+        const prevMonth = () => { if (viewMonth === 0) { setViewYear(viewYear-1); setViewMonth(11); } else setViewMonth(viewMonth-1); };
+        const nextMonth = () => { if (viewMonth === 11) { setViewYear(viewYear+1); setViewMonth(0); } else setViewMonth(viewMonth+1); };
+
+        return (
+          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#0a0e14" }}>
+            {/* Header */}
+            <div className="flex justify-between items-center px-5 pt-4 pb-2 flex-shrink-0">
+              <div>
+                <h2 className="text-white font-black text-xl">{dateTimeMode === "date" ? "Pick a Date" : "Pick a Time"}</h2>
+                <p className="text-gray-400 text-sm">For your {visitType === "video" ? "video" : "phone"} visit</p>
+              </div>
+              <button onClick={() => setDateTimeDialogOpen(false)} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><X size={22} /></button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ scrollbarWidth: "none" }}>
+              {dateTimeMode === "date" ? (
+                <div className="space-y-4">
+                  {/* Month nav */}
+                  <div className="flex items-center justify-between px-2">
+                    <button onClick={prevMonth} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold">‹</button>
+                    <span className="text-white font-bold text-lg">{monthNames[viewMonth]} {viewYear}</span>
+                    <button onClick={nextMonth} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold">›</button>
+                  </div>
+                  {/* Day labels */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {dayLabels.map(d => (<div key={d} className="text-center text-gray-400 text-sm font-bold py-1">{d}</div>))}
+                  </div>
+                  {/* Days grid */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (<div key={`e-${i}`} />))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = formatDateStr(day);
+                      const isPast = isDatePast(day);
+                      const isSelected = appointmentDate === dateStr;
+                      const isToday = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+                      return (
+                        <button key={day} disabled={isPast} onClick={() => { setAppointmentDate(dateStr); setDateTimeMode("time"); saveAnswers({ appointmentDate: dateStr }); }}
+                          className={`aspect-square rounded-xl flex flex-col items-center justify-center text-base font-bold transition-all ${isPast ? "text-gray-700 cursor-not-allowed" : isSelected ? "bg-[#2dd4a0] text-black" : isToday ? "bg-[#2dd4a0]/20 text-[#2dd4a0] border-2 border-[#2dd4a0]" : "text-white bg-white/5 hover:bg-white/10 active:bg-[#2dd4a0]/30"}`}>
+                          {day}
+                          {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4a0] mt-0.5" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-gray-500 text-xs text-center">Times shown in your timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Selected date display */}
+                  <button onClick={() => setDateTimeMode("date")} className="flex items-center gap-2 text-[#2dd4a0] text-sm font-semibold hover:underline">
+                    ← {appointmentDate && (() => { const [y,m,d] = appointmentDate.split("-").map(Number); return `${monthNames[m-1]} ${d}, ${y}`; })()}
+                  </button>
+                  <p className="text-white font-bold text-lg">Available Times</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {timeSlots.map(slot => {
+                      const t24 = convertTo24(slot);
+                      const isSelected = appointmentTime === t24;
+                      return (
+                        <button key={slot} onClick={() => { setAppointmentTime(t24); saveAnswers({ appointmentTime: t24 }); setDateTimeDialogOpen(false); }}
+                          className={`py-3.5 rounded-xl text-base font-bold transition-all ${isSelected ? "bg-[#2dd4a0] text-black" : "bg-white/5 text-white hover:bg-white/10 active:bg-[#2dd4a0]/30 border border-white/10"}`}>
+                          {slot}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ═══ DEA INFO POPUP ═══ */}
       {showDeaInfoPopup && (
