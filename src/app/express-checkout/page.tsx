@@ -350,7 +350,8 @@ export default function ExpressCheckoutPage() {
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
   const [wantToTalk, setWantToTalk] = useState(false);
   const [additionalMedsAnswer, setAdditionalMedsAnswer] = useState<"yes" | "no" | null>(null);
-  // chiefComplaintDone replaced by chiefComplaint.length >= 10 auto-advance
+  // chiefComplaintDone replaced by symptomsDone — user must tap Continue after 10+ chars
+  const [symptomsDone, setSymptomsDone] = useState(false);
   const [visitTypeConfirmed, setVisitTypeConfirmed] = useState(false);
   // Step flow: 1 = booking form, 2 = review & pay
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
@@ -402,6 +403,7 @@ export default function ExpressCheckoutPage() {
     const s = loadAnswers();
     if (s.reason) setReason(s.reason);
     if (s.chiefComplaint) setChiefComplaint(s.chiefComplaint);
+    if (s.symptomsDone) setSymptomsDone(true);
     if (s.pharmacy) setPharmacy(s.pharmacy);
     if (s.pharmacyAddress) setPharmacyAddress(s.pharmacyAddress);
     if (s.pharmacyInfo) setPharmacyInfo(s.pharmacyInfo);
@@ -462,7 +464,7 @@ export default function ExpressCheckoutPage() {
 
   // ── allFieldsReady ─────────────────────────────────────
   const allFieldsReady = useMemo(() => {
-    if (!reason || chiefComplaint.length < 10) return false;
+    if (!reason || !symptomsDone) return false;
     if (!pharmacy) return false;
     if (!visitTypeConfirmed) return false;
     if (needsCalendar) return !!(appointmentDate && appointmentTime);
@@ -562,7 +564,7 @@ export default function ExpressCheckoutPage() {
   // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType, 5=Details, 6=AdditionalMeds, 7=Ack, 8=Ready
   const activeGuideStep = useMemo((): number => {
     if (!reason) return 1;
-    if (!(chiefComplaint.length >= 10)) return 2;
+    if (!symptomsDone) return 2;
     if (!pharmacy) return 3;
     if (!visitTypeConfirmed) return 4;
     // Step 5: visit-type-specific
@@ -857,8 +859,8 @@ export default function ExpressCheckoutPage() {
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0" style={{ scrollbarWidth: "none" }}>
 
           {/* STEP 1: Reason + Symptoms (merged, auto-advance at 10 chars) */}
-          {reason && chiefComplaint.length >= 10 ? (
-            <button onClick={() => { setChiefComplaint(""); saveAnswers({ chiefComplaint: "" }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+          {reason && symptomsDone ? (
+            <button onClick={() => { setChiefComplaint(""); setSymptomsDone(false); saveAnswers({ chiefComplaint: "", symptomsDone: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
               <div className="flex-1 min-w-0 text-left">
                 <span className="text-gray-300 text-[12px] font-semibold truncate block">{reason}</span>
@@ -884,14 +886,19 @@ export default function ExpressCheckoutPage() {
                   </div>
                   <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/40" : "border-[#2dd4a0]/30 focus:border-[#2dd4a0]"}`} />
                   {chiefComplaint.length < 10 && (<p className="text-gray-300 text-[12px]">Type at least <span className="text-[#f97316] font-black text-[16px]">{10 - chiefComplaint.length}</span> more characters</p>)}
-                  {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[11px] font-bold">✓ Great — next step unlocked below</p>)}
+                  {chiefComplaint.length >= 10 && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-[#2dd4a0] text-[10px] font-semibold">✓ Ready</p>
+                      <button onClick={() => { setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} className="px-4 py-1.5 rounded-lg bg-[#2dd4a0] text-black text-[12px] font-bold transition-all hover:bg-[#2dd4a0]/90 active:scale-95" style={{ animation: "fadeInBtn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both" }}>Continue →</button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
           {/* STEP 3: Preferred Pharmacy */}
-          {reason && chiefComplaint.length >= 10 && (pharmacy ? (
+          {reason && symptomsDone && (pharmacy ? (
             <PharmacyCompletedView />
           ) : (
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-2 transition-all ${activeGuideStep === 3 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
@@ -908,7 +915,7 @@ export default function ExpressCheckoutPage() {
           ))}
 
           {/* STEP 4: Select Visit Type */}
-          {reason && chiefComplaint.length >= 10 && pharmacy && (
+          {reason && symptomsDone && pharmacy && (
             visitTypeConfirmed ? (
               visitType === "refill" ? (
                 <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
@@ -1003,7 +1010,7 @@ export default function ExpressCheckoutPage() {
           )}
 
           {/* STEP 5: Visit-type-specific details (not refill — refill meds are in combined pill) */}
-          {reason && chiefComplaint.length >= 10 && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
+          {reason && symptomsDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
             <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {visitType === "instant" && (
                 <div className="space-y-2 p-3">
@@ -1024,7 +1031,7 @@ export default function ExpressCheckoutPage() {
           )}
 
           {/* STEP 7: Acknowledgment — non-refill async */}
-          {reason && chiefComplaint.length >= 10 && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
+          {reason && symptomsDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
             <button onClick={() => { const v = !asyncAcknowledged; setAsyncAcknowledged(v); setClientSecret(""); saveAnswers({ asyncAcknowledged: v }); }}
               className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-[#f97316]/50"}`}>{asyncAcknowledged && <Check size={12} className="text-black" />}</div>
