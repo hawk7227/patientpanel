@@ -94,10 +94,8 @@ function Step2PaymentForm({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   
 
-  // ⚠️ Test mode controlled by env vars — set NEXT_PUBLIC_SKIP_PAYMENT=true to bypass Stripe
-  const isTestMode =
-    process.env.NEXT_PUBLIC_SKIP_PAYMENT === "true" ||
-    (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_TEST_MODE === "true");
+  // Production mode — real Stripe payments
+  const isTestMode = false;
 
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
