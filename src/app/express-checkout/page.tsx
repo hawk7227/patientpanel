@@ -762,39 +762,31 @@ export default function ExpressCheckoutPage() {
   const activeOrangeBorder = "border-[3px] border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.5)]";
 
   const CompletedPill = ({ text, onReset, subText }: { text: string; onReset: () => void; subText?: string }) => (
-    <button onClick={onReset} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-      <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
-      <span className="text-gray-300 text-[12px] font-semibold truncate flex-1 text-left">{text}</span>
-      <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+    <button onClick={onReset} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Check size={14} className="text-gray-500" strokeWidth={3} /></div>
+      <span className="text-gray-500 text-[11px] font-semibold truncate flex-1 text-left">{text}</span>
+      <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
     </button>
   );
 
   const PharmacyCompletedView = () => (
     <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null }); }}
-      className="w-full rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all overflow-hidden opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-      <div className="px-3 py-1 border-b border-[#2dd4a0]/20 flex items-center gap-2">
-        <div className="w-5 h-5 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={12} className="text-black" strokeWidth={3} /></div>
-        <span className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Preferred Pharmacy</span>
+      className="w-full rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all overflow-hidden" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      <div className="px-3 py-1 border-b border-white/5 flex items-center gap-2">
+        <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Check size={12} className="text-gray-500" strokeWidth={3} /></div>
+        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Preferred Pharmacy</span>
       </div>
-      <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="flex items-center gap-3 px-3 py-2">
         {pharmacyInfo?.photo ? (
-          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-white/10"><img src={pharmacyInfo.photo} alt={pharmacy} className="w-full h-full object-cover" /></div>
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-white/5 opacity-50"><img src={pharmacyInfo.photo} alt={pharmacy} className="w-full h-full object-cover" /></div>
         ) : (
-          <div className="w-12 h-12 rounded-lg bg-[#11161c] border border-white/10 flex items-center justify-center flex-shrink-0"><Pill size={18} className="text-gray-600" /></div>
+          <div className="w-10 h-10 rounded-lg bg-[#11161c] border border-white/5 flex items-center justify-center flex-shrink-0"><Pill size={14} className="text-gray-700" /></div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="text-white font-bold text-[12px] truncate">{pharmacy}</p>
-          {pharmacyInfo?.address && <p className="text-gray-500 text-[9px] truncate">{pharmacyInfo.address}</p>}
-          {pharmacyInfo?.rating && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <Star size={9} className="text-yellow-400 fill-yellow-400" />
-              <span className="text-yellow-400 text-[9px] font-bold">{pharmacyInfo.rating}</span>
-              {pharmacyInfo.reviewCount && <span className="text-gray-600 text-[8px]">({pharmacyInfo.reviewCount})</span>}
-              {pharmacyInfo.isOpen !== undefined && <span className={`text-[8px] font-semibold ml-1 ${pharmacyInfo.isOpen ? "text-green-400" : "text-red-400"}`}>{pharmacyInfo.isOpen ? "Open" : "Closed"}</span>}
-            </div>
-          )}
+          <p className="text-gray-500 font-semibold text-[11px] truncate">{pharmacy}</p>
+          {pharmacyInfo?.address && <p className="text-gray-600 text-[8px] truncate">{pharmacyInfo.address}</p>}
         </div>
-        <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+        <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
       </div>
     </button>
   );
@@ -870,13 +862,13 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 1: Reason + Symptoms (merged, auto-advance at 10 chars) */}
           {reason && symptomsDone ? (
-            <button onClick={() => { setChiefComplaint(""); setSymptomsDone(false); saveAnswers({ chiefComplaint: "", symptomsDone: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
+            <button onClick={() => { setChiefComplaint(""); setSymptomsDone(false); saveAnswers({ chiefComplaint: "", symptomsDone: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Check size={14} className="text-gray-500" strokeWidth={3} /></div>
               <div className="flex-1 min-w-0 text-left">
-                <span className="text-gray-300 text-[12px] font-semibold truncate block">{reason}</span>
-                <span className="text-gray-500 text-[10px] truncate block">{chiefComplaint}</span>
+                <span className="text-gray-500 text-[11px] font-semibold truncate block">{reason}</span>
+                <span className="text-gray-600 text-[9px] truncate block">{chiefComplaint}</span>
               </div>
-              <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+              <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
             </button>
           ) : (
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${reason ? "border border-white/10" : activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
@@ -929,13 +921,13 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && (
             visitTypeConfirmed ? (
               visitType === "refill" ? (
-                <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
+                <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Check size={14} className="text-gray-500" strokeWidth={3} /></div>
                   <div className="flex-1 min-w-0 text-left">
-                    <span className="text-gray-300 text-[12px] font-semibold block">Rx Refill</span>
-                    {selectedMeds.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{selectedMeds.map(m => (<span key={m} className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${isControlledSubstance(m) ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20"}`}>{m} {isControlledSubstance(m) ? "⚠️" : "✓"}</span>))}</div>}
+                    <span className="text-gray-500 text-[11px] font-semibold block">Rx Refill</span>
+                    {selectedMeds.length > 0 && <div className="flex flex-wrap gap-1 mt-1">{selectedMeds.map(m => (<span key={m} className="text-[8px] px-1.5 py-0.5 rounded-full font-medium bg-gray-800 text-gray-500 border border-white/5">{m}</span>))}</div>}
                   </div>
-                  <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+                  <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
                 </button>
               ) : (
                 <CompletedPill text={visitType === "instant" ? "Instant Care" : visitType === "video" ? "Video Visit" : "Phone / SMS"} subText="Visit Type" onReset={() => { setVisitTypeConfirmed(false); saveAnswers({ visitTypeConfirmed: false }); }} />
@@ -967,7 +959,7 @@ export default function ExpressCheckoutPage() {
           {/* ═══ VISIT TYPE INFO — compact popup with confirm button inside ═══ */}
           {visitTypePopup && !visitTypeConfirmed && (
             <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="p-3 space-y-2.5 relative bg-[#11161c] border border-white/10 rounded-xl">
+              <div className="p-3 space-y-2.5 relative bg-[#11161c] border border-white/10 rounded-xl" style={{ minHeight: "180px" }}>
                 <button onClick={() => setVisitTypePopup(null)} className="absolute top-2.5 right-2.5 text-gray-500 hover:text-white transition-colors z-10"><X size={16} /></button>
                 {visitTypePopup === "instant" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
