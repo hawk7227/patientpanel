@@ -876,11 +876,15 @@ export default function ExpressCheckoutPage() {
               </button>
               {/* Symptoms textarea — appears after reason */}
               {reason && (
-                <div className="space-y-1.5" style={{ animation: "fadeInStep 0.4s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <p className="text-white text-[13px] font-semibold">Tell us more so your provider can prepare</p>
-                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/40 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-300" />
-                  {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-gray-600 text-[9px]">{10 - chiefComplaint.length} more characters</p>)}
-                  {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[9px] font-semibold">✓ Next step unlocked</p>)}
+                <div className="space-y-2" style={{ animation: "fadeInStep 0.4s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#f97316] text-[14px]">👇</span>
+                    <p className="text-[#f97316] text-[13px] font-bold">Briefly describe your symptoms to continue</p>
+                  </div>
+                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/60" : "border-[#f97316]/50 focus:border-[#f97316]"}`} style={chiefComplaint.length < 10 ? { animation: "ackPulse 2s ease-in-out infinite" } : {}} />
+                  {chiefComplaint.length === 0 && (<p className="text-gray-400 text-[10px]">Type at least a short description to unlock the next step</p>)}
+                  {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-[#f97316] text-[10px] font-semibold">Keep going — {10 - chiefComplaint.length} more characters needed</p>)}
+                  {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[11px] font-bold">✓ Great — next step unlocked below</p>)}
                 </div>
               )}
             </div>
