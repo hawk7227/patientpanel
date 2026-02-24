@@ -882,8 +882,7 @@ export default function ExpressCheckoutPage() {
                     <p className="text-[#2dd4a0] text-[13px] font-bold">Briefly describe your symptoms to continue</p>
                   </div>
                   <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/40" : "border-[#2dd4a0]/30 focus:border-[#2dd4a0]"}`} />
-                  {chiefComplaint.length === 0 && (<p className="text-gray-400 text-[10px]">Type at least a short description to unlock the next step</p>)}
-                  {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-[#2dd4a0] text-[10px] font-semibold">Keep going — {10 - chiefComplaint.length} more characters needed</p>)}
+                  {chiefComplaint.length < 10 && (<p className="text-gray-300 text-[12px]">Type at least <span className="text-[#f97316] font-black text-[16px]">{10 - chiefComplaint.length}</span> more characters</p>)}
                   {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[11px] font-bold">✓ Great — next step unlocked below</p>)}
                 </div>
               )}
