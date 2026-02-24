@@ -78,12 +78,12 @@ const convertDateToISO = (dateStr: string): string => {
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess,
+  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
-  symptomsText: string; onSuccess: () => void;
+  symptomsText: string; onSuccess: () => void; visitIntentId: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -125,7 +125,7 @@ function Step2PaymentForm({
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: paymentIntent.id,
+          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
           appointmentData: {
             email: patient.email || "test@medazon.com", firstName: patient.firstName || "Test", lastName: patient.lastName || "Patient",
             phone: patient.phone || "0000000000", dateOfBirth: convertDateToISO(patient.dateOfBirth) || "1990-01-01",
@@ -150,7 +150,7 @@ function Step2PaymentForm({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id,
+          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -205,7 +205,7 @@ function Step2PaymentForm({
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: paymentIntent.id,
+          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
           appointmentData: {
             email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
             phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
@@ -230,7 +230,7 @@ function Step2PaymentForm({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id,
+          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -354,6 +354,8 @@ export default function ExpressCheckoutPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [clientSecret, setClientSecret] = useState("");
   const currentPrice = useMemo(() => getBookingFee(), []);
+  const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
+  const [visitIntentId, setVisitIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
 
@@ -478,14 +480,22 @@ export default function ExpressCheckoutPage() {
   // ── Create payment intent — when allFieldsReady OR when entering step 2 ──
   useEffect(() => {
     if ((allFieldsReady || currentStep === 2) && !clientSecret) {
-      fetch("/api/create-payment-intent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: currentPrice.amount }) })
-        .then(res => res.json()).then(data => { if (data.clientSecret) setClientSecret(data.clientSecret); })
+      fetch("/api/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: currentPrice.amount, visit_amount: visitFeePrice.amount }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.clientSecret) setClientSecret(data.clientSecret);
+          if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+        })
         .catch(err => console.error("Payment intent error:", err));
     }
-  }, [allFieldsReady, clientSecret, currentPrice.amount, currentStep]);
+  }, [allFieldsReady, clientSecret, currentPrice.amount, visitFeePrice.amount, currentStep]);
 
   const handleVisitTypeChange = (type: VisitType) => {
-    setVisitType(type); setClientSecret(""); setAsyncAcknowledged(false);
+    setVisitType(type); setClientSecret(""); setVisitIntentId(""); setAsyncAcknowledged(false);
     // Only clear meds when switching AWAY from refill, not when selecting refill (meds already chosen in popup)
     if (type !== "refill") {
       setSelectedMeds([]); setHasControlledSelected(false); setControlledAcknowledged(false);
@@ -735,7 +745,7 @@ export default function ExpressCheckoutPage() {
           </div>
           <div className="flex-1 flex flex-col justify-end min-h-0">
             {clientSecret && stripeOptions ? (
-              <Elements options={stripeOptions} stripe={stripePromise}><Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} /></Elements>
+              <Elements options={stripeOptions} stripe={stripePromise}><Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} /></Elements>
             ) : (<div className="flex items-center justify-center py-3"><div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-xs">Loading payment...</span></div>)}
           </div>
           <div className="flex-shrink-0 pt-1 pb-1"><p className="text-center text-gray-700 text-[8px]"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · 256-bit Encryption · Secure Checkout</p></div>
