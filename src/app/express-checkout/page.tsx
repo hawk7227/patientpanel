@@ -266,7 +266,7 @@ function Step2PaymentForm({
           /* Real payment — wallets + card */
           <div className="space-y-2">
             {/* PaymentElement with wallets auto-detected (Google Pay, Apple Pay, Link shown first) */}
-            <div className="rounded-xl overflow-hidden">
+            <div className="rounded-xl overflow-hidden bg-[#0d1218] border border-white/10 p-1">
               <PaymentElement options={{
                 layout: "tabs",
                 paymentMethodOrder: ["apple_pay", "google_pay", "card"],
