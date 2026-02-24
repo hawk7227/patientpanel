@@ -868,10 +868,10 @@ export default function ExpressCheckoutPage() {
             </button>
           ) : (
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">What Brings You In?</span></div>
+              <div className="flex items-center justify-center gap-2"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>
               {/* Reason selector */}
-              <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${reason ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#0d1218] hover:border-white/20"}`}>
-                <span className={`text-sm ${reason ? "text-white font-medium" : "text-gray-500"}`}>{reason || "Select a reason..."}</span>
+              <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl border-2 text-left transition-all ${reason ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60"}`}>
+                <span className={`text-[15px] ${reason ? "text-white font-medium" : "text-gray-300"}`}>{reason || "Select a reason..."}</span>
                 <ChevronDown size={14} className="text-gray-500" />
               </button>
               {/* Symptoms textarea — appears after reason */}
