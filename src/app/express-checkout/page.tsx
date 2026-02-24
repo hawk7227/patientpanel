@@ -1033,31 +1033,52 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 7: Acknowledgment — non-refill async */}
-          {reason && symptomsDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
-            <button onClick={() => { const v = !asyncAcknowledged; setAsyncAcknowledged(v); setClientSecret(""); saveAnswers({ asyncAcknowledged: v }); }}
-              className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-[#f97316]/50"}`}>{asyncAcknowledged && <Check size={12} className="text-black" />}</div>
-              <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours. If a live evaluation is needed, I may be asked to schedule one.</p></div>
-            </button>
+          {/* ACKNOWLEDGMENT — shows for ALL visit types after visit type confirmed */}
+          {reason && symptomsDone && pharmacy && visitTypeConfirmed && (
+            <>
+              {/* Async acknowledgment (instant, video, phone — NOT refill) */}
+              {visitType !== "refill" && !asyncAcknowledged && (
+                <button onClick={() => { setAsyncAcknowledged(true); setClientSecret(""); saveAnswers({ asyncAcknowledged: true }); }}
+                  className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-5 h-5 rounded border-2 border-[#f97316]/50 flex items-center justify-center flex-shrink-0 mt-0.5" />
+                  <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours. If a live evaluation is needed, I may be asked to schedule one.</p></div>
+                </button>
+              )}
+              {visitType !== "refill" && asyncAcknowledged && (
+                <button onClick={() => { setAsyncAcknowledged(false); setClientSecret(""); saveAnswers({ asyncAcknowledged: false }); }}
+                  className="w-full flex items-start gap-3 p-3 rounded-xl border-2 border-[#2dd4a0] bg-[#2dd4a0]/5 text-left transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-5 h-5 rounded border-2 border-[#2dd4a0] bg-[#2dd4a0] flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={12} className="text-black" /></div>
+                  <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours.</p></div>
+                </button>
+              )}
+
+              {/* Controlled substance acknowledgment (refill with controlled meds) */}
+              {hasControlledSelected && visitType === "refill" && !controlledAcknowledged && (
+                <div className={`flex items-start gap-2.5 p-3 rounded-xl border-2 ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <input type="checkbox" id="ctrlAck" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-5 h-5 rounded border-2 border-[#f97316] bg-[#0d1218] text-[#f97316] focus:ring-[#f97316] flex-shrink-0 cursor-pointer" style={{ animation: "ackPulse 1.5s ease-in-out infinite" }} />
+                  <label htmlFor="ctrlAck" className="text-[11px] text-gray-400 leading-relaxed cursor-pointer"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
+                </div>
+              )}
+              {hasControlledSelected && visitType === "refill" && controlledAcknowledged && (
+                <button onClick={() => { setControlledAcknowledged(false); setClientSecret(""); saveAnswers({ controlledAcknowledged: false }); }}
+                  className="w-full flex items-start gap-3 p-3 rounded-xl border-2 border-[#2dd4a0] bg-[#2dd4a0]/5 text-left transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+                  <div className="w-5 h-5 rounded border-2 border-[#2dd4a0] bg-[#2dd4a0] flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={12} className="text-black" /></div>
+                  <div><p className="text-white text-[11px] font-semibold">Controlled substance terms accepted</p></div>
+                </button>
+              )}
+
+              {/* CTA — directly below acknowledgment, inside scroll area */}
+              {allFieldsReady && (
+                <button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg bg-[#f97316] text-white transition-all" style={{ animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>Reserve My Spot — {currentPrice.display}<ChevronDown size={16} className="rotate-[-90deg]" /></button>
+              )}
+            </>
           )}
 
         </div>
 
-        {/* ═══ BOTTOM BUTTON ═══ */}
-        <div className="flex-shrink-0 pb-1 pt-1 space-y-2">
-          {/* Controlled substance acknowledgment — blinking checkbox */}
-          {hasControlledSelected && visitType === "refill" && visitTypeConfirmed && (
-            <div className="flex items-start gap-2.5 px-1">
-              <input type="checkbox" id="ctrlAckBottom" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-5 h-5 rounded border-2 border-[#f97316] bg-[#0d1218] text-[#f97316] focus:ring-[#f97316] flex-shrink-0 cursor-pointer" style={!controlledAcknowledged ? { animation: "ackPulse 1.5s ease-in-out infinite" } : {}} />
-              <label htmlFor="ctrlAckBottom" className="text-[11px] text-gray-400 leading-relaxed cursor-pointer"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
-            </div>
-          )}
-          {/* CTA — only shows when all fields ready (no duplicate visit type button) */}
-          {visitTypeConfirmed && (
-            <button onClick={() => { if (allFieldsReady) setCurrentStep(2); }} disabled={!allFieldsReady} className={`w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all ${allFieldsReady ? "bg-[#f97316] text-white" : "bg-white/10 text-gray-500 cursor-not-allowed"}`} style={allFieldsReady ? { animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" } : {}}>Reserve My Spot — {currentPrice.display}<ChevronDown size={16} className="rotate-[-90deg]" /></button>
-          )}
-          <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Booking fee reserves your provider</p>
+        {/* ═══ BOTTOM FOOTER ═══ */}
+        <div className="flex-shrink-0 pb-1 pt-1">
+          <p className="text-center text-gray-700 text-[8px]"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Booking fee reserves your provider</p>
         </div>
       </div>
 
