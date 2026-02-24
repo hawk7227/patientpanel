@@ -877,8 +877,8 @@ export default function ExpressCheckoutPage() {
               {/* Symptoms textarea — appears after reason */}
               {reason && (
                 <div className="space-y-1.5" style={{ animation: "fadeInStep 0.4s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <p className="text-gray-400 text-[10px]">Tell us more so your provider can prepare</p>
-                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-600" />
+                  <p className="text-white text-[13px] font-semibold">Tell us more so your provider can prepare</p>
+                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/40 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-300" />
                   {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-gray-600 text-[9px]">{10 - chiefComplaint.length} more characters</p>)}
                   {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[9px] font-semibold">✓ Next step unlocked</p>)}
                 </div>
