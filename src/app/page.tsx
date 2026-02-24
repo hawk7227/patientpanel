@@ -114,8 +114,8 @@ function PairedCTABlock() {
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
-        Book My 1st Visit — $1.89 <ArrowRight size={20} />
+      <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
+        Book My Visit — $1.89 Reserve Fee <ArrowRight size={20} />
       </Link>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
@@ -178,8 +178,8 @@ export default function AssessmentPageContent() {
 
           {/* Desktop CTA */}
           <div className="hidden md:block">
-            <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center gap-1.5">
-              Book My 1st Visit — $1.89 <ArrowRight size={14} />
+            <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center gap-1.5">
+              Book My Visit — $1.89 Reserve Fee <ArrowRight size={14} />
             </Link>
           </div>
 
@@ -204,8 +204,8 @@ export default function AssessmentPageContent() {
               <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">How It Works</a>
               <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">About Your Provider</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">FAQ</a>
-              <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-2 w-full whitespace-nowrap">
-                Book My 1st Visit — $1.89 <ArrowRight size={16} />
+              <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-2 w-full whitespace-nowrap">
+                Book My Visit — $1.89 Reserve Fee <ArrowRight size={16} />
               </Link>
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function AssessmentPageContent() {
            </h1>
 
            <div className="flex justify-center mb-4">
-             <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 whitespace-nowrap">
+             <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 whitespace-nowrap">
                GET TREATMENT FIRST <ArrowRight size={20} />
              </Link>
            </div>

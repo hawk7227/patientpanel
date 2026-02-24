@@ -274,7 +274,7 @@ function Step2PaymentForm({
         <div className="flex items-start gap-1.5">
           <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
           <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-            By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time. Visit fees are collected separately after provider review.
+            By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. By requesting a provider appointment, I acknowledge that my card will not be charged until a provider accepts my appointment request. Once accepted, I authorize a one-time charge of <strong className="text-white">{currentPrice.display}.00</strong> (flat, non-refundable) for this visit.
           </label>
         </div>
       </div>
@@ -350,7 +350,7 @@ export default function ExpressCheckoutPage() {
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
   const [wantToTalk, setWantToTalk] = useState(false);
   const [additionalMedsAnswer, setAdditionalMedsAnswer] = useState<"yes" | "no" | null>(null);
-  // chiefComplaintDone replaced by chiefComplaint.length >= 10 auto-advance
+  const [chiefComplaintDone, setChiefComplaintDone] = useState(false);
   const [visitTypeConfirmed, setVisitTypeConfirmed] = useState(false);
   // Step flow: 1 = booking form, 2 = review & pay
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
@@ -401,7 +401,8 @@ export default function ExpressCheckoutPage() {
   useEffect(() => {
     const s = loadAnswers();
     if (s.reason) setReason(s.reason);
-    if (s.chiefComplaint) setChiefComplaint(s.chiefComplaint);
+    if (s.chiefComplaint) { setChiefComplaint(s.chiefComplaint); setChiefComplaintDone(true); }
+    if (s.chiefComplaintDone) setChiefComplaintDone(true);
     if (s.pharmacy) setPharmacy(s.pharmacy);
     if (s.pharmacyAddress) setPharmacyAddress(s.pharmacyAddress);
     if (s.pharmacyInfo) setPharmacyInfo(s.pharmacyInfo);
@@ -462,11 +463,8 @@ export default function ExpressCheckoutPage() {
 
   // ── allFieldsReady ─────────────────────────────────────
   const allFieldsReady = useMemo(() => {
-    if (!reason || chiefComplaint.length < 10) return false;
-    if (!pharmacy) return false;
-    if (!visitTypeConfirmed) return false;
+    if (!reason) return false;
     if (needsCalendar) return !!(appointmentDate && appointmentTime);
-    if (visitType === "instant" && wantToTalk && (!appointmentDate || !appointmentTime)) return false;
     if (visitType === "refill") {
       const hasMedsOrNotes = selectedMeds.length > 0 || symptomsText.trim().length > 0 || !!photoFile;
       if (!hasMedsOrNotes) return false;
@@ -474,7 +472,7 @@ export default function ExpressCheckoutPage() {
       return true;
     }
     return !!asyncAcknowledged;
-  }, [reason, chiefComplaint, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
+  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, symptomsText, photoFile, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
   // ── Create payment intent ──────────────────────────────
   useEffect(() => {
@@ -562,7 +560,7 @@ export default function ExpressCheckoutPage() {
   // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType, 5=Details, 6=AdditionalMeds, 7=Ack, 8=Ready
   const activeGuideStep = useMemo((): number => {
     if (!reason) return 1;
-    if (!(chiefComplaint.length >= 10)) return 2;
+    if (!chiefComplaintDone) return 2;
     if (!pharmacy) return 3;
     if (!visitTypeConfirmed) return 4;
     // Step 5: visit-type-specific
@@ -573,7 +571,7 @@ export default function ExpressCheckoutPage() {
     if (visitType !== "refill" && isAsync && !hasControlledSelected && !asyncAcknowledged) return 7;
     if (hasControlledSelected && !controlledAcknowledged) return 7;
     return 8;
-  }, [reason, chiefComplaint, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, additionalMedsAnswer, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
+  }, [reason, chiefComplaintDone, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, additionalMedsAnswer, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
   const totalSteps = 8;
 
@@ -722,7 +720,7 @@ export default function ExpressCheckoutPage() {
             ) : null}
             {selectedMeds.length > 0 && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Medications</p><p className="text-white text-[11px] font-medium">{selectedMeds.join(", ")}</p></div>}
             {wantToTalk && visitType === "instant" && appointmentDate && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Live Add-on</p><p className="text-white text-[12px] font-semibold">{formatDisplayDateTime()}</p></div>}
-            <div className="px-3 py-2 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}><div><span className="text-gray-400 text-[11px] font-semibold">Booking Fee</span><p className="text-gray-600 text-[8px]">Reserves your provider&apos;s time</p></div><span className="text-[#2dd4a0] font-black text-[16px]">{currentPrice.display}</span></div>
+            <div className="px-3 py-2 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}><span className="text-gray-400 text-[11px] font-semibold">Total</span><span className="text-[#2dd4a0] font-black text-[16px]">{currentPrice.display}</span></div>
           </div>
           <div className="flex-1 flex flex-col justify-end min-h-0">
             {clientSecret && stripeOptions ? (
@@ -808,29 +806,17 @@ export default function ExpressCheckoutPage() {
             <span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
           </div>
           {/* Version marker — remove after confirming deploy */}
-          
+          <span className="text-gray-700 text-[7px]">v2.1</span>
         </div>
 
-        {/* ═══ WELCOME + BADGE + DOCTOR CARD ═══ */}
+        {/* ═══ WELCOME + PRIORITY BADGE + DOCTOR CARD ═══ */}
         <div className="flex items-start justify-between pb-1.5 flex-shrink-0">
           <div className="flex-1">
-            {patient.source !== "new" && patient.firstName ? (
-              <>
-                <div className="flex items-center gap-2 mb-1"><Zap size={12} className="text-[#f97316]" /><span className="text-[#f97316] font-semibold text-[11px]">Welcome back, {patient.firstName}!</span></div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-[#f97316] bg-[#f97316]/15" style={{ boxShadow: "0 0 10px rgba(249,115,22,0.3)" }}>
-                  <span className="text-[#f97316] text-[12px]">★</span>
-                  <span className="text-[#f97316] font-black text-[11px] uppercase tracking-wider">Priority Patient</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 mb-1"><Shield size={12} className="text-[#2dd4a0]" /><span className="text-[#2dd4a0] font-semibold text-[11px]">Private & Discreet Care</span></div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-[#2dd4a0]/40 bg-[#2dd4a0]/10">
-                  <Lock size={10} className="text-[#2dd4a0]" />
-                  <span className="text-[#2dd4a0] font-black text-[10px] uppercase tracking-wider">100% Confidential</span>
-                </div>
-              </>
-            )}
+            <div className="flex items-center gap-2 mb-1"><Zap size={12} className="text-[#f97316]" /><span className="text-[#f97316] font-semibold text-[11px]">{patient.firstName ? `Welcome back, ${patient.firstName}!` : 'Welcome!'}</span></div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-[#f97316] bg-[#f97316]/15" style={{ boxShadow: "0 0 10px rgba(249,115,22,0.3)" }}>
+              <span className="text-[#f97316] text-[12px]">★</span>
+              <span className="text-[#f97316] font-black text-[11px] uppercase tracking-wider">Priority Patient</span>
+            </div>
             {/* Progress bar — larger, under badge */}
             <div className="w-full mt-2">
               <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -856,42 +842,39 @@ export default function ExpressCheckoutPage() {
         {/* ═══ SCROLLABLE GUIDED FORM ═══ */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0" style={{ scrollbarWidth: "none" }}>
 
-          {/* STEP 1: Reason + Symptoms (merged, auto-advance at 10 chars) */}
-          {reason && chiefComplaint.length >= 10 ? (
-            <button onClick={() => { setChiefComplaint(""); saveAnswers({ chiefComplaint: "" }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+          {/* STEP 1+2: Reason + Symptoms (merged pill when complete) */}
+          {reason && chiefComplaintDone ? (
+            <button onClick={() => { setChiefComplaintDone(false); saveAnswers({ chiefComplaintDone: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="w-7 h-7 rounded-full bg-[#2dd4a0] flex items-center justify-center flex-shrink-0"><Check size={16} className="text-black" strokeWidth={3} /></div>
               <div className="flex-1 min-w-0 text-left">
                 <span className="text-gray-300 text-[12px] font-semibold truncate block">{reason}</span>
-                <span className="text-gray-500 text-[10px] truncate block">{chiefComplaint}</span>
+                {chiefComplaint && <span className="text-gray-500 text-[10px] truncate block">{chiefComplaint}</span>}
               </div>
               <span className="text-gray-500 text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
             </button>
-          ) : (
+          ) : !reason ? (
+            <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl bg-[#11161c] text-left transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-sm font-semibold">Reason for Visit</span></div>
+              <ChevronDown size={16} className="text-gray-500" />
+            </button>
+          ) : null}
+
+          {/* STEP 2: Describe Your Symptoms (inline) */}
+          {reason && !chiefComplaintDone && (
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">1</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">What Brings You In?</span></div>
-              {/* Reason selector */}
-              <button onClick={() => setReasonDialogOpen(true)} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all ${reason ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#0d1218] hover:border-white/20"}`}>
-                <span className={`text-sm ${reason ? "text-white font-medium" : "text-gray-500"}`}>{reason || "Select a reason..."}</span>
-                <ChevronDown size={14} className="text-gray-500" />
-              </button>
-              {/* Symptoms textarea — appears after reason */}
-              {reason && (
-                <div className="space-y-1.5" style={{ animation: "fadeInStep 0.4s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <p className="text-gray-400 text-[10px]">Tell us more so your provider can prepare</p>
-                  <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={2} className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-600" />
-                  {chiefComplaint.length > 0 && chiefComplaint.length < 10 && (<p className="text-gray-600 text-[9px]">{10 - chiefComplaint.length} more characters</p>)}
-                  {chiefComplaint.length >= 10 && (<p className="text-[#2dd4a0] text-[9px] font-semibold">✓ Next step unlocked</p>)}
-                </div>
-              )}
+              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">2</span><span className="text-white text-[10px] font-semibold uppercase tracking-wider">Describe Your Symptoms</span></div>
+              <p className="text-white text-[11px]">Briefly describe what&apos;s going on so your provider can prepare.</p>
+              <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] resize-none placeholder:text-gray-600" />
+              <button onClick={() => { setChiefComplaintDone(true); saveAnswers({ chiefComplaint, chiefComplaintDone: true }); }} disabled={!chiefComplaint.trim()} className="w-full bg-[#f97316] text-black py-2.5 rounded-xl text-sm font-bold hover:bg-[#fb923c] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Done</button>
             </div>
           )}
 
           {/* STEP 3: Preferred Pharmacy */}
-          {reason && chiefComplaint.length >= 10 && (pharmacy ? (
+          {reason && chiefComplaintDone && (pharmacy ? (
             <PharmacyCompletedView />
           ) : (
             <div className={`rounded-xl bg-[#11161c] p-4 space-y-2 transition-all ${activeGuideStep === 3 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">2</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 3 ? "text-white" : "text-gray-500"}`}>Preferred Pharmacy</span></div>
+              <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">3</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 3 ? "text-white" : "text-gray-500"}`}>Preferred Pharmacy</span></div>
               <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
                 setPharmacy(val);
                 if (info) {
@@ -904,7 +887,7 @@ export default function ExpressCheckoutPage() {
           ))}
 
           {/* STEP 4: Select Visit Type */}
-          {reason && chiefComplaint.length >= 10 && pharmacy && (
+          {reason && chiefComplaintDone && pharmacy && (
             visitTypeConfirmed ? (
               visitType === "refill" ? (
                 <button onClick={() => { setVisitTypeConfirmed(false); setVisitTypePopup("refill"); saveAnswers({ visitTypeConfirmed: false }); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.03] border border-[#2dd4a0]/20 hover:bg-white/[0.05] transition-all opacity-80 hover:opacity-100" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
@@ -920,7 +903,7 @@ export default function ExpressCheckoutPage() {
               )
             ) : (
               <div className={`rounded-xl bg-[#11161c] p-4 space-y-3 transition-all ${activeGuideStep === 4 ? activeOrangeBorder : "border border-white/10"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">3</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 4 ? "text-white" : "text-gray-500"}`}>Select Visit Type</span></div>
+                <div className="flex items-center gap-3"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 4 ? "text-white" : "text-gray-500"}`}>Select Visit Type</span></div>
                 <div className="grid grid-cols-4 gap-2">
                   {([
                     { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
@@ -943,63 +926,54 @@ export default function ExpressCheckoutPage() {
             )
           )}
 
-          {/* ═══ VISIT TYPE INFO — compact popup with confirm button inside ═══ */}
+          {/* ═══ VISIT TYPE INFO — inline in scroll flow ═══ */}
           {visitTypePopup && !visitTypeConfirmed && (
-            <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="p-3 space-y-2.5 relative bg-[#11161c] border border-white/10 rounded-xl">
-                <button onClick={() => setVisitTypePopup(null)} className="absolute top-2.5 right-2.5 text-gray-500 hover:text-white transition-colors z-10"><X size={16} /></button>
-                {visitTypePopup === "instant" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
-                  <p className="text-gray-300 text-[11px] leading-relaxed">Provider reviews your case privately, sends treatment + Rx to your pharmacy.</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">100% private</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">1–2 hours</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">Rx to pharmacy</span></div></div>
-                  <button onClick={() => { handleVisitTypeChange("instant"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#2dd4a0] text-black">Choose Instant Care →</button>
-                </>)}
+            <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className="p-4 space-y-3 relative bg-[#11161c] border border-white/10 rounded-xl">
+                <button onClick={() => setVisitTypePopup(null)} className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors z-10"><X size={18} /></button>
+                {visitTypePopup === "instant" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center"><Zap size={20} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-base">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">No video. No phone call. No waiting room. Your provider reviews your case privately and sends treatment + prescription to your pharmacy.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">100% private — no face-to-face</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Treatment in 1–2 hours</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#2dd4a0]" /><span className="text-white text-[11px] font-medium">Rx sent straight to your pharmacy</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: UTIs, cold & flu, skin issues, allergies</p></>)}
                 {visitTypePopup === "refill" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
-                  <div className="rounded-xl bg-[#0d1218] border border-white/10 p-2.5 space-y-1.5">
-                    <p className="text-white text-[10px] font-semibold">Select Medications to Refill</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#f59e0b]/15 flex items-center justify-center"><Pill size={20} className="text-[#f59e0b]" /></div>
+                    <div><h3 className="text-white font-black text-base">Your Meds. Refilled. No Appointment.</h3>
+                      <div className="flex items-center gap-2 flex-wrap"><p className="text-[#f59e0b] text-[10px] font-bold uppercase tracking-wider">Rx Refill · Skip the Wait</p><span className="text-gray-400 text-[10px]">Same-day pharmacy pickup</span></div>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-[12px] leading-relaxed">Running low? Select your medications, provider reviews and approves, refill sent to your pharmacy.</p>
+                  {/* Inline medication list */}
+                  <div className={`rounded-xl bg-[#0d1218] border border-white/10 p-3 space-y-2`}>
+                    <p className="text-white text-[11px] font-semibold">Select Medications to Refill</p>
                     {medsLoading ? (
-                      <div className="flex items-center justify-center py-2"><div className="animate-spin w-3 h-3 border-2 border-[#f59e0b] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-[10px]">Loading...</span></div>
+                      <div className="flex items-center justify-center py-3"><div className="animate-spin w-4 h-4 border-2 border-[#f59e0b] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-xs">Loading medications...</span></div>
                     ) : medications.length > 0 ? (
-                      <div className="space-y-0.5 max-h-36 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+                      <div className="space-y-1 max-h-44 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
                         {medications.map((med) => {
                           const ic = isControlledSubstance(med.name);
                           const ck = selectedMeds.includes(med.name);
                           return (
-                            <label key={med.name} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-[11px] transition-all ${ck ? "bg-[#f59e0b]/10 border border-[#f59e0b]/30" : "hover:bg-white/5 border border-transparent"} ${ic ? "border-red-500/30" : ""}`}>
-                              <input type="checkbox" checked={ck} onChange={() => toggleMed(med.name)} className="w-3.5 h-3.5 rounded border-white/20 bg-[#0d1218] text-[#f59e0b] focus:ring-[#f59e0b] flex-shrink-0" />
+                            <label key={med.name} className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer text-xs transition-all ${ck ? "bg-[#f59e0b]/10 border border-[#f59e0b]/30" : "hover:bg-white/5 border border-transparent"} ${ic ? "border-red-500/30" : ""}`}>
+                              <input type="checkbox" checked={ck} onChange={() => toggleMed(med.name)} className="w-4 h-4 rounded border-white/20 bg-[#0d1218] text-[#f59e0b] focus:ring-[#f59e0b] flex-shrink-0" />
                               <span className={`flex-1 ${ic ? "text-red-400" : "text-white"}`}>{med.name} {med.dosage ? `(${med.dosage})` : ""}</span>
-                              {ic && <span className="text-[7px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded font-bold flex-shrink-0">CTRL</span>}
+                              {ic && <span className="text-[8px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded font-bold flex-shrink-0">CTRL</span>}
                             </label>
                           );
                         })}
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-[10px] py-1">No medications found on file.</p>
+                      <p className="text-gray-500 text-xs py-1">No medications found on file.</p>
                     )}
-                    <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-gray-600" />
+                    <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={2} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-gray-600" />
                   </div>
-                  <button onClick={() => { handleVisitTypeChange("refill"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "refill", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#f59e0b] text-black">Choose Rx Refill →</button>
                 </>)}
-                {visitTypePopup === "video" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
-                  <p className="text-gray-300 text-[11px] leading-relaxed">See your provider live on video — just like an in-office visit.</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Real-time</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">HIPAA encrypted</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Pick a time</span></div></div>
-                  <button onClick={() => { handleVisitTypeChange("video"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "video", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#3b82f6] text-black">Choose Video Visit →</button>
-                </>)}
-                {visitTypePopup === "phone" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#a855f7]/15 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[9px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div>
-                  <p className="text-gray-300 text-[11px] leading-relaxed">Connect by phone or text — same quality care, no video.</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
-                  <button onClick={() => { handleVisitTypeChange("phone"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "phone", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#a855f7] text-black">Choose Phone/SMS →</button>
-                </>)}
-                <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
+                {visitTypePopup === "video" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#3b82f6]/15 flex items-center justify-center"><Video size={20} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-base">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[10px] font-bold uppercase tracking-wider">Video Visit · Live Consultation</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">See your provider live on video — just like an in-office visit, but from your couch.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Real-time conversation</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Private & encrypted — HIPAA</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#3b82f6]" /><span className="text-white text-[11px] font-medium">Pick a time that works</span></div></div><p className="text-gray-500 text-[9px] italic">Best for: ADHD evaluations, anxiety, complex conditions</p></>)}
+                {visitTypePopup === "phone" && (<><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#a855f7]/15 flex items-center justify-center"><Phone size={20} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-base">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[10px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div><p className="text-gray-300 text-[12px] leading-relaxed">Connect by phone call or secure text — same quality care with zero screen time.</p><div className="space-y-1.5"><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">No video, no downloads</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Flexible scheduling</span></div><div className="flex items-center gap-2"><Check size={14} className="text-[#a855f7]" /><span className="text-white text-[11px] font-medium">Great for follow-ups</span></div></div><p className="text-gray-500 text-[9px] italic">Perfect for: medication adjustments, follow-ups, quick questions</p></>)}
+                <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2 mt-1"><Lock size={12} className="text-gray-500" /><span className="text-gray-500 text-[9px]">Full anonymity · Your identity stays private</span></div>
               </div>
             </div>
           )}
 
           {/* STEP 5: Visit-type-specific details (not refill — refill meds are in combined pill) */}
-          {reason && chiefComplaint.length >= 10 && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
             <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {visitType === "instant" && (
                 <div className="space-y-2 p-3">
@@ -1012,7 +986,7 @@ export default function ExpressCheckoutPage() {
               )}
               {(visitType === "video" || visitType === "phone") && (
                 <div className="space-y-2 p-3">
-                  <div className="flex items-center gap-3 mb-1"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">4</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 5 ? "text-white" : "text-gray-500"}`}>Pick Date & Time</span></div>
+                  <div className="flex items-center gap-3 mb-1"><span className="text-[11px] font-black text-[#f97316] bg-[#f97316]/15 w-6 h-6 rounded-full flex items-center justify-center">5</span><span className={`text-[10px] font-semibold uppercase tracking-wider ${activeGuideStep === 5 ? "text-white" : "text-gray-500"}`}>Pick Date & Time</span></div>
                   <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>
                 </div>
               )}
@@ -1020,7 +994,7 @@ export default function ExpressCheckoutPage() {
           )}
 
           {/* STEP 7: Acknowledgment — non-refill async */}
-          {reason && chiefComplaint.length >= 10 && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
+          {reason && chiefComplaintDone && pharmacy && visitTypeConfirmed && activeGuideStep >= 7 && !hasControlledSelected && (
             <button onClick={() => { const v = !asyncAcknowledged; setAsyncAcknowledged(v); setClientSecret(""); saveAnswers({ asyncAcknowledged: v }); }}
               className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : activeGuideStep === 7 ? activeOrangeBorder : "border-white/10 bg-[#11161c]"}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-[#f97316]/50"}`}>{asyncAcknowledged && <Check size={12} className="text-black" />}</div>
@@ -1043,9 +1017,9 @@ export default function ExpressCheckoutPage() {
           {visitTypePopup && !visitTypeConfirmed ? (
             <button onClick={() => { handleVisitTypeChange(visitTypePopup); setVisitTypeConfirmed(true); saveAnswers({ visitType: visitTypePopup, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all" style={{ background: visitTypePopup === "instant" ? "#2dd4a0" : visitTypePopup === "refill" ? "#f59e0b" : visitTypePopup === "video" ? "#3b82f6" : "#a855f7", color: "#000" }}>Choose {visitTypePopup === "instant" ? "Instant Care" : visitTypePopup === "refill" ? "Rx Refill" : visitTypePopup === "video" ? "Video Visit" : "Phone/SMS"} →</button>
           ) : (
-            <button onClick={() => { if (allFieldsReady) setCurrentStep(2); }} disabled={!allFieldsReady} className={`w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all ${allFieldsReady ? "bg-[#f97316] text-white" : "bg-white/10 text-gray-500 cursor-not-allowed"}`} style={allFieldsReady ? { animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" } : {}}>Reserve My Spot — {currentPrice.display}<ChevronDown size={16} className="rotate-[-90deg]" /></button>
+            <button onClick={() => { if (allFieldsReady) setCurrentStep(2); }} disabled={!allFieldsReady} className={`w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all ${allFieldsReady ? "bg-[#f97316] text-white" : "bg-white/10 text-gray-500 cursor-not-allowed"}`} style={allFieldsReady ? { animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" } : {}}>Continue to Final Step<ChevronDown size={16} className="rotate-[-90deg]" /></button>
           )}
-          <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Booking fee reserves your provider</p>
+          <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · {currentPrice.display}</p>
         </div>
       </div>
 
