@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -580,7 +580,17 @@ export default function ExpressCheckoutPage() {
   const totalSteps = 8;
 
   // Auto-show first visit type popup when Step 4 finishes rolling in
+  const visitTypeRef = useRef<HTMLDivElement>(null);
   const [step4PopupFired, setStep4PopupFired] = useState(false);
+
+  // Auto-scroll to visit type step when pharmacy is selected
+  useEffect(() => {
+    if (pharmacy && symptomsDone && !visitTypeConfirmed && visitTypeRef.current) {
+      setTimeout(() => {
+        visitTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    }
+  }, [pharmacy, symptomsDone, visitTypeConfirmed]);
   useEffect(() => {
     if (activeGuideStep === 4 && !visitTypeConfirmed && !step4PopupFired && !visitTypePopup) {
       // Fire popup when the step-enter animation is about halfway (0.7s * 0.5 ≈ 350ms)
@@ -915,6 +925,7 @@ export default function ExpressCheckoutPage() {
           ))}
 
           {/* STEP 4: Select Visit Type */}
+          <div ref={visitTypeRef}>
           {reason && symptomsDone && pharmacy && (
             visitTypeConfirmed ? (
               visitType === "refill" ? (
@@ -941,12 +952,11 @@ export default function ExpressCheckoutPage() {
                   ] as const).map((vt) => {
                     const Icon = vt.icon;
                     const isActive = visitTypePopup === vt.key;
-                    const borderClass = isActive
-                      ? "border-[3px] border-[#2dd4a0] shadow-[0_0_16px_rgba(45,212,160,0.4)]"
-                      : "border-2 border-white/10 hover:border-white/20";
-                    return (<button key={vt.key} onClick={() => setVisitTypePopup(vt.key)} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl bg-[#11161c]/80 transition-all ${borderClass}`} style={{ minHeight: "72px" }}>
+                    const hasPopupOpen = !!visitTypePopup;
+                    return (<button key={vt.key} onClick={() => setVisitTypePopup(vt.key)} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] shadow-[0_0_16px_rgba(45,212,160,0.4)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px", ...(isActive ? { borderColor: vt.color } : {}) }}>
                       {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
                       <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
+                      {hasPopupOpen && !isActive && <span className="text-[7px] text-gray-500 mt-0.5">tap to select</span>}
                     </button>);
                   })}
                 </div>
@@ -963,7 +973,7 @@ export default function ExpressCheckoutPage() {
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Provider reviews your case privately, sends treatment + Rx to your pharmacy.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">100% private</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">1–2 hours</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">Rx to pharmacy</span></div></div>
-                  <button onClick={() => { handleVisitTypeChange("instant"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#2dd4a0] text-black">Choose Instant Care →</button>
+                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("instant"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#2dd4a0] bg-[#2dd4a0] text-black">Choose →</button></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
@@ -990,24 +1000,25 @@ export default function ExpressCheckoutPage() {
                     )}
                     <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-gray-600" />
                   </div>
-                  <button onClick={() => { handleVisitTypeChange("refill"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "refill", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#f59e0b] text-black">Choose Rx Refill →</button>
+                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("refill"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "refill", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f59e0b] bg-[#f59e0b] text-black">Choose →</button></div>
                 </>)}
                 {visitTypePopup === "video" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">See your provider live on video — just like an in-office visit.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Real-time</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">HIPAA encrypted</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Pick a time</span></div></div>
-                  <button onClick={() => { handleVisitTypeChange("video"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "video", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#3b82f6] text-black">Choose Video Visit →</button>
+                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("video"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "video", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#3b82f6] bg-[#3b82f6] text-black">Choose →</button></div>
                 </>)}
                 {visitTypePopup === "phone" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#a855f7]/15 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[9px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Connect by phone or text — same quality care, no video.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
-                  <button onClick={() => { handleVisitTypeChange("phone"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "phone", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3 rounded-xl font-bold text-[13px] bg-[#a855f7] text-black">Choose Phone/SMS →</button>
+                  <div className="flex justify-end"><button onClick={() => { handleVisitTypeChange("phone"); setVisitTypeConfirmed(true); saveAnswers({ visitType: "phone", visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#a855f7] bg-[#a855f7] text-black">Choose →</button></div>
                 </>)}
                 <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
               </div>
             </div>
           )}
+          </div>
 
           {/* STEP 5: Visit-type-specific details (not refill — refill meds are in combined pill) */}
           {reason && symptomsDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
@@ -1050,10 +1061,8 @@ export default function ExpressCheckoutPage() {
               <label htmlFor="ctrlAckBottom" className="text-[11px] text-gray-400 leading-relaxed cursor-pointer"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
             </div>
           )}
-          {/* CTA — dynamic text: popup confirm OR final step */}
-          {visitTypePopup && !visitTypeConfirmed ? (
-            <button onClick={() => { handleVisitTypeChange(visitTypePopup); setVisitTypeConfirmed(true); saveAnswers({ visitType: visitTypePopup, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all" style={{ background: visitTypePopup === "instant" ? "#2dd4a0" : visitTypePopup === "refill" ? "#f59e0b" : visitTypePopup === "video" ? "#3b82f6" : "#a855f7", color: "#000" }}>Choose {visitTypePopup === "instant" ? "Instant Care" : visitTypePopup === "refill" ? "Rx Refill" : visitTypePopup === "video" ? "Video Visit" : "Phone/SMS"} →</button>
-          ) : (
+          {/* CTA — only shows when all fields ready (no duplicate visit type button) */}
+          {visitTypeConfirmed && (
             <button onClick={() => { if (allFieldsReady) setCurrentStep(2); }} disabled={!allFieldsReady} className={`w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all ${allFieldsReady ? "bg-[#f97316] text-white" : "bg-white/10 text-gray-500 cursor-not-allowed"}`} style={allFieldsReady ? { animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" } : {}}>Reserve My Spot — {currentPrice.display}<ChevronDown size={16} className="rotate-[-90deg]" /></button>
           )}
           <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Booking fee reserves your provider</p>
