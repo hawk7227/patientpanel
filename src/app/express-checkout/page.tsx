@@ -12,7 +12,7 @@ import {
 import symptomSuggestions from "@/data/symptom-suggestions.json";
 import AppointmentCalendar from "@/components/AppointmentCalendar";
 import PharmacySelector from "@/components/PharmacySelector";
-import { getPrice, isControlledSubstance, type VisitType } from "@/lib/pricing";
+import { getPrice, getBookingFee, isControlledSubstance, type VisitType } from "@/lib/pricing";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 
@@ -92,13 +92,12 @@ function Step2PaymentForm({
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [showCardSlide, setShowCardSlide] = useState(false);
+  
 
-  // ⚠️ BYPASS MODE — FORCED ON FOR TESTING. Remove after verifying appointments reach doctor side.
-  const isTestMode = true;
-  // const isTestMode =
-  //   process.env.NEXT_PUBLIC_SKIP_PAYMENT === "true" ||
-  //   (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_TEST_MODE === "true");
+  // ⚠️ Test mode controlled by env vars — set NEXT_PUBLIC_SKIP_PAYMENT=true to bypass Stripe
+  const isTestMode =
+    process.env.NEXT_PUBLIC_SKIP_PAYMENT === "true" ||
+    (process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_TEST_MODE === "true");
 
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
@@ -257,20 +256,34 @@ function Step2PaymentForm({
 
   return (
     <>
-      <div className="w-full space-y-1.5">
-        {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}</div>}
-        {!isTestMode ? (
-          <div className="rounded-xl overflow-hidden" style={{ maxHeight: '48px' }}>
-            <PaymentElement options={{ layout: { type: "accordion", defaultCollapsed: true, radios: false, spacedAccordionItems: false }, paymentMethodOrder: ["google_pay", "apple_pay"], wallets: { applePay: "auto", googlePay: "auto" }, fields: { billingDetails: { name: "never", email: "never", phone: "never" } } }} />
-          </div>
-        ) : (
-          <button onClick={handlePay} disabled={!acceptedTerms} className="w-full bg-white rounded-xl py-3 flex items-center justify-center gap-2 disabled:opacity-50">
-            <span className="text-black font-semibold text-sm">Test Pay {currentPrice.display}</span>
+      <div className="w-full space-y-2">
+        {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
+
+        {isTestMode ? (
+          /* Test mode — simple button */
+          <button onClick={handlePay} disabled={!acceptedTerms} className="w-full bg-[#2dd4a0] rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 font-bold text-black text-[14px]">
+            🧪 Test Pay — {currentPrice.display}
           </button>
+        ) : (
+          /* Real payment — wallets + card */
+          <div className="space-y-2">
+            {/* PaymentElement with wallets auto-detected (Google Pay, Apple Pay, Link shown first) */}
+            <div className="rounded-xl overflow-hidden">
+              <PaymentElement options={{
+                layout: "tabs",
+                paymentMethodOrder: ["apple_pay", "google_pay", "card"],
+                wallets: { applePay: "auto", googlePay: "auto" },
+                fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
+              }} />
+            </div>
+            {/* Pay button */}
+            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms} className="w-full bg-[#2dd4a0] text-black font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2">
+              <Lock size={14} /> Pay {currentPrice.display} & Reserve
+            </button>
+          </div>
         )}
-        <button onClick={() => setShowCardSlide(true)} className="w-full text-center py-0.5">
-          <span className="text-[#2dd4a0] text-[11px] font-extrabold tracking-wider uppercase">OR PAY WITH CARD</span>
-        </button>
+
+        {/* Terms checkbox */}
         <div className="flex items-start gap-1.5">
           <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
           <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
@@ -278,24 +291,6 @@ function Step2PaymentForm({
           </label>
         </div>
       </div>
-      {showCardSlide && (
-        <div className="fixed inset-0 z-[150] flex items-end" onClick={() => setShowCardSlide(false)}>
-          <div className="absolute inset-0 bg-black/70" />
-          <div className="relative w-full bg-[#0d1218] border-t border-[#2dd4a0]/30 rounded-t-2xl p-4 pb-8 space-y-3" onClick={e => e.stopPropagation()} style={{ animation: 'slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both' }}>
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-2" />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2"><Lock size={14} className="text-[#2dd4a0]" /><span className="text-white font-bold text-sm">Pay with Card</span></div>
-              <button onClick={() => setShowCardSlide(false)} className="text-gray-400 hover:text-white p-1"><X size={18} /></button>
-            </div>
-            <div className="rounded-xl overflow-hidden">
-              <PaymentElement options={{ layout: "tabs", paymentMethodOrder: ["card"], wallets: { applePay: "never", googlePay: "never", link: "never" }, fields: { billingDetails: { name: "never", email: "never", phone: "never" } } }} />
-            </div>
-            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms} className="w-full text-black font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[15px]" style={{ background: '#2dd4a0' }}>Pay {currentPrice.display} & Book</button>
-            {!acceptedTerms && <p className="text-center text-[10px] text-amber-400">↑ Please accept the terms above first</p>}
-          </div>
-        </div>
-      )}
-      <style jsx>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }`}</style>
     </>
   );
 }
@@ -358,7 +353,7 @@ export default function ExpressCheckoutPage() {
   // Step flow: 1 = booking form, 2 = review & pay
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [clientSecret, setClientSecret] = useState("");
-  const currentPrice = useMemo(() => getPrice(visitType), [visitType]);
+  const currentPrice = useMemo(() => getBookingFee(), []);
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
 
@@ -480,14 +475,14 @@ export default function ExpressCheckoutPage() {
     return !!asyncAcknowledged;
   }, [reason, chiefComplaint, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
-  // ── Create payment intent ──────────────────────────────
+  // ── Create payment intent — when allFieldsReady OR when entering step 2 ──
   useEffect(() => {
-    if (allFieldsReady && !clientSecret) {
+    if ((allFieldsReady || currentStep === 2) && !clientSecret) {
       fetch("/api/create-payment-intent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: currentPrice.amount }) })
         .then(res => res.json()).then(data => { if (data.clientSecret) setClientSecret(data.clientSecret); })
         .catch(err => console.error("Payment intent error:", err));
     }
-  }, [allFieldsReady, clientSecret, currentPrice.amount]);
+  }, [allFieldsReady, clientSecret, currentPrice.amount, currentStep]);
 
   const handleVisitTypeChange = (type: VisitType) => {
     setVisitType(type); setClientSecret(""); setAsyncAcknowledged(false);

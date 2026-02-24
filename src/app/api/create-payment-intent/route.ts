@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════
 // PAYMENT INTENT API — Creates Stripe PaymentIntent
 //
-// FIXED: Amount is received in CENTS directly (18900 = $189.00)
+// Amount is received in CENTS directly (189 = $1.89)
 // Server validates against whitelist of valid amounts
+// Automatic payment methods enabled for Google Pay, Apple Pay, Link
 // ═══════════════════════════════════════════════════════════════
 
 import { NextResponse } from "next/server";
@@ -14,6 +15,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // Valid amounts in cents — prevents frontend tampering
 const VALID_AMOUNTS = new Set([
+  189,    // $1.89 — Booking/reserve fee (express checkout)
   18900,  // $189 — Instant/Refill business hours
   19900,  // $199 — Video/Phone business hours
   24900,  // $249 — All types after-hours/weekends/holidays
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     const amountInCents = Math.round(Number(amount));
 
     // Server-side validation
-    if (!amountInCents || amountInCents < 100) {
+    if (!amountInCents || amountInCents < 50) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
@@ -39,9 +41,13 @@ export async function POST(request: Request) {
     const pi = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: "usd",
-      payment_method_types: ['card'],
+      automatic_payment_methods: {
+        enabled: true,
+      },
       transfer_group: `pi_split_${Date.now()}`,
-      description: "Medazon Health telehealth visit",
+      description: amountInCents === 189
+        ? "Medazon Health — Booking reserve fee"
+        : "Medazon Health telehealth visit",
     });
 
     console.log(`[Payment] Intent created: ${pi.id} for $${(amountInCents / 100).toFixed(2)}`);

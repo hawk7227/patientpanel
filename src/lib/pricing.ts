@@ -131,6 +131,18 @@ export function getPrice(visitType: VisitType, timezone?: string): PriceInfo {
   return { amount: 19900, display: '$199', isAfterHours: false, isHoliday, isWeekend, label };
 }
 
+// Booking reserve fee — flat $1.89 for express checkout
+export function getBookingFee(): PriceInfo {
+  return {
+    amount: 189,
+    display: '$1.89',
+    isAfterHours: false,
+    isHoliday: false,
+    isWeekend: false,
+    label: 'Booking fee',
+  };
+}
+
 // Controlled substance names for refill detection
 export const CONTROLLED_SUBSTANCES = new Set([
   // Schedule II - Stimulants
