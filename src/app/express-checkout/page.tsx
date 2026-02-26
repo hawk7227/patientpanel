@@ -489,10 +489,14 @@ export default function ExpressCheckoutPage() {
   const [paymentIntentError, setPaymentIntentError] = useState<string | null>(null);
   const paymentFetchController = useRef<AbortController | null>(null);
 
-  // ── Create payment intent — when visit type confirmed (Step 5 approaching) ──
-  // Abort-safe: cancels in-flight requests on re-trigger or unmount
+  // ── Pre-fetch payment intent — fires at step 4.5 when acknowledgment is checked ──
+  // By the time user taps Confirm and step 5 animates in (~700ms), clientSecret is ready.
+  // Abort-safe: cancels in-flight requests on uncheck, navigation, or unmount.
+  const ackReady = (visitType === "refill" && !hasControlledSelected) || asyncAcknowledged || controlledAcknowledged;
+  const shouldPrefetch = visitTypeChosen && ackReady && !clientSecret;
+
   useEffect(() => {
-    if (!visitTypeConfirmed || clientSecret) return;
+    if (!shouldPrefetch) return;
 
     // Abort any previous in-flight request
     paymentFetchController.current?.abort();
@@ -526,7 +530,7 @@ export default function ExpressCheckoutPage() {
       });
 
     return () => { controller.abort(); };
-  }, [visitTypeConfirmed, clientSecret, currentPrice.amount, visitFeePrice.amount]);
+  }, [shouldPrefetch, currentPrice.amount, visitFeePrice.amount]);
 
   // Retry handler for payment intent failures
   const retryPaymentIntent = useCallback(() => {
@@ -970,9 +974,12 @@ export default function ExpressCheckoutPage() {
                 <span className="text-white text-[15px] font-black uppercase tracking-wide">Briefly Describe Your Symptoms</span>
               </div>
               <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all ${activeOrangeBorder} flex flex-col min-h-0`}>
-                <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/40" : "border-[#2dd4a0]/30 focus:border-[#2dd4a0]"}`} />
+                <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/40" : "border-[#2dd4a0]/30 focus:border-[#2dd4a0]"}`} />
                 {chiefComplaint.length < 10 && (<p className="text-gray-300 text-[12px]">Type at least <span className="text-[#f97316] font-black text-[16px]">{10 - chiefComplaint.length}</span> more characters</p>)}
-                <button onClick={() => { setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} disabled={chiefComplaint.length < 10} className="w-full py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>Continue →</button>
+                <div className="flex gap-2">
+                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-1.5" style={{ background: "rgba(255,255,255,0.03)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
+                  <button onClick={() => { setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} disabled={chiefComplaint.length < 10} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed border border-[#2dd4a0] flex items-center justify-center gap-1" style={{ background: "rgba(110,231,183,0.08)" }}>Continue →</button>
+                </div>
               </div>
             </div>
           )}
@@ -1366,6 +1373,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
