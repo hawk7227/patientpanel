@@ -348,32 +348,12 @@ export default function ExpressCheckoutPage() {
   // chiefComplaintDone replaced by symptomsDone — user must tap Continue after 10+ chars
   const [symptomsDone, setSymptomsDone] = useState(false);
   const [visitTypeConfirmed, setVisitTypeConfirmed] = useState(false);
-  // Step flow: 1 = booking form, 2 = review & pay
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [clientSecret, setClientSecret] = useState("");
   const currentPrice = useMemo(() => getBookingFee(), []);
   const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
   const [visitIntentId, setVisitIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
-
-  // ── Browser back button: Step 2 → Step 1 (not landing page) ──
-  useEffect(() => {
-    if (currentStep === 2) {
-      window.history.pushState({ step: 2 }, "");
-    }
-  }, [currentStep]);
-
-  useEffect(() => {
-    const handlePopState = (e: PopStateEvent) => {
-      if (currentStep === 2) {
-        e.preventDefault();
-        setCurrentStep(1);
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [currentStep]);
 
   // ── Load patient ───────────────────────────────────────
   useEffect(() => {
@@ -475,9 +455,9 @@ export default function ExpressCheckoutPage() {
     return !!asyncAcknowledged;
   }, [reason, chiefComplaint, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
 
-  // ── Create payment intent — when allFieldsReady OR when entering step 2 ──
+  // ── Create payment intent — when visit type confirmed (Step 5 approaching) ──
   useEffect(() => {
-    if ((allFieldsReady || currentStep === 2) && !clientSecret) {
+    if (visitTypeConfirmed && !clientSecret) {
       fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -490,7 +470,7 @@ export default function ExpressCheckoutPage() {
         })
         .catch(err => console.error("Payment intent error:", err));
     }
-  }, [allFieldsReady, clientSecret, currentPrice.amount, visitFeePrice.amount, currentStep]);
+  }, [visitTypeConfirmed, clientSecret, currentPrice.amount, visitFeePrice.amount]);
 
   const handleVisitTypeChange = (type: VisitType) => {
     setVisitType(type); setClientSecret(""); setVisitIntentId(""); setAsyncAcknowledged(false);
@@ -566,23 +546,18 @@ export default function ExpressCheckoutPage() {
   }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged, controlledAcknowledged]);
 
   // ═══ GUIDED STEP LOGIC ═══
-  // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType, 5=Details, 6=AdditionalMeds, 7=Ack, 8=Ready
+  // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType, 5=Acknowledge+Pay
   const activeGuideStep = useMemo((): number => {
     if (!reason) return 1;
     if (!symptomsDone) return 2;
     if (!pharmacy) return 3;
     if (!visitTypeConfirmed) return 4;
-    // Step 5: visit-type-specific
-    if (needsCalendar && (!appointmentDate || !appointmentTime)) return 5;
-    if (visitType === "instant" && wantToTalk && (!appointmentDate || !appointmentTime)) return 5;
-    if (visitType === "refill" && selectedMeds.length === 0 && !symptomsText.trim() && !photoFile) return 5;
-    // Step 7: acknowledgment — non-refill async only
-    if (visitType !== "refill" && isAsync && !hasControlledSelected && !asyncAcknowledged) return 7;
-    if (hasControlledSelected && !controlledAcknowledged) return 7;
-    return 8;
-  }, [reason, chiefComplaint, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, additionalMedsAnswer, isAsync, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
+    // After visit type confirmed, need calendar for video/phone before pay
+    if (needsCalendar && (!appointmentDate || !appointmentTime)) return 4;
+    return 5;
+  }, [reason, symptomsDone, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime]);
 
-  const totalSteps = 8;
+  const totalSteps = 5;
 
   // Auto-show first visit type popup when Step 4 finishes rolling in
   const visitTypeRef = useRef<HTMLDivElement>(null);
@@ -703,63 +678,7 @@ export default function ExpressCheckoutPage() {
     );
   }
 
-  // ═══ STEP 2 — REVIEW & PAY ═══
-  if (currentStep === 2) {
-    const vtConfig: Record<string, { label: string; color: string; icon: string }> = {
-      instant: { label: "Instant Care", color: "#2dd4a0", icon: "⚡" }, refill: { label: "Rx Refill", color: "#f59e0b", icon: "💊" },
-      video: { label: "Video Visit", color: "#3b82f6", icon: "📹" }, phone: { label: "Phone / SMS", color: "#a855f7", icon: "📞" },
-    };
-    const vt = vtConfig[visitType] || vtConfig.instant;
-    const isAsyncType = visitType === "instant" || visitType === "refill";
-
-    return (
-      <div className="text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "0" }}>
-        <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }`}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
-          <div className="flex items-center justify-between pt-1 pb-1">
-            <div className="flex-1 text-center">
-              <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span><span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS </span><span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
-            </div>
-            <button onClick={() => setCurrentStep(1)} className="text-gray-500 text-[10px] font-semibold flex items-center gap-1 hover:text-white">← Edit</button>
-          </div>
-          <div className="text-center py-1"><span className="font-black italic text-[#2dd4a0]" style={{ fontSize: "17px" }}>CONFIRM </span><span className="font-black italic text-[#f59e0b]" style={{ fontSize: "17px" }}>YOUR </span><span className="font-black italic text-[#2dd4a0]" style={{ fontSize: "17px" }}>BOOKING</span></div>
-          <div className="rounded-xl border border-white/10 overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.02)" }}>
-            <div className="flex items-center gap-3 px-3 py-2 border-b border-white/5">
-              <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 10px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
-              <div className="flex-1 min-w-0"><p className="text-white font-bold text-[12px]">LaMonica A. Hodges</p><p className="text-gray-500 text-[9px]">MSN, APRN, FNP-C · Board-Certified</p></div>
-              <Shield size={14} className="text-[#2dd4a0] flex-shrink-0" />
-            </div>
-            <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Reason for Visit</p><p className="text-white text-[12px] font-semibold">{reason || "—"}</p></div>
-            <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Visit Type</p><p className="text-[12px] font-bold flex items-center justify-center gap-1" style={{ color: vt.color }}><span>{vt.icon}</span>{vt.label}</p></div>
-            {pharmacy && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Pharmacy</p><p className="text-white text-[11px] font-medium">{pharmacy}</p></div>}
-            {!isAsyncType && appointmentDate && appointmentTime ? (
-              <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Date & Time</p><p className="text-white text-[12px] font-semibold">{formatDisplayDateTime()}</p></div>
-            ) : isAsyncType ? (
-              <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Delivery</p><p className="text-[#2dd4a0] text-[11px] font-bold">Provider responds in 1–2 hrs</p></div>
-            ) : null}
-            {selectedMeds.length > 0 && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Medications</p><p className="text-white text-[11px] font-medium">{selectedMeds.join(", ")}</p></div>}
-            {wantToTalk && visitType === "instant" && appointmentDate && <div className="px-3 py-2 text-center border-b border-white/5"><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider mb-0.5">Live Add-on</p><p className="text-white text-[12px] font-semibold">{formatDisplayDateTime()}</p></div>}
-            <div className="px-3 py-2 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}><div><span className="text-gray-400 text-[11px] font-semibold">Booking Fee</span><p className="text-gray-600 text-[8px]">Reserves your provider&apos;s time</p></div><span className="text-[#2dd4a0] font-black text-[16px]">{currentPrice.display}</span></div>
-          </div>
-          <div className="flex-1 flex flex-col justify-end min-h-0">
-            {clientSecret && stripeOptions ? (
-              <Elements options={stripeOptions} stripe={stripePromise}><Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} /></Elements>
-            ) : (<div className="flex items-center justify-center py-3"><div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-xs">Loading payment...</span></div>)}
-          </div>
-          <div className="flex-shrink-0 pt-1 pb-1"><p className="text-center text-gray-700 text-[8px]"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · 256-bit Encryption · Secure Checkout</p></div>
-        </div>
-        {showDeaInfoPopup && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowDeaInfoPopup(false)}>
-            <div className="bg-[#11161c] border border-amber-500/30 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="flex items-start gap-3"><div className="w-9 h-9 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0"><Shield size={18} className="text-amber-400" /></div><div><h3 className="text-amber-400 font-bold text-sm">DEA/Ryan Haight Act</h3><p className="text-[10px] text-gray-500 mt-0.5">Federal Controlled Substance Requirements</p></div></div>
-              <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl p-3"><p className="text-xs text-gray-300 leading-relaxed">Under federal law, the <span className="text-white font-semibold">Ryan Haight Act</span> requires controlled substances be prescribed only after a valid practitioner-patient relationship with at least one <span className="text-white font-semibold">live medical evaluation</span>.</p><p className="text-xs text-gray-400 leading-relaxed mt-2">DEA telemedicine flexibilities extended through <span className="text-amber-300 font-semibold">December 31, 2026</span>.</p></div>
-              <button onClick={() => setShowDeaInfoPopup(false)} className="w-full py-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold text-sm rounded-xl border border-amber-500/30">I Understand</button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+  // ═══ STEP 2 REVIEW PAGE REMOVED — payment is now inline in Step 5 ═══
 
   // ═══════════════════════════════════════════════════════════
   // STEP 1 — MOBILE APP GUIDED BOOKING FLOW
@@ -820,12 +739,17 @@ export default function ExpressCheckoutPage() {
           </div>
           {/* Subtitle */}
           <p className="text-[#2dd4a0] text-[10px] font-bold uppercase tracking-[0.25em] mb-2">Private · Discreet</p>
-          {/* Main heading */}
-          <h1 className="text-white font-black text-[28px] leading-tight mb-2">Book your <span className="text-[#2dd4a0]">visit.</span></h1>
-          {/* Confidential badge */}
+          {/* Main heading — changes on Step 5 */}
+          <h1 className="text-white font-black text-[28px] leading-tight mb-2">
+            {activeGuideStep >= 5 ? <>You&apos;re All <span className="text-[#2dd4a0]">Set.</span></> : <>Book your <span className="text-[#2dd4a0]">visit.</span></>}
+          </h1>
+          {/* Badge — changes on Step 5 */}
           <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[#2dd4a0]/30 bg-[#2dd4a0]/10">
-            <Lock size={12} className="text-[#2dd4a0]" />
-            <span className="text-[#2dd4a0] font-bold text-[11px]">100% Confidential</span>
+            {activeGuideStep >= 5 ? (
+              <><Check size={12} className="text-[#2dd4a0]" /><span className="text-[#2dd4a0] font-bold text-[11px]">Pre-Approved</span></>
+            ) : (
+              <><Lock size={12} className="text-[#2dd4a0]" /><span className="text-[#2dd4a0] font-bold text-[11px]">100% Confidential</span></>
+            )}
           </div>
         </div>
 
@@ -990,69 +914,91 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
           </div>
+          {/* END Step 4 wrapper */}
 
-          {/* STEP 5: Visit-type-specific details */}
-          {reason && symptomsDone && pharmacy && visitTypeConfirmed && visitType !== "refill" && activeGuideStep >= 5 && (
-            <div className={`rounded-xl ${activeGuideStep === 5 ? activeOrangeBorder : ""}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              {visitType === "instant" && (
-                <div className="space-y-2 p-3">
-                  <div className="flex items-center gap-3 bg-[#11161c]/60 border border-white/5 rounded-xl px-3 py-2.5">
-                    <button onClick={() => { const v = !wantToTalk; setWantToTalk(v); saveAnswers({ wantToTalk: v }); }} className={`w-10 h-5 rounded-full transition-all relative flex-shrink-0 ${wantToTalk ? "bg-[#2dd4a0]" : "bg-white/10"}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${wantToTalk ? "left-[22px]" : "left-0.5"}`} /></button>
-                    <div><p className="text-white text-[11px] font-semibold">Want to talk to your provider?</p><p className="text-gray-500 text-[9px]">Add an optional live video or phone call</p></div>
+          {/* STEP 5: Acknowledge & Pay — inline, same page feel */}
+          {activeGuideStep === 5 && (
+            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
+                {/* Compact summary */}
+                <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
+                  <div className="flex items-center gap-3 px-3 py-2 border-b border-white/5">
+                    <div className="w-8 h-8 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
+                    <div className="flex-1 min-w-0"><p className="text-white font-bold text-[11px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
+                    <Shield size={12} className="text-[#2dd4a0] flex-shrink-0" />
                   </div>
-                  {wantToTalk && (<button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${appointmentDate && appointmentTime ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10 bg-[#11161c]"}`}><div className="flex items-center gap-2"><Calendar size={14} className={appointmentDate ? "text-[#2dd4a0]" : "text-gray-500"} /><span className={`text-sm ${appointmentDate ? "text-white font-medium" : "text-gray-500"}`}>{formatDisplayDateTime() || "Select Date & Time"}</span></div><ChevronDown size={14} className="text-gray-500" /></button>)}
+                  <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-gray-500 text-[10px]">Reason</span>
+                    <span className="text-white text-[11px] font-semibold">{reason}</span>
+                  </div>
+                  <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-gray-500 text-[10px]">Visit Type</span>
+                    <span className="text-[11px] font-semibold" style={{ color: visitType === "instant" ? "#2dd4a0" : visitType === "refill" ? "#f59e0b" : visitType === "video" ? "#3b82f6" : "#a855f7" }}>
+                      {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                    </span>
+                  </div>
+                  <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-gray-500 text-[10px]">Pharmacy</span>
+                    <span className="text-white text-[11px] font-semibold truncate ml-4">{pharmacy}</span>
+                  </div>
+                  {selectedMeds.length > 0 && (
+                    <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                      <span className="text-gray-500 text-[10px]">Medications</span>
+                      <span className="text-white text-[10px] font-medium truncate ml-4">{selectedMeds.join(", ")}</span>
+                    </div>
+                  )}
+                  {appointmentDate && appointmentTime && (
+                    <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                      <span className="text-gray-500 text-[10px]">Date & Time</span>
+                      <span className="text-white text-[11px] font-semibold">{formatDisplayDateTime()}</span>
+                    </div>
+                  )}
+                  <div className="px-3 py-1.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
+                    <span className="text-gray-400 text-[11px] font-semibold">Booking Fee</span>
+                    <span className="text-[#2dd4a0] font-black text-[14px]">{currentPrice.display}</span>
+                  </div>
                 </div>
-              )}
-              {/* Video/Phone: date selected pill (calendar opens from Choose button) */}
-              {(visitType === "video" || visitType === "phone") && appointmentDate && appointmentTime && (
-                <button onClick={() => { setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all">
-                  <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Calendar size={12} className="text-gray-500" /></div>
-                  <span className="text-gray-500 text-[11px] font-semibold flex-1 text-left">{formatDisplayDateTime()}</span>
-                  <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
-                </button>
-              )}
+
+                {/* Acknowledgment — inline checkbox */}
+                {visitType !== "refill" && (
+                  <button onClick={() => { setAsyncAcknowledged(!asyncAcknowledged); saveAnswers({ asyncAcknowledged: !asyncAcknowledged }); }}
+                    className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10"}`}>
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${asyncAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-gray-500"}`}>
+                      {asyncAcknowledged && <Check size={10} className="text-black" />}
+                    </div>
+                    <p className="text-gray-400 text-[10px] leading-relaxed"><span className="text-white font-semibold">I understand and agree</span> — a provider will review my information and respond within 1–2 hours.</p>
+                  </button>
+                )}
+                {hasControlledSelected && visitType === "refill" && (
+                  <button onClick={() => { setControlledAcknowledged(!controlledAcknowledged); saveAnswers({ controlledAcknowledged: !controlledAcknowledged }); }}
+                    className={`w-full flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all ${controlledAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]/5" : "border-white/10"}`}>
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${controlledAcknowledged ? "border-[#2dd4a0] bg-[#2dd4a0]" : "border-gray-500"}`}>
+                      {controlledAcknowledged && <Check size={10} className="text-black" />}
+                    </div>
+                    <p className="text-gray-400 text-[10px] leading-relaxed"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={(e) => { e.stopPropagation(); setShowDeaInfoPopup(true); }} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>.</p>
+                  </button>
+                )}
+                {/* For refill without controlled substances — no acknowledgment needed, auto-ready */}
+                {visitType === "refill" && !hasControlledSelected && (
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-xl border border-[#2dd4a0] bg-[#2dd4a0]/5">
+                    <div className="w-4 h-4 rounded border-2 border-[#2dd4a0] bg-[#2dd4a0] flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={10} className="text-black" /></div>
+                    <p className="text-gray-400 text-[10px] leading-relaxed"><span className="text-white font-semibold">Ready to submit</span> — your provider will review and send Rx to your pharmacy.</p>
+                  </div>
+                )}
+
+                {/* Stripe Payment */}
+                {clientSecret && stripeOptions ? (
+                  <Elements options={stripeOptions} stripe={stripePromise}>
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} />
+                  </Elements>
+                ) : (
+                  <div className="flex items-center justify-center py-3">
+                    <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                    <span className="ml-2 text-gray-400 text-[10px]">Preparing payment...</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-
-          {/* ACKNOWLEDGMENT — shows for ALL visit types after visit type confirmed */}
-          {reason && symptomsDone && pharmacy && visitTypeConfirmed && (
-            <>
-              {/* Async acknowledgment (instant, video, phone — NOT refill) */}
-              {visitType !== "refill" && !asyncAcknowledged && (
-                <button onClick={() => { setAsyncAcknowledged(true); setClientSecret(""); saveAnswers({ asyncAcknowledged: true }); }}
-                  className={`w-full flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="w-5 h-5 rounded border-2 border-[#f97316]/50 flex items-center justify-center flex-shrink-0 mt-0.5" />
-                  <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours. If a live evaluation is needed, I may be asked to schedule one.</p></div>
-                </button>
-              )}
-              {visitType !== "refill" && asyncAcknowledged && (
-                <button onClick={() => { setAsyncAcknowledged(false); setClientSecret(""); saveAnswers({ asyncAcknowledged: false }); }}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border-2 border-[#2dd4a0] bg-[#2dd4a0]/5 text-left transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="w-5 h-5 rounded border-2 border-[#2dd4a0] bg-[#2dd4a0] flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={12} className="text-black" /></div>
-                  <div><p className="text-white text-[11px] font-semibold">I understand and agree</p><p className="text-gray-500 text-[9px] mt-0.5 leading-relaxed">A provider will review my information and respond within 1–2 hours.</p></div>
-                </button>
-              )}
-
-              {/* Controlled substance acknowledgment (refill with controlled meds) */}
-              {hasControlledSelected && visitType === "refill" && !controlledAcknowledged && (
-                <div className={`flex items-start gap-2.5 p-3 rounded-xl border-2 ${activeOrangeBorder}`} style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <input type="checkbox" id="ctrlAck" checked={controlledAcknowledged} onChange={(e) => { setControlledAcknowledged(e.target.checked); setClientSecret(""); saveAnswers({ controlledAcknowledged: e.target.checked }); }} className="mt-0.5 w-5 h-5 rounded border-2 border-[#f97316] bg-[#0d1218] text-[#f97316] focus:ring-[#f97316] flex-shrink-0 cursor-pointer" style={{ animation: "ackPulse 1.5s ease-in-out infinite" }} />
-                  <label htmlFor="ctrlAck" className="text-[11px] text-gray-400 leading-relaxed cursor-pointer"><span className="text-white font-semibold">I understand and accept</span> controlled substance request. <button type="button" onClick={() => setShowDeaInfoPopup(true)} className="text-amber-400 underline font-semibold">DEA/Ryan Haight Act</button>. A live visit may be required.</label>
-                </div>
-              )}
-              {hasControlledSelected && visitType === "refill" && controlledAcknowledged && (
-                <button onClick={() => { setControlledAcknowledged(false); setClientSecret(""); saveAnswers({ controlledAcknowledged: false }); }}
-                  className="w-full flex items-start gap-3 p-3 rounded-xl border-2 border-[#2dd4a0] bg-[#2dd4a0]/5 text-left transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-                  <div className="w-5 h-5 rounded border-2 border-[#2dd4a0] bg-[#2dd4a0] flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={12} className="text-black" /></div>
-                  <div><p className="text-white text-[11px] font-semibold">Controlled substance terms accepted</p></div>
-                </button>
-              )}
-
-              {/* CTA — directly below acknowledgment, inside scroll area */}
-              {allFieldsReady && (
-                <button onClick={() => setCurrentStep(2)} className="w-full py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg bg-[#f97316] text-white transition-all" style={{ animation: "fadeInBtn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both" }}>Reserve My Spot — {currentPrice.display}<ChevronDown size={16} className="rotate-[-90deg]" /></button>
-              )}
-            </>
           )}
 
         </div>
@@ -1209,7 +1155,6 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
-
 
 
 
