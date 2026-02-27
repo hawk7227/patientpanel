@@ -116,6 +116,7 @@ function Step2PaymentForm({
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [elementReady, setElementReady] = useState(false);
   
 
   // Production mode — real Stripe payments
@@ -206,6 +207,15 @@ function Step2PaymentForm({
       } else {
         if (!stripe || !elements) { setError("Payment not ready. Please try again."); setIsProcessing(false); return; }
         setProgress(55); setStatusText("Confirming payment...");
+
+        // Submit elements first — validates selected payment method and triggers wallet sheets (Google Pay, Apple Pay)
+        const submitResult = await elements.submit();
+        if (submitResult.error) {
+          setError(submitResult.error.message || "Please complete the payment form.");
+          setIsProcessing(false);
+          return;
+        }
+
         const result = await stripe.confirmPayment({
           elements, redirect: "if_required",
           confirmParams: {
@@ -290,8 +300,8 @@ function Step2PaymentForm({
           /* Real payment — wallets + card */
           <div className="space-y-2">
             {/* PaymentElement with wallets auto-detected (Google Pay, Apple Pay, Link shown first) */}
-            <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1 max-h-[220px] overflow-y-auto">
-              <PaymentElement options={{
+            <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1">
+              <PaymentElement onReady={() => setElementReady(true)} options={{
                 layout: "tabs",
                 paymentMethodOrder: ["apple_pay", "google_pay", "card"],
                 wallets: { applePay: "auto", googlePay: "auto" },
@@ -299,7 +309,7 @@ function Step2PaymentForm({
               }} />
             </div>
             {/* Pay button */}
-            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms} className="w-full text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
+            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady} className="w-full text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
               <Lock size={14} /> Pay {currentPrice.display} & Reserve
             </button>
           </div>
@@ -607,7 +617,8 @@ export default function ExpressCheckoutPage() {
   };
 
   const stripeOptions = useMemo(() => clientSecret ? {
-    clientSecret, appearance: { theme: "night" as const, variables: { colorPrimary: "#00CBA9", colorBackground: "#11161c", colorText: "#ffffff", borderRadius: "8px" } },
+    clientSecret,
+    appearance: { theme: "night" as const, variables: { colorPrimary: "#00CBA9", colorBackground: "#11161c", colorText: "#ffffff", borderRadius: "8px" } },
   } : undefined, [clientSecret]);
 
   const filteredReasons = useMemo(() => {
@@ -639,7 +650,7 @@ export default function ExpressCheckoutPage() {
   const handleIntakeSubmit = async () => {
     setIntakeSubmitting(true);
     try {
-      const email = patient.email || "";
+      const email = patient?.email || contactEmail || "";
       // Update patient record with intake answers
       await fetch("/api/update-intake-patient", {
         method: "POST",
@@ -1680,8 +1691,6 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
-
-
 
 
 
