@@ -378,6 +378,14 @@ export default function ExpressCheckoutPage() {
   const [contactPhone, setContactPhone] = useState("");
   const [phoneConfirmed, setPhoneConfirmed] = useState(false);
 
+  // Post-payment intake form
+  const [intakePhase, setIntakePhase] = useState(false);
+  const [intakeStep, setIntakeStep] = useState(0);
+  const [intakeSubmitting, setIntakeSubmitting] = useState(false);
+  const [intakeAnswers, setIntakeAnswers] = useState<Record<string, { val: boolean; detail: string }>>({});
+  const [intakeDetailId, setIntakeDetailId] = useState<string | null>(null);
+  const [intakeDetailText, setIntakeDetailText] = useState("");
+
   // Payment intent loading is derived — no override needed
   const paymentLoading = visitTypeConfirmed && !clientSecret;
 
@@ -558,12 +566,14 @@ export default function ExpressCheckoutPage() {
     setPaymentIntentError(null);
     setVisitTypeChosen(false);
     setVisitTypeConfirmed(false);
+    setPhoneConfirmed(false);
+    setContactPhone("");
     // Only clear meds when switching AWAY from refill, not when selecting refill (meds already chosen in popup)
     if (type !== "refill") {
       setSelectedMeds([]); setHasControlledSelected(false); setControlledAcknowledged(false);
-      saveAnswers({ visitType: type, asyncAcknowledged: false, selectedMeds: [], controlledAcknowledged: false });
+      saveAnswers({ visitType: type, asyncAcknowledged: false, selectedMeds: [], controlledAcknowledged: false, phoneConfirmed: false, contactPhone: "" });
     } else {
-      saveAnswers({ visitType: type, asyncAcknowledged: false });
+      saveAnswers({ visitType: type, asyncAcknowledged: false, phoneConfirmed: false, contactPhone: "" });
     }
   };
 
@@ -597,6 +607,36 @@ export default function ExpressCheckoutPage() {
 
   const handleSuccess = () => {
     if (hasControlledSelected) { setShowControlledScheduler(true); return; }
+    // Show post-payment intake form instead of routing immediately
+    setIntakePhase(true);
+  };
+
+  // After intake is submitted, route to success/appointment
+  const handleIntakeSubmit = async () => {
+    setIntakeSubmitting(true);
+    try {
+      const email = patient.email || "";
+      // Update patient record with intake answers
+      await fetch("/api/update-intake-patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          has_drug_allergies: intakeAnswers.allergies?.val ?? false,
+          drug_allergies_details: intakeAnswers.allergies?.detail || "",
+          has_recent_surgeries: intakeAnswers.surgeries?.val ?? false,
+          recent_surgeries_details: intakeAnswers.surgeries?.detail || "",
+          has_ongoing_medical_issues: intakeAnswers.medical?.val ?? false,
+          ongoing_medical_issues_details: intakeAnswers.medical?.detail || "",
+          has_current_medications: intakeAnswers.medications?.val ?? false,
+          current_medications_details: intakeAnswers.medications?.detail || "",
+        }),
+      });
+    } catch (err) {
+      console.error("[Intake] Failed to submit:", err);
+      // Continue to success even if intake save fails — payment already processed
+    }
+    // Route to success/appointment
     const stored = sessionStorage.getItem("appointmentData");
     if (stored) { try { const data = JSON.parse(stored); if (data.accessToken) { router.push(`/appointment/${data.accessToken}`); return; } } catch {} }
     router.push("/success");
@@ -705,6 +745,8 @@ export default function ExpressCheckoutPage() {
       setPharmacyInfo(null);
       setVisitTypeChosen(false);
       setVisitTypeConfirmed(false);
+      setPhoneConfirmed(false);
+      setContactPhone("");
       setVisitTypePopup(null);
       setAppointmentDate("");
       setAppointmentTime("");
@@ -712,15 +754,17 @@ export default function ExpressCheckoutPage() {
       paymentFetchController.current?.abort();
       setClientSecret("");
       setPaymentIntentError(null);
-      saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, visitTypePopup: null, appointmentDate: "", appointmentTime: "" });
+      saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "", visitTypePopup: null, appointmentDate: "", appointmentTime: "" });
       return;
     }
     if (step === 4.5) {
-      // Return to visit type browse — no payment intent was created
+      // Return to visit type browse
       setVisitTypeChosen(false);
       setVisitTypeConfirmed(false);
+      setPhoneConfirmed(false);
+      setContactPhone("");
       setStep4PopupFired(false);
-      saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false });
+      saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" });
       return;
     }
     if (step === 5) {
@@ -888,6 +932,179 @@ export default function ExpressCheckoutPage() {
   }
 
   // ═══ STEP 2 REVIEW PAGE REMOVED — payment is now inline in Step 5 ═══
+
+  // ═══ POST-PAYMENT: Secure Intake Form ═══
+  const INTAKE_QUESTIONS = [
+    { id: "allergies", q: "Any Drug Allergies?", ph: "List any known drug allergies..." },
+    { id: "surgeries", q: "Any Recent Surgeries?", ph: "Describe recent surgeries..." },
+    { id: "medical", q: "Ongoing Medical Issues?", ph: "Describe ongoing issues..." },
+    { id: "medications", q: "Taking Any Medications?", ph: "List current medications..." },
+  ];
+
+  if (intakePhase) {
+    const allIntakeDone = INTAKE_QUESTIONS.every(q => !!intakeAnswers[q.id]);
+    const intakePct = Math.round((Object.keys(intakeAnswers).length / INTAKE_QUESTIONS.length) * 100);
+
+    const formatDob = (dob: string) => {
+      if (!dob) return "—";
+      if (dob.includes("/")) return dob;
+      const d = new Date(dob + "T12:00:00");
+      if (isNaN(d.getTime())) return dob;
+      return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+    };
+
+    const formatPhoneDisplay = (phone: string) => {
+      const d = phone.replace(/\D/g, "").slice(0, 10);
+      if (d.length <= 3) return d;
+      if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+      return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+    };
+
+    return (
+      <div className="ec-root fixed inset-0 bg-[#070a08] overflow-hidden" style={{ height: "100dvh" }}>
+        <style>{`
+          @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
+          @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
+          @keyframes fadeInStep { from { opacity:0; transform:translateY(20px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        `}</style>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
+
+          {/* Header — compact */}
+          <div className="flex-shrink-0 text-center pt-1 pb-0.5">
+            <div className="flex items-center justify-center gap-1.5">
+              <div className="w-5 h-5 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center"><Shield size={11} className="text-[#2dd4a0]" /></div>
+              <span className="text-white font-bold text-[13px] tracking-tight">Medazon <span className="text-[#2dd4a0]">Health</span></span>
+            </div>
+            <p className="text-[#2dd4a0] text-[8px] font-bold uppercase tracking-[0.2em]">Private · Discreet</p>
+            <h1 className="text-white font-black text-[18px] leading-tight mt-0.5">{allIntakeDone ? "Ready to submit." : "Secure intake unlocked."}</h1>
+          </div>
+
+          {/* Progress bar */}
+          <div className="flex-shrink-0 pb-1">
+            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${intakePct}%` }} />
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
+            <div style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both", display: "flex", flexDirection: "column", gap: "5px", paddingTop: "2px", paddingBottom: "8px" }}>
+
+              {/* Auto-filled demographics */}
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-white/35 text-[8px] font-extrabold uppercase tracking-widest">Your Information</span>
+                <span className="text-[#f97316] text-[7px] font-black uppercase tracking-wide bg-[#f97316]/10 border border-[#f97316]/25 rounded px-1 py-px">PRIORITY</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <div className="grid grid-cols-4 gap-0.5">
+                  <div className="bg-transparent border border-white/8 rounded-md px-1.5 py-1"><p className="text-white/25 text-[6px] font-bold uppercase">First</p><p className="text-white text-[10px] font-semibold truncate">{patient.firstName}</p></div>
+                  <div className="bg-transparent border border-white/8 rounded-md px-1.5 py-1"><p className="text-white/25 text-[6px] font-bold uppercase">Last</p><p className="text-white text-[10px] font-semibold truncate">{patient.lastName}</p></div>
+                  <div className="bg-transparent border border-white/8 rounded-md px-1.5 py-1"><p className="text-white/25 text-[6px] font-bold uppercase">DOB</p><p className="text-white text-[10px] font-semibold">{formatDob(patient.dateOfBirth)}</p></div>
+                  <div className="bg-transparent border border-white/8 rounded-md px-1.5 py-1"><p className="text-white/25 text-[6px] font-bold uppercase">Phone</p><p className="text-white text-[8px] font-semibold">{formatPhoneDisplay(contactPhone || patient.phone)}</p></div>
+                </div>
+                <div className="grid grid-cols-2 gap-0.5">
+                  <div className="bg-transparent border border-white/8 rounded-md px-1.5 py-1"><p className="text-white/25 text-[6px] font-bold uppercase">Email</p><p className="text-white text-[9px] font-semibold truncate">{patient.email}</p></div>
+                  <div className="bg-transparent border border-white/8 rounded-md px-1.5 py-1"><p className="text-white/25 text-[6px] font-bold uppercase">Address</p><p className="text-white text-[9px] font-semibold truncate">{patient.address || "—"}</p></div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-white/5 my-0.5" />
+
+              {/* Medical History label */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-white/35 text-[8px] font-extrabold uppercase tracking-widest">Medical History</span>
+                <span className="text-white/20 text-[7px] font-semibold">({INTAKE_QUESTIONS.length} questions)</span>
+              </div>
+
+              {/* Questions */}
+              {INTAKE_QUESTIONS.map((q, i) => {
+                const a = intakeAnswers[q.id];
+                const isActive = i === intakeStep && !a;
+                const isDone = !!a;
+                const isFuture = i > intakeStep && !a;
+
+                if (isFuture) {
+                  return (
+                    <div key={q.id} className="border border-white/8 rounded-lg opacity-20">
+                      <div className="flex items-center justify-between px-2.5 py-1.5">
+                        <span className="text-white/30 text-[11px] font-extrabold">{q.q}</span>
+                        <span className="text-[#f97316] text-[8px] font-bold bg-[#f97316]/10 rounded px-1.5 py-0.5">Pending</span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (isDone) {
+                  const ansText = a.val ? `Yes: ${a.detail || "—"}` : "No";
+                  return (
+                    <div key={q.id} className="border border-[#2dd4a0]/15 rounded-lg cursor-pointer" onClick={() => { const next = { ...intakeAnswers }; delete next[q.id]; setIntakeAnswers(next); setIntakeStep(i); }}>
+                      <div className="flex items-center justify-between px-2.5 py-1.5">
+                        <span className="text-white text-[11px] font-extrabold">{q.q}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[#2dd4a0] text-[9px] font-semibold max-w-[120px] truncate">{ansText}</span>
+                          <span className="text-[#2dd4a0] text-[8px] font-bold bg-[#2dd4a0]/10 rounded px-1 py-0.5">✓</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (isActive) {
+                  const showDetail = intakeDetailId === q.id;
+                  return (
+                    <div key={q.id} className="border border-[#f97316]/30 rounded-lg shadow-[0_0_8px_rgba(249,115,22,0.1)]">
+                      <div className="flex items-center justify-between px-2.5 py-1.5">
+                        <span className="text-white text-[11px] font-extrabold">{q.q}</span>
+                        <span className="text-[#f97316] text-[8px] font-bold bg-[#f97316]/10 rounded px-1.5 py-0.5">Answer</span>
+                      </div>
+                      <div className="px-2.5 pb-2.5 flex flex-col gap-1.5">
+                        <div className="flex gap-1.5">
+                          <button onClick={() => { setIntakeDetailId(q.id); setIntakeDetailText(""); }} className={`flex-1 py-2 rounded-lg border-2 font-extrabold text-[12px] transition-all active:scale-95 ${showDetail ? "border-[#2dd4a0] bg-[#2dd4a0] text-black" : "border-white/8 bg-transparent text-white"}`}>Yes</button>
+                          <button onClick={() => {
+                            setIntakeDetailId(null); setIntakeDetailText("");
+                            setIntakeAnswers(prev => ({ ...prev, [q.id]: { val: false, detail: "" } }));
+                            setIntakeStep(Math.max(intakeStep, i + 1));
+                          }} className="flex-1 py-2 rounded-lg border-2 border-white/8 bg-transparent text-white font-extrabold text-[12px] transition-all active:scale-95">No</button>
+                        </div>
+                        {showDetail && (
+                          <div className="flex flex-col gap-1.5">
+                            <input value={intakeDetailText} onChange={(e) => setIntakeDetailText(e.target.value)} placeholder={q.ph} autoFocus className="w-full bg-transparent border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white caret-white focus:outline-none focus:border-[#2dd4a0] placeholder:text-gray-600" onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }} />
+                            <button disabled={!intakeDetailText.trim()} onClick={() => {
+                              setIntakeAnswers(prev => ({ ...prev, [q.id]: { val: true, detail: intakeDetailText.trim() } }));
+                              setIntakeStep(Math.max(intakeStep, i + 1));
+                              setIntakeDetailId(null); setIntakeDetailText("");
+                            }} className="w-full py-1.5 rounded-md bg-white/5 text-white font-bold text-[11px] transition-all active:scale-97 disabled:opacity-25">Next →</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                return null;
+              })}
+
+              {/* Submit button — shown when all done */}
+              {allIntakeDone && (
+                <div style={{ animation: "fadeInStep 0.4s ease both" }} className="flex flex-col gap-1.5 mt-0.5">
+                  <p className="text-[#2dd4a0] text-[10px] font-extrabold text-center">✓ All Questions Answered</p>
+                  <button onClick={handleIntakeSubmit} disabled={intakeSubmitting} className="w-full py-3 rounded-xl border-2 border-[#2dd4a0]/30 text-white font-extrabold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40" style={{ background: "#f97316" }}>
+                    {intakeSubmitting ? (<><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Submitting...</>) : "Submit Intake →"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex-shrink-0 py-0.5">
+            <p className="text-center text-gray-700 text-[7px]"><Lock size={7} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Your data is never shared</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ═══════════════════════════════════════════════════════════
   // STEP 1 — MOBILE APP GUIDED BOOKING FLOW
@@ -1143,7 +1360,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
                     <div className="flex items-center gap-2">
                       <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2dd4a0]/15 border border-[#2dd4a0]/30 text-[#2dd4a0] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
-                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setStep4PopupFired(false); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
+                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
                     </div>
                   </div>
                   <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
@@ -1152,14 +1369,14 @@ export default function ExpressCheckoutPage() {
                       <span className="text-white text-[13px] font-semibold">
                         {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
-                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setStep4PopupFired(false); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
+                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
                     </div>
                   </div>
                   <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                     <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
-                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setStep4PopupFired(false); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
+                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
                     </div>
                   </div>
                   {selectedMeds.length > 0 && (
@@ -1396,6 +1613,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
