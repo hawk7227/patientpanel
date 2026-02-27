@@ -117,6 +117,7 @@ function Step2PaymentForm({
   const [error, setError] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [elementReady, setElementReady] = useState(false);
+  const [payInFlight, setPayInFlight] = useState(false);
   
 
   // Production mode — real Stripe payments
@@ -124,14 +125,15 @@ function Step2PaymentForm({
 
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
-    setIsProcessing(true); setError(null); setProgress(5); setStatusText("Starting payment process...");
+    setError(null);
+    setPayInFlight(true);
 
     try {
-      setProgress(15); setStatusText("Checking patient record...");
       let patientId = patient.id;
 
       if (isTestMode) {
         // BYPASS MODE — skip patient creation, skip payment
+        setIsProcessing(true); setProgress(5); setStatusText("Starting...");
         if (!patientId) {
           patientId = `test_patient_${Date.now()}`;
           setProgress(25); setStatusText("Test mode — skipping patient creation...");
@@ -183,7 +185,6 @@ function Step2PaymentForm({
 
       // NORMAL MODE — real patient creation + real payment
       if (!patientId) {
-        setProgress(25); setStatusText("Creating patient record...");
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -198,38 +199,39 @@ function Step2PaymentForm({
         patientId = createResult.patientId;
       }
 
-      setProgress(45); setStatusText("Processing payment...");
       let paymentIntent: any = null; let paymentError: any = null;
 
       if (isTestMode) {
+        setIsProcessing(true); setProgress(45); setStatusText("Test mode...");
         paymentIntent = { id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, status: "succeeded" };
         await new Promise((r) => setTimeout(r, 500));
       } else {
-        if (!stripe || !elements) { setError("Payment not ready. Please try again."); setIsProcessing(false); return; }
-        setProgress(55); setStatusText("Confirming payment...");
+        if (!stripe || !elements) { setError("Payment not ready. Please try again."); setPayInFlight(false); return; }
 
-        // Submit elements first — validates selected payment method and triggers wallet sheets (Google Pay, Apple Pay)
+        // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
         const submitResult = await elements.submit();
         if (submitResult.error) {
           setError(submitResult.error.message || "Please complete the payment form.");
-          setIsProcessing(false);
+          setPayInFlight(false);
           return;
         }
 
+        // NOW confirm — PaymentElement is still mounted because isProcessing is false
         const result = await stripe.confirmPayment({
           elements, redirect: "if_required",
           confirmParams: {
             return_url: `${window.location.origin}/success`,
-            payment_method_data: { billing_details: { name: `${patient.firstName} ${patient.lastName}`, email: patient.email, phone: patient.phone } },
           },
         });
         paymentError = result.error; paymentIntent = result.paymentIntent;
       }
 
-      if (paymentError) { setError(paymentError.message || "Payment failed."); setIsProcessing(false); return; }
+      if (paymentError) { setError(paymentError.message || "Payment failed."); setPayInFlight(false); return; }
+
+      // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
+      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
 
       if (paymentIntent?.status === "succeeded") {
-        setProgress(75); setStatusText("Creating appointment...");
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -272,6 +274,7 @@ function Step2PaymentForm({
       console.error("Express checkout error:", err);
       setError(err.message || "Something went wrong. Please try again.");
       setIsProcessing(false);
+      setPayInFlight(false);
     }
   };
 
@@ -309,8 +312,8 @@ function Step2PaymentForm({
               }} />
             </div>
             {/* Pay button */}
-            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady} className="w-full text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
-              <Lock size={14} /> Pay {currentPrice.display} & Reserve
+            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady || payInFlight} className="w-full text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
+              <Lock size={14} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
             </button>
           </div>
         )}
