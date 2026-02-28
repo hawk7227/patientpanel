@@ -1453,54 +1453,54 @@ export default function ExpressCheckoutPage() {
                 <span className="text-white text-[16px] font-black uppercase tracking-wide">Secure Contact</span>
               </div>
               <div className={`rounded-xl bg-transparent p-4 space-y-2.5 transition-all ${activeOrangeBorder}`}>
-                <p className="text-gray-400 text-[11px] leading-relaxed">Your provider needs this info for pharmacy compliance and safe care.</p>
+                <p className="text-white text-[11px] leading-relaxed font-medium">Your provider needs this info for pharmacy compliance and safe care.</p>
 
                 {/* First + Last name — side by side */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
-                    <label className="text-gray-500 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
-                    <input type="text" autoComplete="given-name" value={contactFirstName} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/30 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#2dd4a0] caret-white placeholder:text-gray-600" placeholder="First" />
+                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
+                    <input type="text" autoComplete="given-name" value={contactFirstName} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
                   </div>
                   <div className="flex-1 relative">
-                    <label className="text-gray-500 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
-                    <input type="text" autoComplete="family-name" value={contactLastName} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/30 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#2dd4a0] caret-white placeholder:text-gray-600" placeholder="Last" />
+                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
+                    <input type="text" autoComplete="family-name" value={contactLastName} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
                   </div>
                 </div>
 
                 {/* Address — single line */}
                 <div className="relative">
-                  <label className="text-gray-500 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
-                  <input type="text" autoComplete="street-address" value={contactAddress} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/30 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#2dd4a0] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
+                  <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
+                  <input type="text" autoComplete="street-address" value={contactAddress} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
                 </div>
 
                 {/* DOB + Phone — side by side */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
-                    <label className="text-gray-500 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
+                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
                     <input type="text" inputMode="numeric" autoComplete="bday" value={contactDob} onChange={(e) => {
                       let v = e.target.value.replace(/[^\d/]/g, "");
                       const digits = v.replace(/\D/g, "");
                       if (digits.length >= 5) v = `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
                       else if (digits.length >= 3) v = `${digits.slice(0,2)}/${digits.slice(2)}`;
                       setContactDob(v); saveAnswers({ contactDob: v });
-                    }} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/30 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#2dd4a0] caret-white placeholder:text-gray-600" placeholder="MM/DD/YYYY" />
+                    }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="MM/DD/YYYY" />
                   </div>
                   <div className="flex-1 relative">
-                    <label className="text-gray-500 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
-                    <input type="tel" inputMode="tel" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/30 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#2dd4a0] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
+                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
+                    <input type="tel" inputMode="tel" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
                   </div>
                 </div>
 
                 {/* Email — full width */}
                 <div className="relative">
-                  <label className="text-gray-500 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
-                  <input type="email" inputMode="email" autoComplete="email" value={contactEmail} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#2dd4a0]/30 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#2dd4a0] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
+                  <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
+                  <input type="email" inputMode="email" autoComplete="email" value={contactEmail} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
                 </div>
 
                 {/* Buttons */}
                 <div className="flex gap-2 pt-0.5">
-                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "15px", lineHeight: 1 }}>←</span> Back</button>
-                  <button onClick={() => { setPhoneConfirmed(true); saveAnswers({ contactPhone, contactFirstName, contactLastName, contactAddress, contactDob, contactEmail, phoneConfirmed: true }); }} disabled={!contactFirstName.trim() || !contactLastName.trim() || !contactAddress.trim() || contactDob.replace(/\D/g, "").length < 8 || contactPhone.replace(/\D/g, "").length < 10 || !contactEmail.includes("@")} className={`flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 disabled:cursor-not-allowed ${contactFirstName.trim() && contactLastName.trim() && contactAddress.trim() && contactDob.replace(/\D/g, "").length >= 8 && contactPhone.replace(/\D/g, "").length >= 10 && contactEmail.includes("@") ? "border-[#2dd4a0]/30" : "border-[#f97316]"}`} style={{ background: "#f97316" }}>Continue →</button>
+                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#00CBA9]/40" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "15px", lineHeight: 1 }}>←</span> Back</button>
+                  <button onClick={() => { setPhoneConfirmed(true); saveAnswers({ contactPhone, contactFirstName, contactLastName, contactAddress, contactDob, contactEmail, phoneConfirmed: true }); }} disabled={!contactFirstName.trim() || !contactLastName.trim() || !contactAddress.trim() || contactDob.replace(/\D/g, "").length < 8 || contactPhone.replace(/\D/g, "").length < 10 || !contactEmail.includes("@")} className={`flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 disabled:cursor-not-allowed ${contactFirstName.trim() && contactLastName.trim() && contactAddress.trim() && contactDob.replace(/\D/g, "").length >= 8 && contactPhone.replace(/\D/g, "").length >= 10 && contactEmail.includes("@") ? "border-[#00CBA9]/40" : "border-[#f97316]"}`} style={{ background: "#f97316" }}>Continue →</button>
                 </div>
               </div>
             </div>
@@ -1695,16 +1695,3 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
-
-
-
-
-
-
-
-
-
-
-
-
-
