@@ -76,13 +76,15 @@ const convertDateToISO = (dateStr: string): string => {
 // ═══════════════════════════════════════════════════════════════
 // Progress pill (step-aware, progress-aware; no numbers shown)
 // ═══════════════════════════════════════════════════════════════
-function getStepTitle(uiStep: number, isPreparingBooking: boolean): string {
+function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: boolean): string {
   if (isPreparingBooking) return "Preparing your booking…";
   if (uiStep <= 1) return "What Brings You In?";
   if (uiStep === 2) return "Describe Your Symptoms";
   if (uiStep === 3) return "Select Pharmacy";
   if (uiStep === 4) return "Visit Type";
+  if (uiStep === 4.5 && !isReturning) return "Confirm";
   if (uiStep === 4.5) return "Confirm & Pay";
+  if (uiStep === 4.75) return "Confirm & Pay";
   return "Confirm & Pay";
 }
 
@@ -551,6 +553,7 @@ export default function ExpressCheckoutPage() {
   const [symptomsDone, setSymptomsDone] = useState(false);
   const [visitTypeConfirmed, setVisitTypeConfirmed] = useState(false);
   const [visitTypeChosen, setVisitTypeChosen] = useState(false);
+  const [confirmReviewed, setConfirmReviewed] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
@@ -625,6 +628,7 @@ export default function ExpressCheckoutPage() {
     if (s.pharmacyInfo) setPharmacyInfo(s.pharmacyInfo);
     if (s.visitType) setVisitType(s.visitType);
     if (s.visitTypeConfirmed) setVisitTypeConfirmed(true);
+    if (s.confirmReviewed) setConfirmReviewed(true);
     if (s.visitTypeChosen) setVisitTypeChosen(true);
     if (s.symptomsText) setSymptomsText(s.symptomsText);
     if (s.selectedMeds) setSelectedMeds(s.selectedMeds);
@@ -770,6 +774,7 @@ export default function ExpressCheckoutPage() {
     setPaymentIntentError(null);
     setVisitTypeChosen(false);
     setVisitTypeConfirmed(false);
+    setConfirmReviewed(false);
     setPhoneConfirmed(false);
     setContactPhone("");
     // Only clear meds when switching AWAY from refill, not when selecting refill (meds already chosen in popup)
@@ -902,7 +907,10 @@ export default function ExpressCheckoutPage() {
   }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged, controlledAcknowledged]);
 
   // ═══ GUIDED STEP LOGIC ═══
-  // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType browse, 4.5=Confirm, 5=Phone, 6=Pay
+  // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType browse,
+  // 4.5=Confirm summary (new patient review) / Summary+Pay (returning),
+  // 4.75=Payment form (new patient only, after CONTINUE),
+  // 5=Phone/contact (new patient), 6=Pay (returning)
   const activeGuideStep = useMemo((): number => {
     if (!reason) return 1;
     if (!symptomsDone) return 2;
@@ -910,12 +918,15 @@ export default function ExpressCheckoutPage() {
     if (!visitTypeChosen) return 4;
     if (!visitTypeConfirmed) return 4.5;
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return 4.5;
-    // Returning patients skip Step 5 — contact info already on file
-    if (!isReturningPatient && !phoneConfirmed) return 5;
+    // New patient: must review confirm summary before payment
+    if (!isReturningPatient && !confirmReviewed) return 4.5;
+    // New patient: payment form step
+    if (!isReturningPatient && !phoneConfirmed) return 4.75;
+    // Returning patient: skip straight to pay (summary+wallets at 4.5)
     return 6;
-  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient]);
+  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient, confirmReviewed]);
 
-  const totalSteps = 4.5;
+  const totalSteps = isReturningPatient ? 4.5 : 4.75;
 
   const uiStep = activeGuideStep;
   const [cardFormExpanded, setCardFormExpanded] = useState(false);
@@ -928,7 +939,7 @@ export default function ExpressCheckoutPage() {
   // Speaking progress pill text (re-animates on change)
   const [pillText, setPillText] = useState("");
   useEffect(() => {
-    const next = getStepTitle(uiStep, paymentLoading);
+    const next = getStepTitle(uiStep, paymentLoading, isReturningPatient);
     setPillText(next);
   }, [uiStep, progressPct, paymentLoading]);
 
@@ -981,6 +992,7 @@ export default function ExpressCheckoutPage() {
       setPharmacyInfo(null);
       setVisitTypeChosen(false);
       setVisitTypeConfirmed(false);
+      setConfirmReviewed(false);
       setPhoneConfirmed(false);
       setContactPhone("");
       setVisitTypePopup(null);
@@ -990,13 +1002,14 @@ export default function ExpressCheckoutPage() {
       paymentFetchController.current?.abort();
       setClientSecret("");
       setPaymentIntentError(null);
-      saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "", visitTypePopup: null, appointmentDate: "", appointmentTime: "" });
+      saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "", visitTypePopup: null, appointmentDate: "", appointmentTime: "" });
       return;
     }
     if (step === 4.5) {
       // Return to visit type browse
       setVisitTypeChosen(false);
       setVisitTypeConfirmed(false);
+      setConfirmReviewed(false);
       setPhoneConfirmed(false);
       setContactPhone("");
       setStep4PopupFired(false);
@@ -1004,7 +1017,14 @@ export default function ExpressCheckoutPage() {
       paymentFetchController.current?.abort();
       setClientSecret("");
       setPaymentIntentError(null);
-      saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" });
+      saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" });
+      return;
+    }
+    if (step === 4.75) {
+      // New patient: back from payment form to confirm summary
+      setConfirmReviewed(false);
+      setCardFormExpanded(false);
+      saveAnswers({ confirmReviewed: false });
       return;
     }
     if (step === 5) {
@@ -1511,7 +1531,7 @@ export default function ExpressCheckoutPage() {
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Provider reviews your case privately, sends treatment + Rx to your pharmacy.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">100% private</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">1–2 hours</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">Rx to pharmacy</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeChosen: true, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
@@ -1538,7 +1558,7 @@ export default function ExpressCheckoutPage() {
                     )}
                     <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-gray-600" />
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("refill"); setVisitTypeChosen(true); saveAnswers({ visitType: "refill", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("refill"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "refill", visitTypeChosen: true, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "video" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
@@ -1559,11 +1579,69 @@ export default function ExpressCheckoutPage() {
           </div>
           {/* END Step 4 wrapper */}
 
-          {/* STEP 4.5: Confirm & Pay */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen ? (
+          {/* STEP 4.5: Confirm Summary (new patient) / Summary + Pay (returning patient) */}
+          {reason && symptomsDone && pharmacy && visitTypeChosen && !confirmReviewed && !isReturningPatient ? (
+            /* ── NEW PATIENT: Confirm Summary with CONTINUE button ── */
             <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                {/* Summary card — collapses when card form is open for full screen */}
+                {/* Summary card */}
+                <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-white/5">
+                    <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
+                    <div className="flex-1 min-w-0"><p className="text-white font-bold text-[13px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
+                    <Shield size={14} className="text-[#2dd4a0] flex-shrink-0" />
+                  </div>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
+                    <div className="flex items-center gap-2">
+                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2dd4a0]/15 border border-[#2dd4a0]/30 text-[#2dd4a0] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
+                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                    </div>
+                  </div>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-[13px] font-semibold">
+                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                      </span>
+                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                    </div>
+                  </div>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
+                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                    </div>
+                  </div>
+                  {selectedMeds.length > 0 && (
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                      <span className="text-gray-500 text-[12px] font-semibold">Medications</span>
+                      <span className="text-white text-[12px] font-medium truncate ml-4">{selectedMeds.join(", ")}</span>
+                    </div>
+                  )}
+                  {appointmentDate && appointmentTime && (
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                      <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
+                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                    </div>
+                  )}
+                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
+                    <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
+                    <span className="text-[#2dd4a0] font-black text-[18px]">{currentPrice.display}</span>
+                  </div>
+                </div>
+                {/* CONTINUE button */}
+                <button onClick={() => { setConfirmReviewed(true); saveAnswers({ confirmReviewed: true }); }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
+                  CONTINUE
+                </button>
+              </div>
+            </div>
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && isReturningPatient ? (
+            /* ── RETURNING PATIENT: Summary + Wallets + collapsed card form ── */
+            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
+                {/* Summary card — collapses when card form is open */}
                 <div className="rounded-xl border border-white/10 overflow-hidden transition-all" style={{ background: "rgba(255,255,255,0.02)", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
                   <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-white/5">
                     <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
@@ -1612,6 +1690,35 @@ export default function ExpressCheckoutPage() {
                 </div>
 
                 {/* Payment — Express wallets + card fallback */}
+                {clientSecret && stripeOptions ? (
+                  <Elements options={stripeOptions} stripe={stripePromise}>
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
+                  </Elements>
+                ) : paymentIntentError ? (
+                  <div className="space-y-2 py-1">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-center">
+                      <p className="text-red-400 text-[11px] font-semibold mb-1">Payment setup failed</p>
+                      <p className="text-gray-400 text-[9px]">{paymentIntentError}</p>
+                    </div>
+                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>Retry</button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-4 gap-2">
+                    <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                    <p className="text-gray-400 text-[10px]">Setting up payment…</p>
+                  </div>
+                )}
+                {/* Back button */}
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* STEP 4.75: New Patient Payment Form (after CONTINUE from confirm) */}
+          {reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? (
+            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
+                {/* Payment — Express wallets + DOB + card form open */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
@@ -1863,6 +1970,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
