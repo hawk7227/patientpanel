@@ -1361,7 +1361,7 @@ export default function ExpressCheckoutPage() {
                 </button>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* STEP 2: Describe Symptoms — hidden when answered */}
           {reason && !symptomsDone ? (
@@ -1730,6 +1730,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
