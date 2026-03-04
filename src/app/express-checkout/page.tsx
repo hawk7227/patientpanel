@@ -109,12 +109,15 @@ function Step2PaymentForm({
   const [payInFlight, setPayInFlight] = useState(false);
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
-  const isNewPatient = !patient?.id || patient?.source === "new";
+  const isNewPatient = !patient?.id;
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
   const [newDobYear, setNewDobYear] = useState("");
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
+
+  // Auto-collapse summary for new patients since card form is always open
+  useEffect(() => { if (isNewPatient) onCardExpand?.(true); }, [isNewPatient]);
 
   const getPatientData = () => {
     if (!isNewPatient) {
@@ -1372,6 +1375,7 @@ export default function ExpressCheckoutPage() {
         @keyframes fadeInPill { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes pillIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideUpCalendar { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
@@ -1645,106 +1649,156 @@ export default function ExpressCheckoutPage() {
         </div>
       )}
 
-      {/* ═══ DATE/TIME DIALOG — SLIDE-UP HORIZONTAL DAY-STRIP ═══ */}
+      {/* ═══ DATE/TIME DIALOG — MATCHES MOCKUP EXACTLY ═══ */}
       {dateTimeDialogOpen && (() => {
         const today = new Date(); today.setHours(0,0,0,0);
-        const baseDate = new Date(today); baseDate.setDate(baseDate.getDate() + calWeekOffset * 7);
-        const weekDays: { date: Date; label: string; dayNum: number; monthShort: string; iso: string; isPast: boolean }[] = [];
-        for (let i = 0; i < 7; i++) {
-          const d = new Date(baseDate); d.setDate(d.getDate() + i);
-          const dd = new Date(d); dd.setHours(0,0,0,0);
-          weekDays.push({
-            date: d,
-            label: d.toLocaleDateString("en-US", { weekday: "short" }),
-            dayNum: d.getDate(),
-            monthShort: d.toLocaleDateString("en-US", { month: "short" }),
-            iso: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,
-            isPast: dd < today,
-          });
-        }
-        const monthLabel = baseDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+        const VISIBLE = 6;
+        const TOTAL = 28;
+        const allDays: Date[] = [];
+        for (let i = 0; i < TOTAL; i++) { const d = new Date(today); d.setDate(d.getDate() + i); allDays.push(d); }
+        const visibleDays = allDays.slice(calWeekOffset, calWeekOffset + VISIBLE);
+        const canGoBack = calWeekOffset > 0;
+        const canGoForward = calWeekOffset + VISIBLE < TOTAL;
+        const isSameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+        const toISO = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        const DAY_ABBR = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+        const SHORT_MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
         const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"];
         const convertTo24 = (t: string) => { const [time, period] = t.split(" "); let [h, m] = time.split(":").map(Number); if (period === "PM" && h !== 12) h += 12; if (period === "AM" && h === 12) h = 0; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; };
+        const getSpecialLabel = (d: Date) => { if (isSameDay(d, today)) return "Today"; if (isSameDay(d, tomorrow)) return "Tomorrow"; return null; };
+        const monthLabel = `${MONTH_FULL[visibleDays[0].getMonth()]} ${visibleDays[0].getFullYear()}`;
+        const selectedDateObj = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : null;
+        const selectedDayLabel = selectedDateObj ? `${DAY_ABBR[selectedDateObj.getDay()].charAt(0)}${DAY_ABBR[selectedDateObj.getDay()].slice(1).toLowerCase()}, ${SHORT_MO[selectedDateObj.getMonth()]} ${selectedDateObj.getDate()}` : "";
 
         return (
-          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#0b0f0c", animation: "slideUpCalendar 0.3s ease-out" }}>
+          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "linear-gradient(180deg, #0d1628 0%, #0b1120 40%, #0a0f1d 100%)", animation: "slideUpCalendar 0.3s ease-out" }}>
             {/* Header */}
-            <div className="flex justify-between items-center px-5 pt-4 pb-2 flex-shrink-0">
+            <div className="flex justify-between items-center px-5 pt-5 pb-1 flex-shrink-0">
               <div>
-                <h2 className="text-white font-black text-xl">Pick a Date & Time</h2>
-                <p className="text-gray-400 text-sm">For your {visitType === "video" ? "📹 video" : "📞 phone"} visit</p>
+                <h2 className="text-white font-black text-[22px] tracking-tight">Schedule Your Appointment</h2>
+                <p className="text-[#64748b] text-[14px] mt-1">Please select a date and time for your {visitType === "video" ? "video" : "phone"} visit.</p>
               </div>
-              <button onClick={() => setDateTimeDialogOpen(false)} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><X size={22} /></button>
+              <button onClick={() => setDateTimeDialogOpen(false)} className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ background: "rgba(255,255,255,0.08)" }}><X size={20} /></button>
             </div>
 
-            {/* Month label + week nav */}
-            <div className="flex items-center justify-between px-5 pb-2">
-              <button onClick={() => setCalWeekOffset(Math.max(0, calWeekOffset - 1))} disabled={calWeekOffset === 0} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white disabled:opacity-30 text-lg font-bold">‹</button>
-              <span className="text-white font-bold text-base">{monthLabel}</span>
-              <button onClick={() => setCalWeekOffset(calWeekOffset + 1)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold">›</button>
+            {/* Day strip with arrows */}
+            <div className="flex items-center px-3 pt-5 pb-1" style={{ gap: 0 }}>
+              {/* Back arrow */}
+              {canGoBack ? (
+                <button onClick={() => { setCalWeekOffset(Math.max(0, calWeekOffset - VISIBLE)); setCalSelectedTime(""); }} className="flex-shrink-0 p-1 text-[#64748b] active:scale-90 transition-transform" style={{ background: "none", border: "none" }}>
+                  <ChevronDown size={20} className="rotate-90" />
+                </button>
+              ) : <div style={{ width: 28 }} />}
+
+              {/* Day cells */}
+              <div className="flex flex-1" style={{ gap: 2 }}>
+                {visibleDays.map(day => {
+                  const iso = toISO(day);
+                  const isSelected = calSelectedDay === iso;
+                  const isToday = isSameDay(day, today);
+                  const special = getSpecialLabel(day);
+                  return (
+                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); }}
+                      className="flex-1 flex flex-col items-center justify-center rounded-[14px] transition-all active:scale-95"
+                      style={{
+                        padding: "10px 4px 8px",
+                        border: isSelected ? "2px solid rgba(45,212,160,0.4)" : isToday ? "2px solid rgba(45,212,160,0.2)" : "2px solid transparent",
+                        background: isSelected ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "transparent",
+                        boxShadow: isSelected ? "0 4px 16px rgba(45,212,160,0.15)" : "none",
+                        cursor: "pointer",
+                        gap: 2,
+                        minWidth: 0,
+                      }}>
+                      <span style={{ fontSize: 11, fontWeight: isSelected ? 700 : 600, color: isSelected ? "#fff" : "#64748b", letterSpacing: "0.04em", lineHeight: 1 }}>{DAY_ABBR[day.getDay()]}</span>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: isSelected ? "#fff" : "#cbd5e1", lineHeight: 1.2 }}>{day.getDate()}</span>
+                      {special ? (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? "#d1fae5" : "#2dd4a0", lineHeight: 1, marginTop: 1 }}>{special}</span>
+                      ) : (
+                        <span style={{ fontSize: 9, fontWeight: 600, color: isSelected ? "#d1fae5" : "#64748b", lineHeight: 1, marginTop: 1 }}>{SHORT_MO[day.getMonth()]}</span>
+                      )}
+                      {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4a0] mt-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Forward arrow + Next label */}
+              {canGoForward ? (
+                <button onClick={() => { setCalWeekOffset(Math.min(calWeekOffset + VISIBLE, TOTAL - VISIBLE)); setCalSelectedTime(""); }} className="flex-shrink-0 flex flex-col items-center p-1 text-[#64748b] active:scale-90 transition-transform" style={{ background: "none", border: "none" }}>
+                  <ChevronDown size={20} className="-rotate-90" />
+                  <span style={{ fontSize: 10, color: "#2dd4a0", fontWeight: 600, marginTop: -2 }}>Next &gt;</span>
+                </button>
+              ) : <div style={{ width: 28 }} />}
             </div>
 
-            {/* Horizontal day strip */}
-            <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {weekDays.map(wd => {
-                const isSelected = calSelectedDay === wd.iso;
-                const isToday = wd.iso === `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
-                return (
-                  <button key={wd.iso} disabled={wd.isPast} onClick={() => { setCalSelectedDay(wd.iso); setCalSelectedTime(""); }}
-                    className={`flex-shrink-0 flex flex-col items-center w-[52px] py-2.5 rounded-xl border-2 transition-all ${wd.isPast ? "opacity-30 border-white/5 cursor-not-allowed" : isSelected ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-white" : isToday ? "border-[#2dd4a0]/50 bg-[#2dd4a0]/5 text-white" : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20"}`}>
-                    <span className="text-[8px] font-bold uppercase">{wd.label}</span>
-                    <span className="text-[18px] font-black leading-tight">{wd.dayNum}</span>
-                    <span className="text-[8px]">{wd.monthShort}</span>
-                    {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4a0] mt-0.5" />}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Divider */}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "16px 24px 0" }} />
 
             {/* Time slots */}
-            <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ scrollbarWidth: "none" }}>
+            <div className="flex-1 overflow-y-auto" style={{ padding: "20px 24px 0", scrollbarWidth: "none" }}>
               {calSelectedDay ? (
-                <div className="space-y-2">
-                  <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Available Times</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {timeSlots.map(slot => {
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {timeSlots.map((slot, i) => {
                       const t24 = convertTo24(slot);
-                      const isSel = calSelectedTime === t24;
+                      const isActive = calSelectedTime === t24;
                       return (
                         <button key={slot} onClick={() => setCalSelectedTime(t24)}
-                          className={`py-3 rounded-xl text-[13px] font-bold transition-all ${isSel ? "bg-[#2dd4a0]/10 border-2 border-[#2dd4a0] text-[#2dd4a0]" : "bg-white/5 text-white hover:bg-white/10 active:bg-[#2dd4a0]/20 border border-white/10"}`}>
+                          className="active:scale-95 transition-all"
+                          style={{
+                            padding: "14px 16px",
+                            borderRadius: 12,
+                            border: isActive ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.1)",
+                            background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "rgba(255,255,255,0.03)",
+                            color: isActive ? "#ffffff" : "#e2e8f0",
+                            fontSize: 16,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            textAlign: "center" as const,
+                            boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                            animation: "slotFadeIn 0.3s ease both",
+                            animationDelay: `${i * 0.05}s`,
+                          }}>
                           {slot}
                         </button>
                       );
                     })}
                   </div>
-                  <p className="text-gray-600 text-[9px] text-center mt-1">{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                  <p className="text-center mt-3" style={{ fontSize: 10, color: "#475569" }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Calendar size={32} className="text-gray-600 mb-3" />
-                  <p className="text-gray-500 text-sm">Select a day above</p>
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Calendar size={36} className="text-[#334155] mb-3" />
+                  <p style={{ color: "#64748b", fontSize: 14 }}>Select a day above</p>
                 </div>
               )}
             </div>
 
-            {/* Confirm button */}
-            {calSelectedDay && calSelectedTime && (
-              <div className="flex-shrink-0 px-4 pb-4 pt-2" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 16px), 16px)" }}>
-                <div className="bg-[#2dd4a0]/5 border border-[#2dd4a0]/20 rounded-xl px-3 py-2 mb-3 text-center">
-                  <p className="text-[11px] text-gray-300">
-                    <span className="text-[#2dd4a0] font-bold">{visitType === "video" ? "📹 Video" : "📞 Phone"} Visit</span>{" · "}
-                    <span className="text-white font-semibold">
-                      {new Date(calSelectedDay + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at {(() => { const [h, m] = calSelectedTime.split(":").map(Number); const hr = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; })()}
-                    </span>
-                  </p>
-                </div>
-                <button onClick={() => { setAppointmentDate(calSelectedDay); setAppointmentTime(calSelectedTime); saveAnswers({ appointmentDate: calSelectedDay, appointmentTime: calSelectedTime }); setDateTimeDialogOpen(false); }}
-                  className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] border border-[#2dd4a0]" style={{ background: "rgba(45,212,160,0.08)", color: "#fff" }}>
-                  <Check size={16} /> Confirm Appointment
-                </button>
-              </div>
-            )}
+            {/* Confirm button — always at bottom */}
+            <div className="flex-shrink-0" style={{ padding: "20px 24px", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
+              <button
+                onClick={() => { if (!calSelectedDay || !calSelectedTime) return; setAppointmentDate(calSelectedDay); setAppointmentTime(calSelectedTime); saveAnswers({ appointmentDate: calSelectedDay, appointmentTime: calSelectedTime }); setDateTimeDialogOpen(false); }}
+                disabled={!calSelectedDay || !calSelectedTime}
+                className="active:scale-[0.98] transition-all"
+                style={{
+                  width: "100%",
+                  padding: "16px 24px",
+                  borderRadius: 14,
+                  border: "none",
+                  background: (!calSelectedDay || !calSelectedTime) ? "rgba(249,115,22,0.3)" : "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)",
+                  color: "#ffffff",
+                  fontSize: 18,
+                  fontWeight: 800,
+                  cursor: (!calSelectedDay || !calSelectedTime) ? "not-allowed" : "pointer",
+                  opacity: (!calSelectedDay || !calSelectedTime) ? 0.4 : 1,
+                  boxShadow: (!calSelectedDay || !calSelectedTime) ? "none" : "0 4px 20px rgba(249,115,22,0.25)",
+                }}>
+                Confirm
+              </button>
+            </div>
           </div>
         );
       })()}
@@ -1767,6 +1821,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
