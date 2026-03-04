@@ -76,25 +76,14 @@ const convertDateToISO = (dateStr: string): string => {
 // ═══════════════════════════════════════════════════════════════
 // Progress pill (step-aware, progress-aware; no numbers shown)
 // ═══════════════════════════════════════════════════════════════
-function getProgressPillMessage(opts: { uiStep: number; progressPct: number; isPreparingBooking: boolean }) {
-  const { uiStep, progressPct, isPreparingBooking } = opts;
-
+function getStepTitle(uiStep: number, isPreparingBooking: boolean): string {
   if (isPreparingBooking) return "Preparing your booking…";
-
-  // Step-based tone
-  if (uiStep <= 1) return "Let’s get you taken care of.";
-  if (uiStep === 2) return "Nice — that was quick.";
-  if (uiStep === 3) return "Great. Almost there.";
-  if (uiStep === 4) return "You’re moving fast.";
-  if (uiStep === 4.5) return "Review your choices.";
-  if (uiStep === 5) return "Almost there.";
-  if (uiStep >= 6) return "You’re all set. Let’s finish up.";
-
-  // Fallback by progress
-  if (progressPct < 35) return "Good start.";
-  if (progressPct < 70) return "You’re doing great.";
-  if (progressPct < 90) return "Almost there.";
-  return "Final step.";
+  if (uiStep <= 1) return "What Brings You In?";
+  if (uiStep === 2) return "Describe Your Symptoms";
+  if (uiStep === 3) return "Select Pharmacy";
+  if (uiStep === 4) return "Visit Type";
+  if (uiStep === 4.5) return "Confirm & Pay";
+  return "Confirm & Pay";
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -102,12 +91,12 @@ function getProgressPillMessage(opts: { uiStep: number; progressPct: number; isP
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId,
+  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
-  symptomsText: string; onSuccess: () => void; visitIntentId: string;
+  symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -437,7 +426,7 @@ function Step2PaymentForm({
                 </button>
               </>
             ) : (
-              <button onClick={() => setShowCardForm(true)} className="w-full py-2.5 rounded-xl text-gray-400 font-semibold text-[12px] transition-all border border-white/10 hover:border-white/20">
+              <button onClick={() => { setShowCardForm(true); onCardExpand?.(true); }} className="w-full py-2.5 rounded-xl text-gray-400 font-semibold text-[12px] transition-all border border-white/10 hover:border-white/20">
                 Pay with credit or debit card
               </button>
             )}
@@ -524,7 +513,7 @@ export default function ExpressCheckoutPage() {
   const [intakeDetailText, setIntakeDetailText] = useState("");
 
   // Payment intent loading is derived — no override needed
-  const paymentLoading = visitTypeConfirmed && !clientSecret;
+  const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
   const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
@@ -661,7 +650,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Pre-fetch payment intent — fires when user taps Confirm on step 4.5 ──
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
-  const shouldPrefetch = visitTypeConfirmed && !clientSecret;
+  const shouldPrefetch = visitTypeChosen && !clientSecret;
 
   useEffect(() => {
     if (!shouldPrefetch) {
@@ -866,20 +855,20 @@ export default function ExpressCheckoutPage() {
   const totalSteps = isReturningPatient ? 5 : 6;
 
   const uiStep = activeGuideStep;
-  const headerIsStep5 = uiStep >= 6;
-  const headerUltraCompact = headerIsStep5 && isTightViewport;
+  const headerIsStep5 = uiStep >= 4.5;
+  const headerUltraCompact = cardFormExpanded && isTightViewport;
   const progressPct = paymentLoading ? 90 : Math.min((uiStep / totalSteps) * 100, 100);
 
   // Speaking progress pill text (re-animates on change)
   const [pillText, setPillText] = useState("");
   useEffect(() => {
-    const next = getProgressPillMessage({ uiStep, progressPct, isPreparingBooking: paymentLoading });
+    const next = getStepTitle(uiStep, paymentLoading);
     setPillText(next);
   }, [uiStep, progressPct, paymentLoading]);
 
   // ── Fallback: if we reach step 5 without a clientSecret, force-fetch ──
   useEffect(() => {
-    if (uiStep === 6 && !clientSecret && !paymentIntentError && !paymentFetchController.current) {
+    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current) {
       console.log("[Fallback] Step 6 reached with no clientSecret — force-fetching");
       const controller = new AbortController();
       paymentFetchController.current = controller;
@@ -902,7 +891,7 @@ export default function ExpressCheckoutPage() {
           if (!controller.signal.aborted) setPaymentIntentError(err.message || "Failed to prepare payment.");
         });
     }
-  }, [uiStep, clientSecret, paymentIntentError, currentPrice.amount, visitFeePrice.amount]);
+  }, [visitTypeChosen, clientSecret, paymentIntentError, currentPrice.amount, visitFeePrice.amount]);
 
   // One-question-at-a-time wizard navigation (Back clears downstream answers so only one step shows)
   const goBack = useCallback(() => {
@@ -945,6 +934,10 @@ export default function ExpressCheckoutPage() {
       setPhoneConfirmed(false);
       setContactPhone("");
       setStep4PopupFired(false);
+      setCardFormExpanded(false);
+      paymentFetchController.current?.abort();
+      setClientSecret("");
+      setPaymentIntentError(null);
       saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" });
       return;
     }
@@ -977,6 +970,7 @@ export default function ExpressCheckoutPage() {
   const visitTypeRef = useRef<HTMLDivElement>(null);
   const step6Ref = useRef<HTMLDivElement>(null);
   const [step4PopupFired, setStep4PopupFired] = useState(false);
+  const [cardFormExpanded, setCardFormExpanded] = useState(false);
 
   // Auto-scroll to visit type step when pharmacy is selected
   useEffect(() => {
@@ -998,36 +992,10 @@ export default function ExpressCheckoutPage() {
   }, [activeGuideStep, visitTypeConfirmed, step4PopupFired, visitTypePopup]);
 
   // ── Auto-scroll Step 6 (payment) into view when it activates ──
-  useEffect(() => {
-    if (uiStep === 6 && step6Ref.current) {
-      const timer = setTimeout(() => {
-        step6Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [uiStep]);
+  // Step 6 scroll removed — payment is now in Step 4.5;
 
   // ── Autofill detection: poll fields after focus to catch iOS autofill ──
-  useEffect(() => {
-    if (uiStep !== 5) return;
-    const timer = setInterval(() => {
-      const fn = (document.getElementById("firstName") as HTMLInputElement)?.value;
-      const ln = (document.getElementById("lastName") as HTMLInputElement)?.value;
-      const addr = (document.getElementById("address") as HTMLInputElement)?.value;
-      const em = (document.getElementById("email") as HTMLInputElement)?.value;
-      const ph = (document.getElementById("phone") as HTMLInputElement)?.value;
-      const bd = (document.getElementById("bday") as HTMLInputElement)?.value;
-      if (fn && fn !== contactFirstName) { setContactFirstName(fn); saveAnswers({ contactFirstName: fn }); }
-      if (ln && ln !== contactLastName) { setContactLastName(ln); saveAnswers({ contactLastName: ln }); }
-      if (addr && addr !== contactAddress) { setContactAddress(addr); saveAnswers({ contactAddress: addr }); }
-      if (em && em !== contactEmail) { setContactEmail(em); saveAnswers({ contactEmail: em }); }
-      if (ph) { const raw = ph.replace(/\D/g, "").slice(0, 10); if (raw !== contactPhone) { setContactPhone(raw); saveAnswers({ contactPhone: raw }); } }
-      if (bd && bd !== contactDob) { setContactDob(bd); saveAnswers({ contactDob: bd }); }
-    }, 300);
-    // Stop polling after 5 seconds
-    const stop = setTimeout(() => clearInterval(timer), 5000);
-    return () => { clearInterval(timer); clearTimeout(stop); };
-  }, [uiStep]);
+  // Step 5 autofill polling removed — contact form is now post-payment
 
   // ── iOS keyboard handler: scroll focused input into view ──
   useEffect(() => {
@@ -1382,10 +1350,8 @@ export default function ExpressCheckoutPage() {
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none" }}>
 
-          {/* STEP 1: Reason for Visit */}
-          {reason ? (
-            <CompletedPill text={reason} onReset={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} />
-          ) : (
+          {/* STEP 1: Reason for Visit — hidden when answered */}
+          {!reason ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2 mb-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" /><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>
               <div className={`rounded-xl bg-transparent p-4 transition-all ${activeOrangeBorder}`}>
@@ -1397,10 +1363,8 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 2: Describe Symptoms */}
-          {reason && symptomsDone ? (
-            <CompletedPill text={chiefComplaint || "Symptoms described"} onReset={() => { setSymptomsDone(false); saveAnswers({ symptomsDone: false }); }} />
-          ) : reason && !symptomsDone ? (
+          {/* STEP 2: Describe Symptoms — hidden when answered */}
+          {reason && !symptomsDone ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
 <div className="flex items-center justify-center gap-2 mt-3 mb-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1421,10 +1385,8 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 3: Preferred Pharmacy */}
-          {reason && symptomsDone && pharmacy ? (
-            <PharmacyCompletedView />
-          ) : reason && symptomsDone && !pharmacy ? (
+          {/* STEP 3: Preferred Pharmacy — hidden when answered */}
+          {reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2 mt-3 mb-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1445,9 +1407,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
-          {reason && symptomsDone && pharmacy && visitTypeChosen ? (
-            <CompletedPill text={visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"} onReset={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} />
-          ) : reason && symptomsDone && pharmacy && !visitTypeChosen ? (
+          {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2 mt-3 mb-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1532,18 +1492,16 @@ export default function ExpressCheckoutPage() {
           </div>
           {/* END Step 4 wrapper */}
 
-          {/* STEP 4.5: Confirm */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed ? (
-            <CompletedPill text="✓ Booking Confirmed" onReset={() => { setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} />
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && !visitTypeConfirmed ? (
+          {/* STEP 4.5: Confirm & Pay */}
+          {reason && symptomsDone && pharmacy && visitTypeChosen ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                <span className="text-white text-[16px] font-black uppercase tracking-wide">Confirm</span>
+                <span className="text-white text-[16px] font-black uppercase tracking-wide">Confirm & Pay</span>
               </div>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
-                {/* Summary card */}
-                <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
+                {/* Summary card — collapses when card form is open for full screen */}
+                <div className="rounded-xl border border-white/10 overflow-hidden transition-all" style={{ background: "rgba(255,255,255,0.02)", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
                   <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-white/5">
                     <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
                     <div className="flex-1 min-w-0"><p className="text-white font-bold text-[13px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
@@ -1590,108 +1548,32 @@ export default function ExpressCheckoutPage() {
                   </div>
                 </div>
 
-                {/* Back + Continue */}
-                <div className="flex gap-2">
-                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "15px", lineHeight: 1 }}>←</span> Back</button>
-                  <button onClick={() => { setVisitTypeConfirmed(true); saveAnswers({ visitType, visitTypeChosen: true, visitTypeConfirmed: true }); }} className="flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 border-[#2dd4a0]/30" style={{ background: "#f97316" }}>Continue →</button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* STEP 5: Secure Contact — new patients only */}
-          {!isReturningPatient && reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && phoneConfirmed ? (
-            <CompletedPill text={`${contactFirstName} ${contactLastName} · ${(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return "(" + d.slice(0,3) + ") " + d.slice(3); return "(" + d.slice(0,3) + ") " + d.slice(3,6) + "-" + d.slice(6); })()}`} onReset={() => { setPhoneConfirmed(false); saveAnswers({ phoneConfirmed: false }); }} />
-          ) : !isReturningPatient && reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !phoneConfirmed ? (
-            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                <span className="text-white text-[16px] font-black uppercase tracking-wide">Secure Contact</span>
-              </div>
-              <div role="form" autoComplete="on" className={`rounded-xl bg-transparent p-4 space-y-2.5 transition-all ${activeOrangeBorder}`}>
-                <p className="text-white text-[11px] leading-relaxed font-medium">Your provider needs this info for pharmacy compliance and safe care.</p>
-
-                {/* First + Last name — side by side */}
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <label htmlFor="firstName" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
-                    <input type="text" id="firstName" name="given-name" autoComplete="given-name" value={contactFirstName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactFirstName(v); saveAnswers({ contactFirstName: v }); }} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
-                  </div>
-                  <div className="flex-1 relative">
-                    <label htmlFor="lastName" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
-                    <input type="text" id="lastName" name="family-name" autoComplete="family-name" value={contactLastName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactLastName(v); saveAnswers({ contactLastName: v }); }} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
-                  </div>
-                </div>
-
-                {/* Address — single line */}
-                <div className="relative">
-                  <label htmlFor="address" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
-                  <input type="text" id="address" name="street-address" autoComplete="street-address" value={contactAddress} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactAddress(v); saveAnswers({ contactAddress: v }); }} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
-                </div>
-
-                {/* DOB + Phone — side by side */}
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <label htmlFor="bday" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
-                    <input type="text" inputMode="numeric" id="bday" name="bday" autoComplete="bday" value={contactDob} onChange={(e) => {
-                      let v = e.target.value.replace(/[^\d/]/g, "");
-                      const digits = v.replace(/\D/g, "");
-                      if (digits.length >= 5) v = `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
-                      else if (digits.length >= 3) v = `${digits.slice(0,2)}/${digits.slice(2)}`;
-                      setContactDob(v); saveAnswers({ contactDob: v });
-                    }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="MM/DD/YYYY" />
-                  </div>
-                  <div className="flex-1 relative">
-                    <label htmlFor="phone" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
-                    <input type="tel" inputMode="tel" id="phone" name="tel" autoComplete="tel" value={contactPhone} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
-                  </div>
-                </div>
-
-                {/* Email — full width */}
-                <div className="relative">
-                  <label htmlFor="email" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
-                  <input type="email" inputMode="email" id="email" name="email" autoComplete="email" value={contactEmail} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactEmail(v); saveAnswers({ contactEmail: v }); }} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-2 pt-0.5">
-                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#00CBA9]/40" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "15px", lineHeight: 1 }}>←</span> Back</button>
-                  <button onClick={() => { setPhoneConfirmed(true); saveAnswers({ contactPhone, contactFirstName, contactLastName, contactAddress, contactDob, contactEmail, phoneConfirmed: true }); }} disabled={!contactFirstName.trim() || !contactLastName.trim() || !contactAddress.trim() || contactDob.replace(/\D/g, "").length < 8 || contactPhone.replace(/\D/g, "").length < 10 || !contactEmail.includes("@")} className={`flex-1 py-3 rounded-xl text-white font-bold text-[15px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 disabled:cursor-not-allowed ${contactFirstName.trim() && contactLastName.trim() && contactAddress.trim() && contactDob.replace(/\D/g, "").length >= 8 && contactPhone.replace(/\D/g, "").length >= 10 && contactEmail.includes("@") ? "border-[#00CBA9]/40" : "border-[#f97316]"}`} style={{ background: "#f97316" }}>Continue →</button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {/* STEP 6: Payment — Express wallets first, card fallback */}
-          <div ref={step6Ref}>
-          {uiStep === 6 && (() => { console.log("[Step6 Render] clientSecret:", clientSecret ? "SET" : "EMPTY", "stripeOptions:", stripeOptions ? "SET" : "UNDEF", "error:", paymentIntentError); return true; })() && (
-            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-3 space-y-2.5 transition-all ${activeOrangeBorder}`}>
+                {/* Payment — Express wallets + card fallback */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
                   </Elements>
                 ) : paymentIntentError ? (
-                  <div className="space-y-2 py-2">
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-center">
+                  <div className="space-y-2 py-1">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-center">
                       <p className="text-red-400 text-[11px] font-semibold mb-1">Payment setup failed</p>
                       <p className="text-gray-400 text-[9px]">{paymentIntentError}</p>
                     </div>
-                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>
-                      Retry Payment Setup
-                    </button>
+                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>Retry</button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-6 gap-2">
+                  <div className="flex flex-col items-center justify-center py-4 gap-2">
                     <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
-                    <p className="text-gray-400 text-[11px]">Loading payment…</p>
+                    <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
                 {/* Back button */}
                 <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
             </div>
-          )}
+          ) : null}
+
+
           </div>
 
         </div>
@@ -1848,6 +1730,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
