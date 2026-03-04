@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
+import { useStripe, useElements, PaymentElement, ExpressCheckoutElement } from "@stripe/react-stripe-js";
 import {
   Zap, Calendar, ChevronDown, X, Clock, Lock, Search,
   Phone, Video, Pill, Camera, AlertTriangle, Shield, Check, Star, Upload,
@@ -118,6 +118,92 @@ function Step2PaymentForm({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [elementReady, setElementReady] = useState(false);
   const [payInFlight, setPayInFlight] = useState(false);
+  const [expressVisible, setExpressVisible] = useState(false);
+
+  // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
+  const handleExpressConfirm = async () => {
+    setError(null);
+    setPayInFlight(true);
+    try {
+      let patientId = patient.id;
+      if (!patientId) {
+        const createRes = await fetch("/api/check-create-patient", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
+            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
+            address: patient.address, pharmacy: pharmacy || patient.pharmacy || "",
+            pharmacyAddress: pharmacyAddress || "",
+          }),
+        });
+        const createResult = await createRes.json();
+        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
+        patientId = createResult.patientId;
+      }
+
+      if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
+
+      const { error: submitError } = await elements.submit();
+      if (submitError) { setError(submitError.message || "Payment failed."); setPayInFlight(false); return; }
+
+      const result = await stripe.confirmPayment({
+        elements, redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}/success`,
+          payment_method_data: { billing_details: { name: `${patient.firstName} ${patient.lastName}`, email: patient.email, phone: patient.phone } },
+        },
+      });
+
+      if (result.error) { setError(result.error.message || "Payment failed."); setPayInFlight(false); return; }
+
+      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+
+      if (result.paymentIntent?.status === "succeeded") {
+        const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const isAsync = visitType === "instant" || visitType === "refill";
+        let fullChiefComplaint = chiefComplaint || reason;
+        if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
+        if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
+
+        const appointmentPayload = {
+          payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
+          appointmentData: {
+            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
+            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
+            streetAddress: patient.address, symptoms: reason, chief_complaint: fullChiefComplaint,
+            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
+            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: true,
+            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
+            browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
+          },
+        };
+
+        const appointmentRes = await fetch("/api/create-appointment", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(appointmentPayload),
+        });
+        const appointmentResult = await appointmentRes.json();
+        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+
+        setProgress(100); setStatusText("Appointment booked!");
+        sessionStorage.setItem("appointmentData", JSON.stringify({
+          ...appointmentPayload.appointmentData,
+          appointmentId: appointmentResult.appointmentId,
+          accessToken: appointmentResult.accessToken,
+          payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
+        }));
+        clearAnswers();
+        await new Promise((r) => setTimeout(r, 800));
+        onSuccess();
+      }
+    } catch (err: any) {
+      console.error("Express checkout error:", err);
+      setError(err.message || "Something went wrong. Please try again.");
+      setIsProcessing(false);
+      setPayInFlight(false);
+    }
+  };
   
 
   // Production mode — real Stripe payments
@@ -303,14 +389,41 @@ function Step2PaymentForm({
         ) : (
           /* Real payment — wallets + card */
           <div className="space-y-2">
-            {/* PaymentElement with wallets auto-detected (Google Pay, Apple Pay, Link shown first) */}
+            {/* Express Checkout — one-tap Apple Pay / Google Pay buttons */}
+            <div style={{ visibility: expressVisible ? "visible" : "hidden", marginBottom: expressVisible ? "8px" : "0", height: expressVisible ? "auto" : "0" }}>
+              <ExpressCheckoutElement
+                onConfirm={handleExpressConfirm}
+                onReady={({ availablePaymentMethods }) => { if (availablePaymentMethods) setExpressVisible(true); }}
+                options={{
+                  buttonType: { applePay: "buy", googlePay: "buy" },
+                  buttonTheme: { applePay: "black", googlePay: "black" },
+                  buttonHeight: 48,
+                }}
+              />
+            </div>
+            {/* Divider — only when express buttons are visible */}
+            {expressVisible && (
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-white/10" />
+                <span className="text-gray-500 text-[10px] font-semibold uppercase">or pay with card</span>
+                <div className="flex-1 h-px bg-white/10" />
+              </div>
+            )}
+            {/* PaymentElement — card only (wallets hidden when ExpressCheckout is present) */}
             <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1">
               <PaymentElement onReady={() => setElementReady(true)} options={{
                 layout: "tabs",
-                paymentMethodOrder: ["apple_pay", "google_pay", "card"],
-                wallets: { applePay: "auto", googlePay: "auto" },
+                paymentMethodOrder: ["card"],
+                wallets: { applePay: "never", googlePay: "never" },
                 fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
               }} />
+            </div>
+            {/* Terms checkbox — above pay button so user sees it first */}
+            <div className="flex items-start gap-1.5">
+              <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
+              <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
+                By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time. Visit fees are collected separately after provider review.
+              </label>
             </div>
             {/* Pay button */}
             <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady || payInFlight} className="w-full text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
@@ -318,14 +431,6 @@ function Step2PaymentForm({
             </button>
           </div>
         )}
-
-        {/* Terms checkbox */}
-        <div className="flex items-start gap-1.5">
-          <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
-          <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-            By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time. Visit fees are collected separately after provider review.
-          </label>
-        </div>
       </div>
     </>
   );
@@ -624,7 +729,27 @@ export default function ExpressCheckoutPage() {
 
   const stripeOptions = useMemo(() => clientSecret ? {
     clientSecret,
-    appearance: { theme: "night" as const, variables: { colorPrimary: "#00CBA9", colorBackground: "#11161c", colorText: "#ffffff", borderRadius: "8px" } },
+    appearance: {
+      theme: "night" as const,
+      variables: {
+        colorPrimary: "#f97316",
+        colorBackground: "#0d1218",
+        colorText: "#ffffff",
+        colorTextSecondary: "#9ca3af",
+        borderRadius: "12px",
+        spacingUnit: "4px",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+      },
+      rules: {
+        ".Tab": { border: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0d1218" },
+        ".Tab--selected": { border: "2px solid #f97316", backgroundColor: "rgba(249,115,22,0.08)", color: "#ffffff" },
+        ".Tab:hover": { border: "1px solid rgba(255,255,255,0.2)" },
+        ".TabIcon--selected": { fill: "#f97316" },
+        ".Label": { color: "#9ca3af", fontSize: "12px" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", color: "#ffffff" },
+        ".Input:focus": { border: "1px solid #f97316", boxShadow: "0 0 0 1px #f97316" },
+      },
+    },
   } : undefined, [clientSecret]);
 
   const filteredReasons = useMemo(() => {
@@ -1716,6 +1841,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
