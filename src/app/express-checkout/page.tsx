@@ -116,18 +116,11 @@ function Step2PaymentForm({
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
 
-  // For new patients, build patient data from Stripe billing_details + DOB
-  const getPatientData = (billingDetails?: any) => {
+  const getPatientData = () => {
     if (!isNewPatient) {
       return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
     }
-    // New patient — use Stripe-collected billing details
-    const bd = billingDetails || {};
-    const nameParts = (bd.name || "").trim().split(/\s+/);
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
-    const addr = bd.address ? [bd.address.line1, bd.address.line2, bd.address.city, bd.address.state, bd.address.postal_code].filter(Boolean).join(", ") : "";
-    return { email: bd.email || "", firstName, lastName, phone: bd.phone || "", dateOfBirth: newDobISO, address: addr };
+    return { email: patient.email || "", firstName: patient.firstName || "", lastName: patient.lastName || "", phone: patient.phone || "", dateOfBirth: newDobISO, address: patient.address || "" };
   };
 
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
@@ -397,12 +390,10 @@ function Step2PaymentForm({
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
 
         {isTestMode ? (
-          /* Test mode — simple button */
-          <button onClick={handlePay} disabled={!acceptedTerms || (isNewPatient && !newDobComplete)} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 font-bold text-white text-[14px]" style={{ background: "#f97316" }}>
+          <button onClick={handlePay} disabled={!acceptedTerms || (isNewPatient && !newDobComplete)} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-40 font-bold text-white text-[14px]" style={{ background: "#f97316" }}>
             🧪 Test Pay — {currentPrice.display}
           </button>
         ) : (
-          /* Real payment — wallets + card */
           <div className="space-y-2">
             {/* Express Checkout — one-tap Apple Pay / Google Pay / Link */}
             <div style={{ visibility: expressVisible ? "visible" : "hidden", height: expressVisible ? "auto" : "0" }}>
@@ -427,31 +418,37 @@ function Step2PaymentForm({
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Card form — collapsed by default if express is available */}
-            {showCardForm || !expressVisible ? (
+            {/* Card form — ALWAYS open for new patients, collapsed for returning */}
+            {showCardForm || !expressVisible || isNewPatient ? (
               <>
                 {/* DOB field — new patients only */}
                 {isNewPatient && (
-                  <div className="space-y-1">
-                    <label className="text-[#9ca3af] text-[12px] font-medium">Date of Birth</label>
+                  <div className="space-y-1.5">
+                    <label className="text-white text-[12px] font-semibold">Date of Birth</label>
                     <div className="flex gap-2">
                       <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 bg-[#0b0f0c] border border-white/10 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none focus:border-[#f97316] placeholder:text-gray-600"
+                        className="flex-1 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
+                        onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
+                        onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 bg-[#0b0f0c] border border-white/10 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none focus:border-[#f97316] placeholder:text-gray-600"
+                        className="flex-1 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
+                        onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
+                        onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
                         onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-[1.5] bg-[#0b0f0c] border border-white/10 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none focus:border-[#f97316] placeholder:text-gray-600"
+                        className="flex-[1.5] rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
+                        onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
+                        onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1">
+                <div className="rounded-xl border border-[#2dd4a0]/30 p-1" style={{ background: "rgba(0,0,0,0.15)" }}>
                   <PaymentElement onReady={() => setElementReady(true)} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
@@ -465,14 +462,12 @@ function Step2PaymentForm({
 
                 {/* Sticky terms + pay button */}
                 <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 8px), 8px)" }}>
-                  {/* Terms */}
                   <div className="flex items-start gap-1.5 mb-2">
-                    <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#f97316' }} />
+                    <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
                       By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
                     </label>
                   </div>
-                  {/* Pay button — bright solid orange */}
                   <button onClick={handlePay} disabled={!canPay} className="w-full text-white font-extrabold py-3.5 rounded-xl transition-all disabled:opacity-40 text-[14px] flex items-center justify-center gap-2" style={{ background: "#f97316", boxShadow: canPay ? "0 4px 16px rgba(249,115,22,0.3)" : "none" }}>
                     <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
                   </button>
@@ -534,9 +529,9 @@ export default function ExpressCheckoutPage() {
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [reasonQuery, setReasonQuery] = useState("");
   const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
-  const [dateTimeMode, setDateTimeMode] = useState<"date" | "time">("date");
-  const [viewYear, setViewYear] = useState(new Date().getFullYear());
-  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
+  const [calWeekOffset, setCalWeekOffset] = useState(0);
+  const [calSelectedDay, setCalSelectedDay] = useState("");
+  const [calSelectedTime, setCalSelectedTime] = useState("");
 
   // Guided Sequence State
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
@@ -786,22 +781,24 @@ export default function ExpressCheckoutPage() {
     appearance: {
       theme: "night" as const,
       variables: {
-        colorPrimary: "#f97316",
-        colorBackground: "#0d1218",
+        colorPrimary: "#2dd4a0",
+        colorBackground: "#0b0f0c",
         colorText: "#ffffff",
-        colorTextSecondary: "#9ca3af",
+        colorTextSecondary: "#ffffff",
+        colorTextPlaceholder: "#6b7280",
         borderRadius: "12px",
         spacingUnit: "4px",
         fontFamily: "system-ui, -apple-system, sans-serif",
       },
       rules: {
-        ".Tab": { border: "1px solid rgba(255,255,255,0.1)", backgroundColor: "#0d1218" },
-        ".Tab--selected": { border: "2px solid #f97316", backgroundColor: "rgba(249,115,22,0.08)", color: "#ffffff" },
-        ".Tab:hover": { border: "1px solid rgba(255,255,255,0.2)" },
-        ".TabIcon--selected": { fill: "#f97316" },
-        ".Label": { color: "#9ca3af", fontSize: "12px" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.08)", color: "#ffffff" },
-        ".Input:focus": { border: "1px solid #f97316", boxShadow: "0 0 0 1px #f97316" },
+        ".Tab": { border: "1px solid rgba(45,212,160,0.3)", backgroundColor: "#0b0f0c" },
+        ".Tab--selected": { border: "2px solid #2dd4a0", backgroundColor: "rgba(45,212,160,0.08)", color: "#ffffff" },
+        ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
+        ".TabIcon--selected": { fill: "#2dd4a0" },
+        ".Label": { color: "#ffffff", fontSize: "12px", fontWeight: "600" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)", color: "#ffffff" },
+        ".Input:focus": { border: "1px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
+        ".Input::placeholder": { color: "#6b7280" },
       },
     },
   } : undefined, [clientSecret]);
@@ -1374,6 +1371,7 @@ export default function ExpressCheckoutPage() {
         @keyframes fadeInStep { from { opacity:0; transform:translateY(20px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes fadeInPill { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes pillIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUpCalendar { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
@@ -1517,13 +1515,13 @@ export default function ExpressCheckoutPage() {
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">See your provider live on video — just like an in-office visit.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Real-time</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">HIPAA encrypted</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Pick a time</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("video"); setVisitTypeChosen(true); saveAnswers({ visitType: "video", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("video"); setVisitTypeChosen(true); saveAnswers({ visitType: "video", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay(""); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "phone" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#a855f7]/15 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[9px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Connect by phone or text — same quality care, no video.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setDateTimeMode("date"); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay(""); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
               </div>
@@ -1647,101 +1645,106 @@ export default function ExpressCheckoutPage() {
         </div>
       )}
 
-      {/* ═══ DATE/TIME DIALOG — FULLSCREEN MOBILE CALENDAR ═══ */}
+      {/* ═══ DATE/TIME DIALOG — SLIDE-UP HORIZONTAL DAY-STRIP ═══ */}
       {dateTimeDialogOpen && (() => {
-        const today = new Date();
-        const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-        const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
-        const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        const dayLabels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-
-        const isDatePast = (day: number) => {
-          const d = new Date(viewYear, viewMonth, day);
-          const t = new Date(); t.setHours(0,0,0,0);
-          return d < t;
-        };
-
-        const formatDateStr = (day: number) => `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-
+        const today = new Date(); today.setHours(0,0,0,0);
+        const baseDate = new Date(today); baseDate.setDate(baseDate.getDate() + calWeekOffset * 7);
+        const weekDays: { date: Date; label: string; dayNum: number; monthShort: string; iso: string; isPast: boolean }[] = [];
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(baseDate); d.setDate(d.getDate() + i);
+          const dd = new Date(d); dd.setHours(0,0,0,0);
+          weekDays.push({
+            date: d,
+            label: d.toLocaleDateString("en-US", { weekday: "short" }),
+            dayNum: d.getDate(),
+            monthShort: d.toLocaleDateString("en-US", { month: "short" }),
+            iso: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`,
+            isPast: dd < today,
+          });
+        }
+        const monthLabel = baseDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
         const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"];
-
-        const convertTo24 = (t: string) => {
-          const [time, period] = t.split(" ");
-          let [h, m] = time.split(":").map(Number);
-          if (period === "PM" && h !== 12) h += 12;
-          if (period === "AM" && h === 12) h = 0;
-          return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
-        };
-
-        const prevMonth = () => { if (viewMonth === 0) { setViewYear(viewYear-1); setViewMonth(11); } else setViewMonth(viewMonth-1); };
-        const nextMonth = () => { if (viewMonth === 11) { setViewYear(viewYear+1); setViewMonth(0); } else setViewMonth(viewMonth+1); };
+        const convertTo24 = (t: string) => { const [time, period] = t.split(" "); let [h, m] = time.split(":").map(Number); if (period === "PM" && h !== 12) h += 12; if (period === "AM" && h === 12) h = 0; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; };
 
         return (
-          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#0a0e14" }}>
+          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#0b0f0c", animation: "slideUpCalendar 0.3s ease-out" }}>
             {/* Header */}
             <div className="flex justify-between items-center px-5 pt-4 pb-2 flex-shrink-0">
               <div>
-                <h2 className="text-white font-black text-xl">{dateTimeMode === "date" ? "Pick a Date" : "Pick a Time"}</h2>
-                <p className="text-gray-400 text-sm">For your {visitType === "video" ? "video" : "phone"} visit</p>
+                <h2 className="text-white font-black text-xl">Pick a Date & Time</h2>
+                <p className="text-gray-400 text-sm">For your {visitType === "video" ? "📹 video" : "📞 phone"} visit</p>
               </div>
               <button onClick={() => setDateTimeDialogOpen(false)} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><X size={22} /></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ scrollbarWidth: "none" }}>
-              {dateTimeMode === "date" ? (
-                <div className="space-y-4">
-                  {/* Month nav */}
-                  <div className="flex items-center justify-between px-2">
-                    <button onClick={prevMonth} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold">‹</button>
-                    <span className="text-white font-bold text-lg">{monthNames[viewMonth]} {viewYear}</span>
-                    <button onClick={nextMonth} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold">›</button>
-                  </div>
-                  {/* Day labels */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {dayLabels.map(d => (<div key={d} className="text-center text-gray-400 text-sm font-bold py-1">{d}</div>))}
-                  </div>
-                  {/* Days grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {Array.from({ length: firstDayOfWeek }).map((_, i) => (<div key={`e-${i}`} />))}
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                      const day = i + 1;
-                      const dateStr = formatDateStr(day);
-                      const isPast = isDatePast(day);
-                      const isSelected = appointmentDate === dateStr;
-                      const isToday = day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
-                      return (
-                        <button key={day} disabled={isPast} onClick={() => { setAppointmentDate(dateStr); setDateTimeMode("time"); saveAnswers({ appointmentDate: dateStr }); }}
-                          className={`aspect-square rounded-xl flex flex-col items-center justify-center text-base font-bold transition-all ${isPast ? "text-gray-700 cursor-not-allowed" : isSelected ? "bg-[#2dd4a0]/10 border-2 border-[#2dd4a0] text-[#2dd4a0]" : isToday ? "bg-[#2dd4a0]/20 text-[#2dd4a0] border-2 border-[#2dd4a0]" : "text-white bg-white/5 hover:bg-white/10 active:bg-[#2dd4a0]/30"}`}>
-                          {day}
-                          {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4a0] mt-0.5" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-gray-500 text-xs text-center">Times shown in your timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {/* Selected date display */}
-                  <button onClick={() => setDateTimeMode("date")} className="flex items-center gap-2 text-[#2dd4a0] text-sm font-semibold hover:underline">
-                    ← {appointmentDate && (() => { const [y,m,d] = appointmentDate.split("-").map(Number); return `${monthNames[m-1]} ${d}, ${y}`; })()}
+            {/* Month label + week nav */}
+            <div className="flex items-center justify-between px-5 pb-2">
+              <button onClick={() => setCalWeekOffset(Math.max(0, calWeekOffset - 1))} disabled={calWeekOffset === 0} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white disabled:opacity-30 text-lg font-bold">‹</button>
+              <span className="text-white font-bold text-base">{monthLabel}</span>
+              <button onClick={() => setCalWeekOffset(calWeekOffset + 1)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white text-lg font-bold">›</button>
+            </div>
+
+            {/* Horizontal day strip */}
+            <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+              {weekDays.map(wd => {
+                const isSelected = calSelectedDay === wd.iso;
+                const isToday = wd.iso === `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+                return (
+                  <button key={wd.iso} disabled={wd.isPast} onClick={() => { setCalSelectedDay(wd.iso); setCalSelectedTime(""); }}
+                    className={`flex-shrink-0 flex flex-col items-center w-[52px] py-2.5 rounded-xl border-2 transition-all ${wd.isPast ? "opacity-30 border-white/5 cursor-not-allowed" : isSelected ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-white" : isToday ? "border-[#2dd4a0]/50 bg-[#2dd4a0]/5 text-white" : "border-white/10 bg-white/[0.02] text-gray-400 hover:border-white/20"}`}>
+                    <span className="text-[8px] font-bold uppercase">{wd.label}</span>
+                    <span className="text-[18px] font-black leading-tight">{wd.dayNum}</span>
+                    <span className="text-[8px]">{wd.monthShort}</span>
+                    {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4a0] mt-0.5" />}
                   </button>
-                  <p className="text-white font-bold text-lg">Available Times</p>
-                  <div className="grid grid-cols-2 gap-2">
+                );
+              })}
+            </div>
+
+            {/* Time slots */}
+            <div className="flex-1 overflow-y-auto px-4 pb-6" style={{ scrollbarWidth: "none" }}>
+              {calSelectedDay ? (
+                <div className="space-y-2">
+                  <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">Available Times</p>
+                  <div className="grid grid-cols-3 gap-2">
                     {timeSlots.map(slot => {
                       const t24 = convertTo24(slot);
-                      const isSelected = appointmentTime === t24;
+                      const isSel = calSelectedTime === t24;
                       return (
-                        <button key={slot} onClick={() => { setAppointmentTime(t24); saveAnswers({ appointmentTime: t24 }); setDateTimeDialogOpen(false); }}
-                          className={`py-3.5 rounded-xl text-base font-bold transition-all ${isSelected ? "bg-[#2dd4a0]/10 border-2 border-[#2dd4a0] text-[#2dd4a0]" : "bg-white/5 text-white hover:bg-white/10 active:bg-[#2dd4a0]/30 border border-white/10"}`}>
+                        <button key={slot} onClick={() => setCalSelectedTime(t24)}
+                          className={`py-3 rounded-xl text-[13px] font-bold transition-all ${isSel ? "bg-[#2dd4a0]/10 border-2 border-[#2dd4a0] text-[#2dd4a0]" : "bg-white/5 text-white hover:bg-white/10 active:bg-[#2dd4a0]/20 border border-white/10"}`}>
                           {slot}
                         </button>
                       );
                     })}
                   </div>
+                  <p className="text-gray-600 text-[9px] text-center mt-1">{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Calendar size={32} className="text-gray-600 mb-3" />
+                  <p className="text-gray-500 text-sm">Select a day above</p>
                 </div>
               )}
             </div>
+
+            {/* Confirm button */}
+            {calSelectedDay && calSelectedTime && (
+              <div className="flex-shrink-0 px-4 pb-4 pt-2" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 16px), 16px)" }}>
+                <div className="bg-[#2dd4a0]/5 border border-[#2dd4a0]/20 rounded-xl px-3 py-2 mb-3 text-center">
+                  <p className="text-[11px] text-gray-300">
+                    <span className="text-[#2dd4a0] font-bold">{visitType === "video" ? "📹 Video" : "📞 Phone"} Visit</span>{" · "}
+                    <span className="text-white font-semibold">
+                      {new Date(calSelectedDay + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at {(() => { const [h, m] = calSelectedTime.split(":").map(Number); const hr = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; })()}
+                    </span>
+                  </p>
+                </div>
+                <button onClick={() => { setAppointmentDate(calSelectedDay); setAppointmentTime(calSelectedTime); saveAnswers({ appointmentDate: calSelectedDay, appointmentTime: calSelectedTime }); setDateTimeDialogOpen(false); }}
+                  className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] border border-[#2dd4a0]" style={{ background: "rgba(45,212,160,0.08)", color: "#fff" }}>
+                  <Check size={16} /> Confirm Appointment
+                </button>
+              </div>
+            )}
           </div>
         );
       })()}
@@ -1764,6 +1767,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
