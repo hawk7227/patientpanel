@@ -427,23 +427,23 @@ function Step2PaymentForm({
                 {/* DOB field — new patients only */}
                 {isNewPatient && (
                   <div className="space-y-1.5">
-                    <label className="text-white text-[12px] font-semibold">Date of Birth</label>
+                    <label className="text-white text-[11px] font-semibold">Date of Birth</label>
                     <div className="flex gap-2">
                       <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
                         onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
                         onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
                         onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
                         onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
                         onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-[1.5] rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
                         onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
                         onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
                       />
@@ -789,19 +789,22 @@ export default function ExpressCheckoutPage() {
         colorText: "#ffffff",
         colorTextSecondary: "#ffffff",
         colorTextPlaceholder: "#6b7280",
-        borderRadius: "12px",
-        spacingUnit: "4px",
+        borderRadius: "10px",
+        spacingUnit: "3px",
         fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSizeBase: "13px",
+        fontSizeSm: "11px",
       },
       rules: {
-        ".Tab": { border: "1px solid rgba(45,212,160,0.3)", backgroundColor: "#0b0f0c" },
+        ".Tab": { border: "1px solid rgba(45,212,160,0.3)", backgroundColor: "#0b0f0c", padding: "8px 0" },
         ".Tab--selected": { border: "2px solid #2dd4a0", backgroundColor: "rgba(45,212,160,0.08)", color: "#ffffff" },
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
-        ".Label": { color: "#ffffff", fontSize: "12px", fontWeight: "600" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)", color: "#ffffff" },
+        ".Label": { color: "#ffffff", fontSize: "11px", fontWeight: "600" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
         ".Input:focus": { border: "1px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
         ".Input::placeholder": { color: "#6b7280" },
+        ".Block": { padding: "8px 0" },
       },
     },
   } : undefined, [clientSecret]);
@@ -1519,13 +1522,13 @@ export default function ExpressCheckoutPage() {
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">See your provider live on video — just like an in-office visit.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Real-time</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">HIPAA encrypted</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Pick a time</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("video"); setVisitTypeChosen(true); saveAnswers({ visitType: "video", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay(""); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("video"); setVisitTypeChosen(true); saveAnswers({ visitType: "video", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "phone" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#a855f7]/15 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[9px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Connect by phone or text — same quality care, no video.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay(""); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
               </div>
@@ -1821,6 +1824,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
