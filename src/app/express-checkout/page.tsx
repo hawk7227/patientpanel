@@ -235,6 +235,7 @@ function Step2PaymentForm({
       if (paymentIntent?.status === "succeeded") {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
+  const isReturningPatient = patient?.source !== "new" && !!patient?.id;
         let fullChiefComplaint = chiefComplaint || reason;
         if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
@@ -396,6 +397,9 @@ export default function ExpressCheckoutPage() {
   const [contactDob, setContactDob] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [phoneConfirmed, setPhoneConfirmed] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutTermsAccepted, setCheckoutTermsAccepted] = useState(false);
 
   // Post-payment intake form
   const [intakePhase, setIntakePhase] = useState(false);
@@ -650,6 +654,58 @@ export default function ExpressCheckoutPage() {
     setIntakePhase(true);
   };
 
+  // ── Stripe Checkout Session redirect ──
+  const handleCheckoutRedirect = async () => {
+    if (!checkoutTermsAccepted) { setCheckoutError("Please accept the terms to continue."); return; }
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      // Build chief complaint
+      let fullCC = chiefComplaint || reason;
+      if (selectedMeds.length > 0) fullCC = `Rx Refill: ${selectedMeds.join(", ")}. ${fullCC}`;
+      if (symptomsText) fullCC = `${fullCC}\n\nAdditional symptoms: ${symptomsText}`;
+
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          visit_amount: visitFeePrice.amount,
+          patient_email: patient?.email || contactEmail,
+          patient_first_name: patient?.firstName || contactFirstName,
+          patient_last_name: patient?.lastName || contactLastName,
+          patient_phone: patient?.phone || contactPhone,
+          patient_dob: convertDateToISO(patient?.dateOfBirth || contactDob),
+          patient_address: patient?.address || contactAddress,
+          patient_id: patient?.id || null,
+          reason,
+          chief_complaint: fullCC,
+          visit_type: visitType,
+          appointment_date: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
+          appointment_time: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+          pharmacy: pharmacy || patient?.pharmacy || "",
+          pharmacy_address: pharmacyAddress || "",
+          selected_medications: selectedMeds.join(", "),
+          symptoms_text: symptomsText,
+          browser_info: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
+          is_returning_patient: isReturningPatient,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
+
+      // Store visit intent ID for post-payment flows
+      if (data.visitIntentId) sessionStorage.setItem("visitIntentId", data.visitIntentId);
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.checkoutUrl;
+    } catch (err: any) {
+      console.error("[Checkout] Error:", err);
+      setCheckoutError(err.message || "Something went wrong. Please try again.");
+      setCheckoutLoading(false);
+    }
+  };
+
   // After intake is submitted, route to success/appointment
   const handleIntakeSubmit = async () => {
     setIntakeSubmitting(true);
@@ -717,11 +773,12 @@ export default function ExpressCheckoutPage() {
     if (!visitTypeChosen) return 4;
     if (!visitTypeConfirmed) return 4.5;
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return 4.5;
-    if (!phoneConfirmed) return 5;
+    // Returning patients skip Step 5 — contact info already on file
+    if (!isReturningPatient && !phoneConfirmed) return 5;
     return 6;
-  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed]);
+  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient]);
 
-  const totalSteps = 6;
+  const totalSteps = isReturningPatient ? 5 : 6;
 
   const uiStep = activeGuideStep;
   const headerIsStep5 = uiStep >= 6;
@@ -1162,32 +1219,18 @@ export default function ExpressCheckoutPage() {
   const activeOrangeBorder = "border-[3px] border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.5)]";
 
   const CompletedPill = ({ text, onReset, subText }: { text: string; onReset: () => void; subText?: string }) => (
-    <button onClick={onReset} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-      <div className="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Check size={14} className="text-gray-500" strokeWidth={3} /></div>
-      <span className="text-gray-500 text-[11px] font-semibold truncate flex-1 text-left">{text}</span>
-      <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
+    <button onClick={onReset} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.3s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      <span className="text-gray-500 text-[10px] font-semibold truncate flex-1 text-left">{text}</span>
+      <span className="text-[#2dd4a0]/60 text-[9px] font-semibold flex-shrink-0">change</span>
     </button>
   );
 
   const PharmacyCompletedView = () => (
     <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null }); }}
-      className="w-full rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all overflow-hidden" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-      <div className="px-3 py-1 border-b border-white/5 flex items-center gap-2">
-        <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><Check size={12} className="text-gray-500" strokeWidth={3} /></div>
-        <span className="text-gray-500 text-[10px] font-bold uppercase tracking-wider">Preferred Pharmacy</span>
-      </div>
-      <div className="flex items-center gap-3 px-3 py-2">
-        {pharmacyInfo?.photo ? (
-          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-white/5 opacity-50"><img src={pharmacyInfo.photo} alt={pharmacy} className="w-full h-full object-cover" /></div>
-        ) : (
-          <div className="w-10 h-10 rounded-lg bg-[#11161c] border border-white/5 flex items-center justify-center flex-shrink-0"><Pill size={14} className="text-gray-700" /></div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-gray-500 font-semibold text-[11px] truncate">{pharmacy}</p>
-          {pharmacyInfo?.address && <p className="text-gray-600 text-[8px] truncate">{pharmacyInfo.address}</p>}
-        </div>
-        <span className="text-white text-[10px] font-semibold flex-shrink-0">Tap to<br/>change</span>
-      </div>
+      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.3s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      <Pill size={12} className="text-gray-600 flex-shrink-0" />
+      <span className="text-gray-500 text-[10px] font-semibold truncate flex-1 text-left">{pharmacy}</span>
+      <span className="text-[#2dd4a0]/60 text-[9px] font-semibold flex-shrink-0">change</span>
     </button>
   );
 
@@ -1207,41 +1250,24 @@ export default function ExpressCheckoutPage() {
       `}</style>
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
-        {/* ═══ CENTERED HEADER — auto-shrinks to fit ═══ */}
-        <div className={`flex-shrink-0 ${headerUltraCompact ? "pt-1 pb-0.5" : headerIsStep5 ? "pt-1.5 pb-0.5" : "pt-2 pb-1"}`}>
-          {/* Logo + Brand — compact row */}
-          <div className={`flex items-center justify-center gap-1.5 ${headerUltraCompact ? "mb-0" : "mb-0.5"}`}>
+        {/* ═══ STICKY HEADER — logo + subtitle + heading + progress bar ═══ */}
+        <div className="flex-shrink-0 sticky top-0 z-10 pb-1.5 pt-2" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)" }}>
+          {/* Logo + Brand */}
+          <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
               <Shield size={13} className="text-[#2dd4a0]" />
             </div>
             <span className="text-white font-bold text-[15px] tracking-tight">Medazon <span className="text-[#2dd4a0]">Health</span></span>
           </div>
-          {/* Subtitle — auto-shrink */}
-          {!headerIsStep5 && (
-            <p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-[0.2em] mb-1 text-center">Private · Discreet</p>
-          )}
-          {headerIsStep5 && headerUltraCompact && <p className="text-gray-500 text-[9px] font-semibold mt-0.5 text-center">Review and pay to reserve your provider.</p>}
-
-          {/* Main heading — dynamic pill text */}
-          <h1 key={pillText} className={`text-white font-black leading-tight text-center ${headerIsStep5 ? "mb-0.5" : "mb-1"}`} style={{ fontSize: headerIsStep5 ? "clamp(20px, 5.5vw, 26px)" : "clamp(22px, 6.5vw, 28px)" }}>
+          {/* Subtitle */}
+          <p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-[0.2em] mb-0.5 text-center">Private · Discreet</p>
+          {/* Heading — dynamic pill text */}
+          <h1 key={pillText} className="text-white font-black leading-tight text-center mb-1" style={{ fontSize: "clamp(20px, 5.5vw, 26px)" }}>
             {pillText}
-          </h1>        </div>
-
-        
-        {/* ═══ WELCOME + PROGRESS ═══ */}
-        <div className={`flex-shrink-0 ${headerIsStep5 ? "pb-0.5" : "pb-1"}`}>
-          {patient.source !== "new" && patient.firstName && (
-            <div className="flex items-center gap-2 mb-1">
-              <Zap size={12} className="text-[#f97316]" />
-              <span className="text-[#f97316] font-semibold text-[11px]">Welcome back, {patient.firstName}!</span>
-            </div>
-          )}
-
+          </h1>
           {/* Progress bar */}
-          <div className="w-full mt-1">
-            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
-            </div>
+          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
 
@@ -1420,7 +1446,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
                     <div className="flex items-center gap-2">
                       <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2dd4a0]/15 border border-[#2dd4a0]/30 text-[#2dd4a0] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
-                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
+                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
                   <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
@@ -1429,14 +1455,14 @@ export default function ExpressCheckoutPage() {
                       <span className="text-white text-[13px] font-semibold">
                         {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
-                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
+                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
                   <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                     <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
-                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">Tap to change</button>
+                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
                   {selectedMeds.length > 0 && (
@@ -1466,10 +1492,10 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 5: Secure Contact */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && phoneConfirmed ? (
+          {/* STEP 5: Secure Contact — new patients only */}
+          {!isReturningPatient && reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && phoneConfirmed ? (
             <CompletedPill text={`${contactFirstName} ${contactLastName} · ${(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return "(" + d.slice(0,3) + ") " + d.slice(3); return "(" + d.slice(0,3) + ") " + d.slice(3,6) + "-" + d.slice(6); })()}`} onReset={() => { setPhoneConfirmed(false); saveAnswers({ phoneConfirmed: false }); }} />
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !phoneConfirmed ? (
+          ) : !isReturningPatient && reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !phoneConfirmed ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1482,25 +1508,25 @@ export default function ExpressCheckoutPage() {
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
-                    <input type="text" autoComplete="given-name" value={contactFirstName} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
+                    <input type="text" name="firstName" autoComplete="given-name" value={contactFirstName} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
                   </div>
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
-                    <input type="text" autoComplete="family-name" value={contactLastName} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
+                    <input type="text" name="lastName" autoComplete="family-name" value={contactLastName} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
                   </div>
                 </div>
 
                 {/* Address — single line */}
                 <div className="relative">
                   <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
-                  <input type="text" autoComplete="street-address" value={contactAddress} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
+                  <input type="text" name="address" autoComplete="street-address" value={contactAddress} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
                 </div>
 
                 {/* DOB + Phone — side by side */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
-                    <input type="text" inputMode="numeric" autoComplete="bday" value={contactDob} onChange={(e) => {
+                    <input type="text" inputMode="numeric" name="bday" autoComplete="bday" value={contactDob} onChange={(e) => {
                       let v = e.target.value.replace(/[^\d/]/g, "");
                       const digits = v.replace(/\D/g, "");
                       if (digits.length >= 5) v = `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
@@ -1510,14 +1536,14 @@ export default function ExpressCheckoutPage() {
                   </div>
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
-                    <input type="tel" inputMode="tel" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
+                    <input type="tel" inputMode="tel" name="phone" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
                   </div>
                 </div>
 
                 {/* Email — full width */}
                 <div className="relative">
                   <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
-                  <input type="email" inputMode="email" autoComplete="email" value={contactEmail} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
+                  <input type="email" inputMode="email" name="email" autoComplete="email" value={contactEmail} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
                 </div>
 
                 {/* Buttons */}
@@ -1529,36 +1555,63 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 6: Payment — inline, same page feel */}
+          {/* STEP 6: Payment — Stripe Checkout Session redirect */}
           <div ref={step6Ref}>
-          {uiStep === 6 && (() => { console.log("[Step6 Render] clientSecret:", clientSecret ? "SET" : "EMPTY", "stripeOptions:", stripeOptions ? "SET" : "UNDEF", "error:", paymentIntentError); return true; })() && (
+          {uiStep === 6 && (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
                 <span className="text-white text-[16px] font-black uppercase tracking-wide">Complete Payment</span>
               </div>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
-                {/* Stripe Payment — wallets (Apple Pay, Google Pay) load automatically */}
-                {clientSecret && stripeOptions ? (
-                  <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} />
-                  </Elements>
-                ) : paymentIntentError ? (
-                  <div className="space-y-2 py-2">
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-center">
-                      <p className="text-red-400 text-[11px] font-semibold mb-1">Payment setup failed</p>
-                      <p className="text-gray-400 text-[9px]">{paymentIntentError}</p>
-                    </div>
-                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>
-                      Retry Payment Setup
-                    </button>
+
+                {/* Order summary */}
+                <div className="rounded-xl bg-[#0d1218] border border-white/10 p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 text-[11px] font-semibold">Booking Reserve Fee</span>
+                    <span className="text-white text-[14px] font-bold">{currentPrice.display}</span>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-6 gap-2">
-                    <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
-                    <p className="text-gray-400 text-[11px]">Loading payment methods…</p>
+                  <div className="border-t border-white/5 pt-2">
+                    <p className="text-gray-500 text-[9px] leading-relaxed">Secures your provider. Visit fee ({visitFeePrice.display}) collected separately after provider review.</p>
+                  </div>
+                </div>
+
+                {/* Wallet badges */}
+                <div className="flex items-center justify-center gap-3 py-1">
+                  <span className="bg-black border border-white/20 rounded-md px-2.5 py-1 text-white text-[11px] font-bold"> Pay</span>
+                  <span className="bg-black border border-white/20 rounded-md px-2.5 py-1 text-white text-[11px] font-bold">G Pay</span>
+                  <span className="bg-white/10 border border-white/10 rounded-md px-2.5 py-1 text-gray-400 text-[11px] font-semibold">Card</span>
+                  <span className="bg-[#00D64B]/10 border border-[#00D64B]/20 rounded-md px-2.5 py-1 text-[#00D64B] text-[11px] font-semibold">Cash App</span>
+                </div>
+
+                {/* Terms checkbox */}
+                <div className="flex items-start gap-1.5">
+                  <input type="checkbox" id="checkoutTerms" checked={checkoutTermsAccepted} onChange={(e) => setCheckoutTermsAccepted(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: "12px", height: "12px", borderRadius: "2px", accentColor: "#2dd4a0" }} />
+                  <label htmlFor="checkoutTerms" className="leading-[1.4]" style={{ fontSize: "7px", color: "#888" }}>
+                    By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                  </label>
+                </div>
+
+                {/* Proceed to checkout button */}
+                <button
+                  onClick={handleCheckoutRedirect}
+                  disabled={checkoutLoading || !checkoutTermsAccepted}
+                  className="w-full py-3.5 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#2dd4a0] disabled:opacity-50"
+                  style={{ background: "rgba(110,231,183,0.08)" }}
+                >
+                  {checkoutLoading ? (
+                    <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Redirecting...</>
+                  ) : (
+                    <><Lock size={14} /> Pay {currentPrice.display} & Reserve</>
+                  )}
+                </button>
+
+                {checkoutError && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-center">
+                    <p className="text-red-400 text-[10px] font-semibold">{checkoutError}</p>
                   </div>
                 )}
+
                 {/* Back button */}
                 <button onClick={goBack} className="w-full py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
               </div>
@@ -1720,4 +1773,5 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
