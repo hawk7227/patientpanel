@@ -235,7 +235,6 @@ function Step2PaymentForm({
       if (paymentIntent?.status === "succeeded") {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
-  const isReturningPatient = patient?.source !== "new" && !!patient?.id;
         let fullChiefComplaint = chiefComplaint || reason;
         if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
@@ -417,6 +416,7 @@ export default function ExpressCheckoutPage() {
   const [visitIntentId, setVisitIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
+  const isReturningPatient = patient?.source !== "new" && !!patient?.id;
 
   // ── Load patient ───────────────────────────────────────
   useEffect(() => {
@@ -1773,5 +1773,9 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
 
 
