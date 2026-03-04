@@ -922,6 +922,28 @@ export default function ExpressCheckoutPage() {
     }
   }, [uiStep]);
 
+  // ── Autofill detection: poll fields after focus to catch iOS autofill ──
+  useEffect(() => {
+    if (uiStep !== 5) return;
+    const timer = setInterval(() => {
+      const fn = (document.getElementById("firstName") as HTMLInputElement)?.value;
+      const ln = (document.getElementById("lastName") as HTMLInputElement)?.value;
+      const addr = (document.getElementById("address") as HTMLInputElement)?.value;
+      const em = (document.getElementById("email") as HTMLInputElement)?.value;
+      const ph = (document.getElementById("phone") as HTMLInputElement)?.value;
+      const bd = (document.getElementById("bday") as HTMLInputElement)?.value;
+      if (fn && fn !== contactFirstName) { setContactFirstName(fn); saveAnswers({ contactFirstName: fn }); }
+      if (ln && ln !== contactLastName) { setContactLastName(ln); saveAnswers({ contactLastName: ln }); }
+      if (addr && addr !== contactAddress) { setContactAddress(addr); saveAnswers({ contactAddress: addr }); }
+      if (em && em !== contactEmail) { setContactEmail(em); saveAnswers({ contactEmail: em }); }
+      if (ph) { const raw = ph.replace(/\D/g, "").slice(0, 10); if (raw !== contactPhone) { setContactPhone(raw); saveAnswers({ contactPhone: raw }); } }
+      if (bd && bd !== contactDob) { setContactDob(bd); saveAnswers({ contactDob: bd }); }
+    }, 300);
+    // Stop polling after 5 seconds
+    const stop = setTimeout(() => clearInterval(timer), 5000);
+    return () => { clearInterval(timer); clearTimeout(stop); };
+  }, [uiStep]);
+
   // ── iOS keyboard handler: scroll focused input into view ──
   useEffect(() => {
     const handleResize = () => {
@@ -1508,25 +1530,25 @@ export default function ExpressCheckoutPage() {
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
-                    <input type="text" name="firstName" autoComplete="given-name" value={contactFirstName} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
+                    <input type="text" id="firstName" name="firstName" autoComplete="given-name" value={contactFirstName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactFirstName(v); saveAnswers({ contactFirstName: v }); }} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
                   </div>
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
-                    <input type="text" name="lastName" autoComplete="family-name" value={contactLastName} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
+                    <input type="text" id="lastName" name="lastName" autoComplete="family-name" value={contactLastName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactLastName(v); saveAnswers({ contactLastName: v }); }} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
                   </div>
                 </div>
 
                 {/* Address — single line */}
                 <div className="relative">
                   <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
-                  <input type="text" name="address" autoComplete="street-address" value={contactAddress} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
+                  <input type="text" id="address" name="address" autoComplete="street-address" value={contactAddress} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactAddress(v); saveAnswers({ contactAddress: v }); }} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
                 </div>
 
                 {/* DOB + Phone — side by side */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
-                    <input type="text" inputMode="numeric" name="bday" autoComplete="bday" value={contactDob} onChange={(e) => {
+                    <input type="text" inputMode="numeric" id="bday" name="bday" autoComplete="bday" value={contactDob} onChange={(e) => {
                       let v = e.target.value.replace(/[^\d/]/g, "");
                       const digits = v.replace(/\D/g, "");
                       if (digits.length >= 5) v = `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
@@ -1536,14 +1558,14 @@ export default function ExpressCheckoutPage() {
                   </div>
                   <div className="flex-1 relative">
                     <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
-                    <input type="tel" inputMode="tel" name="phone" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
+                    <input type="tel" inputMode="tel" id="phone" name="phone" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
                   </div>
                 </div>
 
                 {/* Email — full width */}
                 <div className="relative">
                   <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
-                  <input type="email" inputMode="email" name="email" autoComplete="email" value={contactEmail} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
+                  <input type="email" inputMode="email" id="email" name="email" autoComplete="email" value={contactEmail} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactEmail(v); saveAnswers({ contactEmail: v }); }} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
                 </div>
 
                 {/* Buttons */}
@@ -1773,6 +1795,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
