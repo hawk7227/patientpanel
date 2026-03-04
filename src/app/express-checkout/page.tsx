@@ -109,20 +109,41 @@ function Step2PaymentForm({
   const [payInFlight, setPayInFlight] = useState(false);
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
+  const isNewPatient = !patient?.id || patient?.source === "new";
+  const [newDobMonth, setNewDobMonth] = useState("");
+  const [newDobDay, setNewDobDay] = useState("");
+  const [newDobYear, setNewDobYear] = useState("");
+  const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
+  const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
+
+  // For new patients, build patient data from Stripe billing_details + DOB
+  const getPatientData = (billingDetails?: any) => {
+    if (!isNewPatient) {
+      return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
+    }
+    // New patient — use Stripe-collected billing details
+    const bd = billingDetails || {};
+    const nameParts = (bd.name || "").trim().split(/\s+/);
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+    const addr = bd.address ? [bd.address.line1, bd.address.line2, bd.address.city, bd.address.state, bd.address.postal_code].filter(Boolean).join(", ") : "";
+    return { email: bd.email || "", firstName, lastName, phone: bd.phone || "", dateOfBirth: newDobISO, address: addr };
+  };
 
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
   const handleExpressConfirm = async () => {
     setError(null);
     setPayInFlight(true);
     try {
+      const pd = getPatientData();
       let patientId = patient.id;
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
-            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
-            address: patient.address, pharmacy: pharmacy || patient.pharmacy || "",
+            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+            address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "",
           }),
         });
@@ -140,7 +161,7 @@ function Step2PaymentForm({
         elements, redirect: "if_required",
         confirmParams: {
           return_url: `${window.location.origin}/success`,
-          payment_method_data: { billing_details: { name: `${patient.firstName} ${patient.lastName}`, email: patient.email, phone: patient.phone } },
+          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone } },
         },
       });
 
@@ -158,12 +179,12 @@ function Step2PaymentForm({
         const appointmentPayload = {
           payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
           appointmentData: {
-            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
-            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
-            streetAddress: patient.address, symptoms: reason, chief_complaint: fullChiefComplaint,
+            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+            streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
             visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
             appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
-            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: true,
+            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
@@ -260,13 +281,14 @@ function Step2PaymentForm({
       }
 
       // NORMAL MODE — real patient creation + real payment
+      const pd = getPatientData();
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
-            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
-            address: patient.address, pharmacy: pharmacy || patient.pharmacy || "",
+            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+            address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "",
           }),
         });
@@ -297,7 +319,6 @@ function Step2PaymentForm({
           elements, redirect: "if_required",
           confirmParams: {
             return_url: `${window.location.origin}/success`,
-            payment_method_data: { billing_details: { name: `${patient.firstName} ${patient.lastName}`, email: patient.email, phone: patient.phone } },
           },
         });
         paymentError = result.error; paymentIntent = result.paymentIntent;
@@ -318,12 +339,12 @@ function Step2PaymentForm({
         const appointmentPayload = {
           payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
           appointmentData: {
-            email: patient.email, firstName: patient.firstName, lastName: patient.lastName,
-            phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth),
-            streetAddress: patient.address, symptoms: reason, chief_complaint: fullChiefComplaint,
+            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+            streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
             visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
             appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
-            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: true,
+            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
@@ -366,6 +387,10 @@ function Step2PaymentForm({
     );
   }
 
+  const canPay = isNewPatient
+    ? (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight && newDobComplete))
+    : (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight));
+
   return (
     <>
       <div className="w-full space-y-2">
@@ -373,7 +398,7 @@ function Step2PaymentForm({
 
         {isTestMode ? (
           /* Test mode — simple button */
-          <button onClick={handlePay} disabled={!acceptedTerms} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 font-bold text-white text-[14px] border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
+          <button onClick={handlePay} disabled={!acceptedTerms || (isNewPatient && !newDobComplete)} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 font-bold text-white text-[14px]" style={{ background: "#f97316" }}>
             🧪 Test Pay — {currentPrice.display}
           </button>
         ) : (
@@ -386,7 +411,7 @@ function Step2PaymentForm({
                 onReady={({ availablePaymentMethods }) => { if (availablePaymentMethods) setExpressVisible(true); }}
                 options={{
                   buttonType: { applePay: "buy", googlePay: "buy" },
-                  buttonTheme: { applePay: "black", googlePay: "black" },
+                  buttonTheme: { applePay: "white-outline", googlePay: "white" },
                   buttonHeight: 48,
                 }}
               />
@@ -405,25 +430,53 @@ function Step2PaymentForm({
             {/* Card form — collapsed by default if express is available */}
             {showCardForm || !expressVisible ? (
               <>
+                {/* DOB field — new patients only */}
+                {isNewPatient && (
+                  <div className="space-y-1">
+                    <label className="text-[#9ca3af] text-[12px] font-medium">Date of Birth</label>
+                    <div className="flex gap-2">
+                      <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
+                        onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
+                        className="flex-1 bg-[#0b0f0c] border border-white/10 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none focus:border-[#f97316] placeholder:text-gray-600"
+                      />
+                      <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
+                        onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
+                        className="flex-1 bg-[#0b0f0c] border border-white/10 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none focus:border-[#f97316] placeholder:text-gray-600"
+                      />
+                      <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
+                        onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        className="flex-[1.5] bg-[#0b0f0c] border border-white/10 rounded-xl px-3 py-2.5 text-white text-[14px] text-center focus:outline-none focus:border-[#f97316] placeholder:text-gray-600"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1">
                   <PaymentElement onReady={() => setElementReady(true)} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
                     wallets: { applePay: "never", googlePay: "never" },
-                    fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
+                    fields: { billingDetails: isNewPatient
+                      ? { name: "auto", email: "auto", phone: "auto", address: "auto" }
+                      : { name: "never", email: "never", phone: "never" }
+                    },
                   }} />
                 </div>
-                {/* Terms */}
-                <div className="flex items-start gap-1.5">
-                  <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
-                  <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                    By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
-                  </label>
+
+                {/* Sticky terms + pay button */}
+                <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 8px), 8px)" }}>
+                  {/* Terms */}
+                  <div className="flex items-start gap-1.5 mb-2">
+                    <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#f97316' }} />
+                    <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                    </label>
+                  </div>
+                  {/* Pay button — bright solid orange */}
+                  <button onClick={handlePay} disabled={!canPay} className="w-full text-white font-extrabold py-3.5 rounded-xl transition-all disabled:opacity-40 text-[14px] flex items-center justify-center gap-2" style={{ background: "#f97316", boxShadow: canPay ? "0 4px 16px rgba(249,115,22,0.3)" : "none" }}>
+                    <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
+                  </button>
                 </div>
-                {/* Pay button */}
-                <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady || payInFlight} className="w-full text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 text-[13px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
-                  <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
-                </button>
               </>
             ) : (
               <button onClick={() => { setShowCardForm(true); onCardExpand?.(true); }} className="w-full py-2.5 rounded-xl text-gray-400 font-semibold text-[12px] transition-all border border-white/10 hover:border-white/20">
@@ -1323,10 +1376,10 @@ export default function ExpressCheckoutPage() {
         @keyframes pillIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ STICKY HEADER — logo + subtitle + heading + progress bar ═══ */}
-        <div className="flex-shrink-0 sticky top-0 z-10 pb-1.5 pt-2" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)" }}>
+        <div className="flex-shrink-0 sticky top-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
           {/* Logo + Brand */}
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
@@ -1353,8 +1406,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 1: Reason for Visit — hidden when answered */}
           {!reason ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2 mb-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" /><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>
-              <div className={`rounded-xl bg-transparent p-4 transition-all ${activeOrangeBorder}`}>
+              <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`}>
                 <button onClick={() => setReasonDialogOpen(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60 text-left transition-all">
                   <span className="text-gray-300 text-[15px]">{reason || "Select a reason..."}</span>
                   <ChevronDown size={14} className="text-gray-500" />
@@ -1366,11 +1418,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 2: Describe Symptoms — hidden when answered */}
           {reason && !symptomsDone ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-<div className="flex items-center justify-center gap-2 mt-3 mb-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                <span className="text-white text-[15px] font-black uppercase tracking-wide">Briefly Describe Your Symptoms</span>
-              </div>
-              <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all ${activeOrangeBorder} flex flex-col min-h-0`}>
+              <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all mt-3 ${activeOrangeBorder} flex flex-col min-h-0`}>
                 <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 caret-white ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316] focus:border-[#f97316]"}`} />
                 {chiefComplaint.length < 10 ? (
                   <p className="text-gray-300 text-[12px]">Type at least <span className="text-[#f97316] font-black text-[16px] inline-block" style={{ animation: "charPulse 1.2s ease-in-out infinite" }}>{10 - chiefComplaint.length}</span> more characters</p>
@@ -1388,11 +1436,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 3: Preferred Pharmacy — hidden when answered */}
           {reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2 mt-3 mb-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                <span className="text-white text-[15px] font-black uppercase tracking-wide">Preferred Pharmacy</span>
-              </div>
-              <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all ${activeOrangeBorder}`}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 ${activeOrangeBorder}`}>
                 <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
                   setPharmacy(val);
                   if (info) {
@@ -1409,11 +1453,7 @@ export default function ExpressCheckoutPage() {
           <div ref={visitTypeRef}>
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2 mt-3 mb-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                  <span className="text-white text-[15px] font-black uppercase tracking-wide">Select Visit Type</span>
-                </div>
-                <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
+                <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <div className="grid grid-cols-4 gap-2">
                     {([
                       { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
@@ -1495,11 +1535,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 4.5: Confirm & Pay */}
           {reason && symptomsDone && pharmacy && visitTypeChosen ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                <span className="text-white text-[16px] font-black uppercase tracking-wide">Confirm & Pay</span>
-              </div>
-              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Summary card — collapses when card form is open for full screen */}
                 <div className="rounded-xl border border-white/10 overflow-hidden transition-all" style={{ background: "rgba(255,255,255,0.02)", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
                   <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-white/5">
@@ -1728,6 +1764,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
