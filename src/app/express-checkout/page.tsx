@@ -109,6 +109,7 @@ function Step2PaymentForm({
   const [payInFlight, setPayInFlight] = useState(false);
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
+  const [pulseField, setPulseField] = useState<string | null>(null);
   const isNewPatient = !patient?.id;
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
@@ -393,7 +394,11 @@ function Step2PaymentForm({
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
 
         {isTestMode ? (
-          <button onClick={handlePay} disabled={!acceptedTerms || (isNewPatient && !newDobComplete)} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 disabled:opacity-40 font-bold text-white text-[14px]" style={{ background: "#f97316" }}>
+          <button onClick={() => {
+            if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
+            if (isNewPatient && !newDobComplete) { setPulseField("dob"); setTimeout(() => setPulseField(null), 1500); return; }
+            handlePay();
+          }} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold text-white text-[14px] active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)" }}>
             🧪 Test Pay — {currentPrice.display}
           </button>
         ) : (
@@ -426,32 +431,32 @@ function Step2PaymentForm({
               <>
                 {/* DOB field — new patients only */}
                 {isNewPatient && (
-                  <div className="space-y-1.5">
+                  <div className={`space-y-1.5 rounded-lg px-1 py-1 transition-all ${pulseField === "dob" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <label className="text-white text-[11px] font-semibold">Date of Birth</label>
                     <div className="flex gap-2">
                       <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
-                        onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
+                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
+                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
-                        onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
+                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
+                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
                         onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)" }}
-                        onFocus={(e) => { e.target.style.border = "1px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "1px solid rgba(45,212,160,0.3)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
+                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
+                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="rounded-xl border border-[#2dd4a0]/30 p-1" style={{ background: "rgba(0,0,0,0.15)" }}>
+                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
                   <PaymentElement onReady={() => setElementReady(true)} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
@@ -465,13 +470,18 @@ function Step2PaymentForm({
 
                 {/* Sticky terms + pay button */}
                 <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 8px), 8px)" }}>
-                  <div className="flex items-start gap-1.5 mb-2">
+                  <div className={`flex items-start gap-1.5 mb-2 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
                       By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
                     </label>
                   </div>
-                  <button onClick={handlePay} disabled={!canPay} className="w-full text-white font-extrabold py-3.5 rounded-xl transition-all disabled:opacity-40 text-[14px] flex items-center justify-center gap-2" style={{ background: "#f97316", boxShadow: canPay ? "0 4px 16px rgba(249,115,22,0.3)" : "none" }}>
+                  <button onClick={() => {
+                    if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
+                    if (isNewPatient && !newDobComplete) { setPulseField("dob"); setTimeout(() => setPulseField(null), 1500); return; }
+                    if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
+                    handlePay();
+                  }} className="w-full text-white font-extrabold py-3.5 rounded-xl transition-all text-[14px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
                     <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
                   </button>
                 </div>
@@ -796,14 +806,14 @@ export default function ExpressCheckoutPage() {
         fontSizeSm: "11px",
       },
       rules: {
-        ".Tab": { border: "1px solid rgba(45,212,160,0.3)", backgroundColor: "#0b0f0c", padding: "8px 0" },
+        ".Tab": { border: "2px solid rgba(45,212,160,0.35)", backgroundColor: "#0b0f0c", padding: "8px 0" },
         ".Tab--selected": { border: "2px solid #2dd4a0", backgroundColor: "rgba(45,212,160,0.08)", color: "#ffffff" },
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
         ".Label": { color: "#ffffff", fontSize: "11px", fontWeight: "600" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "1px solid rgba(45,212,160,0.3)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
-        ".Input:focus": { border: "1px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
-        ".Input::placeholder": { color: "#6b7280" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
+        ".Input:focus": { border: "2px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
+        ".Input::placeholder": { color: "rgba(255,255,255,0.4)" },
         ".Block": { padding: "8px 0" },
       },
     },
@@ -912,6 +922,8 @@ export default function ExpressCheckoutPage() {
 
   const uiStep = activeGuideStep;
   const [cardFormExpanded, setCardFormExpanded] = useState(false);
+  const [pulseSection, setPulseSection] = useState<string | null>(null);
+  const triggerPulse = (section: string) => { setPulseSection(section); setTimeout(() => setPulseSection(null), 1500); };
   const headerIsStep5 = uiStep >= 4.5;
   const headerUltraCompact = cardFormExpanded && isTightViewport;
   const progressPct = paymentLoading ? 90 : Math.min((uiStep / totalSteps) * 100, 100);
@@ -1159,7 +1171,10 @@ export default function ExpressCheckoutPage() {
           </div>
           {scheduleError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-[10px] mb-1">{scheduleError}</div>}
           <div className="flex-shrink-0 pb-2 pt-1">
-            <button onClick={handleControlledSchedule} disabled={!controlledScheduleDate || !controlledScheduleTime || schedulingAppointment} className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)", color: "#fff" }}>
+            <button onClick={() => {
+              if (!controlledScheduleDate || !controlledScheduleTime) return;
+              handleControlledSchedule();
+            }} className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] border border-[#2dd4a0]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", color: "#fff", boxShadow: "0 4px 16px rgba(249,115,22,0.25)", opacity: schedulingAppointment ? 0.6 : 1 }}>
               {schedulingAppointment ? (<><div className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" />Scheduling...</>) : (<><Check size={16} />Confirm {controlledVisitType === "video" ? "Video" : "Phone"} Visit</>)}
             </button>
             <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />No additional charge · HIPAA Compliant</p>
@@ -1308,11 +1323,12 @@ export default function ExpressCheckoutPage() {
                         {showDetail && (
                           <div className="flex flex-col gap-1.5">
                             <input value={intakeDetailText} onChange={(e) => setIntakeDetailText(e.target.value)} placeholder={q.ph} autoFocus className="w-full bg-transparent border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white caret-white focus:outline-none focus:border-[#2dd4a0] placeholder:text-gray-600" onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }} />
-                            <button disabled={!intakeDetailText.trim()} onClick={() => {
+                            <button onClick={() => {
+                              if (!intakeDetailText.trim()) { const inp = document.querySelector<HTMLInputElement>(`input[placeholder="${q.ph}"]`); if (inp) { inp.classList.add("animate-pulse"); inp.style.boxShadow = "0 0 12px rgba(249,115,22,0.4)"; setTimeout(() => { inp.classList.remove("animate-pulse"); inp.style.boxShadow = "none"; }, 1500); inp.focus(); } return; }
                               setIntakeAnswers(prev => ({ ...prev, [q.id]: { val: true, detail: intakeDetailText.trim() } }));
                               setIntakeStep(Math.max(intakeStep, i + 1));
                               setIntakeDetailId(null); setIntakeDetailText("");
-                            }} className="w-full py-1.5 rounded-md bg-white/5 text-white font-bold text-[11px] transition-all active:scale-97 disabled:opacity-25">Next →</button>
+                            }} className="w-full py-1.5 rounded-md text-white font-bold text-[11px] transition-all active:scale-97" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)" }}>Next →</button>
                           </div>
                         )}
                       </div>
@@ -1327,7 +1343,7 @@ export default function ExpressCheckoutPage() {
               {allIntakeDone && (
                 <div style={{ animation: "fadeInStep 0.4s ease both" }} className="flex flex-col gap-1.5 mt-0.5">
                   <p className="text-[#2dd4a0] text-[10px] font-extrabold text-center">✓ All Questions Answered</p>
-                  <button onClick={handleIntakeSubmit} disabled={intakeSubmitting} className="w-full py-3 rounded-xl border-2 border-[#2dd4a0]/30 text-white font-extrabold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40" style={{ background: "#f97316" }}>
+                  <button onClick={handleIntakeSubmit} className="w-full py-3 rounded-xl border-2 border-[#2dd4a0]/30 text-white font-extrabold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.25)", opacity: intakeSubmitting ? 0.6 : 1 }}>
                     {intakeSubmitting ? (<><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Submitting...</>) : "Submit Intake →"}
                   </button>
                 </div>
@@ -1381,7 +1397,7 @@ export default function ExpressCheckoutPage() {
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ STICKY HEADER — logo + subtitle + heading + progress bar ═══ */}
         <div className="flex-shrink-0 sticky top-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
@@ -1424,7 +1440,7 @@ export default function ExpressCheckoutPage() {
           {reason && !symptomsDone ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all mt-3 ${activeOrangeBorder} flex flex-col min-h-0`}>
-                <textarea value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 caret-white ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316] focus:border-[#f97316]"}`} />
+                <textarea id="symptoms-textarea" value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 caret-white transition-all ${pulseSection === "symptoms" ? "ring-2 ring-[#f97316] animate-pulse border-[#f97316]" : chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316] focus:border-[#f97316]"}`} />
                 {chiefComplaint.length < 10 ? (
                   <p className="text-gray-300 text-[12px]">Type at least <span className="text-[#f97316] font-black text-[16px] inline-block" style={{ animation: "charPulse 1.2s ease-in-out infinite" }}>{10 - chiefComplaint.length}</span> more characters</p>
                 ) : (
@@ -1432,7 +1448,7 @@ export default function ExpressCheckoutPage() {
                 )}
                 <div className="flex gap-2">
                   <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
-                  <button onClick={() => { setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} disabled={chiefComplaint.length < 10} className={`flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 disabled:cursor-not-allowed ${chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316]"}`} style={{ background: "#f97316" }}>Continue →</button>
+                  <button onClick={() => { if (chiefComplaint.length < 10) { triggerPulse("symptoms"); document.getElementById("symptoms-textarea")?.focus(); return; } setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 border-[#f97316]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.25)" }}>Continue →</button>
                 </div>
               </div>
             </div>
@@ -1469,7 +1485,16 @@ export default function ExpressCheckoutPage() {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
                       const hasPopupOpen = !!visitTypePopup;
-                      return (<button key={vt.key} onClick={() => setVisitTypePopup(vt.key)} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
+                      return (<button key={vt.key} onClick={() => {
+                        if (vt.key === "video" || vt.key === "phone") {
+                          setVisitType(vt.key); setVisitTypePopup(null);
+                          setDateTimeDialogOpen(true); setCalWeekOffset(0);
+                          setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
+                          setCalSelectedTime("");
+                        } else {
+                          setVisitTypePopup(vt.key);
+                        }
+                      }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
                         <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
                         {hasPopupOpen && !isActive && <span className="text-[7px] text-gray-500 mt-0.5">tap to select</span>}
@@ -1483,7 +1508,7 @@ export default function ExpressCheckoutPage() {
           {/* ═══ VISIT TYPE INFO — compact popup with confirm button inside ═══ */}
           {visitTypePopup && !visitTypeConfirmed && (
             <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="p-3 space-y-2.5 relative bg-transparent border border-white/10 rounded-xl" style={{ minHeight: "180px" }}>
+              <div className="p-3 space-y-2.5 relative bg-transparent border border-white/10 rounded-xl" style={{ minHeight: "140px" }}>
                 <button onClick={() => setVisitTypePopup(null)} className="absolute top-2.5 right-2.5 text-gray-500 hover:text-white transition-colors z-10"><X size={16} /></button>
                 {visitTypePopup === "instant" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
@@ -1696,7 +1721,7 @@ export default function ExpressCheckoutPage() {
               ) : <div style={{ width: 28 }} />}
 
               {/* Day cells */}
-              <div className="flex flex-1" style={{ gap: 2 }}>
+              <div id="cal-day-strip" className="flex flex-1 rounded-xl transition-all" style={{ gap: 2 }}>
                 {visibleDays.map(day => {
                   const iso = toISO(day);
                   const isSelected = calSelectedDay === iso;
@@ -1744,7 +1769,7 @@ export default function ExpressCheckoutPage() {
               {calSelectedDay ? (
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div id="cal-time-grid" className="rounded-xl transition-all" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     {timeSlots.map((slot, i) => {
                       const t24 = convertTo24(slot);
                       const isActive = calSelectedTime === t24;
@@ -1780,24 +1805,41 @@ export default function ExpressCheckoutPage() {
               )}
             </div>
 
-            {/* Confirm button — always at bottom */}
+            {/* Confirm button — always at bottom, always active */}
             <div className="flex-shrink-0" style={{ padding: "20px 24px", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
               <button
-                onClick={() => { if (!calSelectedDay || !calSelectedTime) return; setAppointmentDate(calSelectedDay); setAppointmentTime(calSelectedTime); saveAnswers({ appointmentDate: calSelectedDay, appointmentTime: calSelectedTime }); setDateTimeDialogOpen(false); }}
-                disabled={!calSelectedDay || !calSelectedTime}
+                onClick={() => {
+                  if (!calSelectedDay) {
+                    // Pulse the day strip
+                    const strip = document.getElementById("cal-day-strip");
+                    if (strip) { strip.classList.add("animate-pulse"); strip.style.boxShadow = "0 0 20px rgba(249,115,22,0.4)"; setTimeout(() => { strip.classList.remove("animate-pulse"); strip.style.boxShadow = "none"; }, 1500); }
+                    return;
+                  }
+                  if (!calSelectedTime) {
+                    // Pulse the time grid
+                    const grid = document.getElementById("cal-time-grid");
+                    if (grid) { grid.classList.add("animate-pulse"); grid.style.boxShadow = "0 0 20px rgba(249,115,22,0.4)"; setTimeout(() => { grid.classList.remove("animate-pulse"); grid.style.boxShadow = "none"; }, 1500); }
+                    return;
+                  }
+                  setAppointmentDate(calSelectedDay);
+                  setAppointmentTime(calSelectedTime);
+                  setVisitTypeChosen(true);
+                  setVisitTypeConfirmed(true);
+                  saveAnswers({ appointmentDate: calSelectedDay, appointmentTime: calSelectedTime, visitType: visitType, visitTypeChosen: true, visitTypeConfirmed: true });
+                  setDateTimeDialogOpen(false);
+                }}
                 className="active:scale-[0.98] transition-all"
                 style={{
                   width: "100%",
                   padding: "16px 24px",
                   borderRadius: 14,
                   border: "none",
-                  background: (!calSelectedDay || !calSelectedTime) ? "rgba(249,115,22,0.3)" : "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)",
+                  background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)",
                   color: "#ffffff",
                   fontSize: 18,
                   fontWeight: 800,
-                  cursor: (!calSelectedDay || !calSelectedTime) ? "not-allowed" : "pointer",
-                  opacity: (!calSelectedDay || !calSelectedTime) ? 0.4 : 1,
-                  boxShadow: (!calSelectedDay || !calSelectedTime) ? "none" : "0 4px 20px rgba(249,115,22,0.25)",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 20px rgba(249,115,22,0.25)",
                 }}>
                 Confirm
               </button>
@@ -1824,6 +1866,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
