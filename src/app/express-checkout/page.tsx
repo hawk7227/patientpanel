@@ -117,9 +117,6 @@ function Step2PaymentForm({
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
 
-  // Auto-collapse summary for new patients since card form is always open
-  useEffect(() => { if (isNewPatient) onCardExpand?.(true); }, [isNewPatient]);
-
   const getPatientData = () => {
     if (!isNewPatient) {
       return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
@@ -1218,7 +1215,7 @@ export default function ExpressCheckoutPage() {
         <style>{`
           @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
           @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
-          @keyframes fadeInStep { from { opacity:0; transform:translateY(20px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+          @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         `}</style>
         <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
 
@@ -1366,7 +1363,7 @@ export default function ExpressCheckoutPage() {
   const activeOrangeBorder = "border-[3px] border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.5)]";
 
   const CompletedPill = ({ text, onReset, subText }: { text: string; onReset: () => void; subText?: string }) => (
-    <button onClick={onReset} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.3s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+    <button onClick={onReset} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
       <span className="text-gray-500 text-[10px] font-semibold truncate flex-1 text-left">{text}</span>
       <span className="text-[#2dd4a0]/60 text-[9px] font-semibold flex-shrink-0">change</span>
     </button>
@@ -1374,7 +1371,7 @@ export default function ExpressCheckoutPage() {
 
   const PharmacyCompletedView = () => (
     <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null }); }}
-      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.3s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
       <Pill size={12} className="text-gray-600 flex-shrink-0" />
       <span className="text-gray-500 text-[10px] font-semibold truncate flex-1 text-left">{pharmacy}</span>
       <span className="text-[#2dd4a0]/60 text-[9px] font-semibold flex-shrink-0">change</span>
@@ -1390,17 +1387,17 @@ export default function ExpressCheckoutPage() {
         @keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }
         @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); } 50% { box-shadow: 0 0 16px rgba(249,115,22,0.5); } }
         @keyframes fadeInBtn { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
-        @keyframes fadeInStep { from { opacity:0; transform:translateY(20px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes fadeInPill { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes pillIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideUpCalendar { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes slideUpCalendar { from { transform: translateY(100%); opacity: 0.5; } to { transform: translateY(0); opacity: 1; } }
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
       <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
-        {/* ═══ STICKY HEADER — logo + subtitle + heading + progress bar ═══ */}
-        <div className="flex-shrink-0 sticky top-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
+        {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
           {/* Logo + Brand */}
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
@@ -1426,7 +1423,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 1: Reason for Visit — hidden when answered */}
           {!reason ? (
-            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`}>
                 <button onClick={() => setReasonDialogOpen(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60 text-left transition-all">
                   <span className="text-gray-300 text-[15px]">{reason || "Select a reason..."}</span>
@@ -1438,7 +1435,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 2: Describe Symptoms — hidden when answered */}
           {reason && !symptomsDone ? (
-            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all mt-3 ${activeOrangeBorder} flex flex-col min-h-0`}>
                 <textarea id="symptoms-textarea" value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-gray-400 caret-white transition-all ${pulseSection === "symptoms" ? "ring-2 ring-[#f97316] animate-pulse border-[#f97316]" : chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316] focus:border-[#f97316]"}`} />
                 {chiefComplaint.length < 10 ? (
@@ -1456,7 +1453,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 3: Preferred Pharmacy — hidden when answered */}
           {reason && symptomsDone && !pharmacy ? (
-            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 ${activeOrangeBorder}`}>
                 <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
                   setPharmacy(val);
@@ -1473,7 +1470,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
-              <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <div className="grid grid-cols-4 gap-2">
                     {([
@@ -1564,7 +1561,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 4.5: Confirm & Pay */}
           {reason && symptomsDone && pharmacy && visitTypeChosen ? (
-            <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Summary card — collapses when card form is open for full screen */}
                 <div className="rounded-xl border border-white/10 overflow-hidden transition-all" style={{ background: "rgba(255,255,255,0.02)", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
@@ -1701,7 +1698,7 @@ export default function ExpressCheckoutPage() {
         const selectedDayLabel = selectedDateObj ? `${DAY_ABBR[selectedDateObj.getDay()].charAt(0)}${DAY_ABBR[selectedDateObj.getDay()].slice(1).toLowerCase()}, ${SHORT_MO[selectedDateObj.getMonth()]} ${selectedDateObj.getDate()}` : "";
 
         return (
-          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "linear-gradient(180deg, #0d1628 0%, #0b1120 40%, #0a0f1d 100%)", animation: "slideUpCalendar 0.3s ease-out" }}>
+          <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "linear-gradient(180deg, #0d1628 0%, #0b1120 40%, #0a0f1d 100%)", animation: "slideUpCalendar 0.5s cubic-bezier(0.22, 1, 0.36, 1)" }}>
             {/* Header */}
             <div className="flex justify-between items-center px-5 pt-5 pb-1 flex-shrink-0">
               <div>
@@ -1866,6 +1863,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
