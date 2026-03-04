@@ -119,6 +119,7 @@ function Step2PaymentForm({
   const [elementReady, setElementReady] = useState(false);
   const [payInFlight, setPayInFlight] = useState(false);
   const [expressVisible, setExpressVisible] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
 
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
   const handleExpressConfirm = async () => {
@@ -389,8 +390,8 @@ function Step2PaymentForm({
         ) : (
           /* Real payment — wallets + card */
           <div className="space-y-2">
-            {/* Express Checkout — one-tap Apple Pay / Google Pay buttons */}
-            <div style={{ visibility: expressVisible ? "visible" : "hidden", marginBottom: expressVisible ? "8px" : "0", height: expressVisible ? "auto" : "0" }}>
+            {/* Express Checkout — one-tap Apple Pay / Google Pay / Link */}
+            <div style={{ visibility: expressVisible ? "visible" : "hidden", height: expressVisible ? "auto" : "0" }}>
               <ExpressCheckoutElement
                 onConfirm={handleExpressConfirm}
                 onReady={({ availablePaymentMethods }) => { if (availablePaymentMethods) setExpressVisible(true); }}
@@ -401,34 +402,45 @@ function Step2PaymentForm({
                 }}
               />
             </div>
-            {/* Divider — only when express buttons are visible */}
-            {expressVisible && (
-              <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-white/10" />
-                <span className="text-gray-500 text-[10px] font-semibold uppercase">or pay with card</span>
-                <div className="flex-1 h-px bg-white/10" />
-              </div>
+
+            {/* Booking fee notice */}
+            <p className="text-center text-gray-500 text-[9px] py-0.5">{currentPrice.display} booking fee · Visit fee collected separately after provider review</p>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-gray-500 text-[10px] font-semibold uppercase">or pay with card</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
+            {/* Card form — collapsed by default if express is available */}
+            {showCardForm || !expressVisible ? (
+              <>
+                <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1">
+                  <PaymentElement onReady={() => setElementReady(true)} options={{
+                    layout: "tabs",
+                    paymentMethodOrder: ["card"],
+                    wallets: { applePay: "never", googlePay: "never" },
+                    fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
+                  }} />
+                </div>
+                {/* Terms */}
+                <div className="flex items-start gap-1.5">
+                  <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
+                  <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
+                    By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                  </label>
+                </div>
+                {/* Pay button */}
+                <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady || payInFlight} className="w-full text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 text-[13px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
+                  <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setShowCardForm(true)} className="w-full py-2.5 rounded-xl text-gray-400 font-semibold text-[12px] transition-all border border-white/10 hover:border-white/20">
+                Pay with credit or debit card
+              </button>
             )}
-            {/* PaymentElement — card only (wallets hidden when ExpressCheckout is present) */}
-            <div className="rounded-xl bg-[#0d1218] border border-white/10 p-1">
-              <PaymentElement onReady={() => setElementReady(true)} options={{
-                layout: "tabs",
-                paymentMethodOrder: ["card"],
-                wallets: { applePay: "never", googlePay: "never" },
-                fields: { billingDetails: { name: "never", email: "never", phone: "never" } },
-              }} />
-            </div>
-            {/* Terms checkbox — above pay button so user sees it first */}
-            <div className="flex items-start gap-1.5">
-              <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
-              <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time. Visit fees are collected separately after provider review.
-              </label>
-            </div>
-            {/* Pay button */}
-            <button onClick={handlePay} disabled={!stripe || !elements || !acceptedTerms || !elementReady || payInFlight} className="w-full text-white font-bold py-3.5 rounded-xl transition-all disabled:opacity-50 text-[14px] flex items-center justify-center gap-2 border border-[#2dd4a0]" style={{ background: "rgba(110,231,183,0.08)" }}>
-              <Lock size={14} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
-            </button>
           </div>
         )}
       </div>
@@ -1596,31 +1608,31 @@ export default function ExpressCheckoutPage() {
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
                 <span className="text-white text-[16px] font-black uppercase tracking-wide">Secure Contact</span>
               </div>
-              <div className={`rounded-xl bg-transparent p-4 space-y-2.5 transition-all ${activeOrangeBorder}`}>
+              <div role="form" autoComplete="on" className={`rounded-xl bg-transparent p-4 space-y-2.5 transition-all ${activeOrangeBorder}`}>
                 <p className="text-white text-[11px] leading-relaxed font-medium">Your provider needs this info for pharmacy compliance and safe care.</p>
 
                 {/* First + Last name — side by side */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
-                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
-                    <input type="text" id="firstName" name="firstName" autoComplete="given-name" value={contactFirstName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactFirstName(v); saveAnswers({ contactFirstName: v }); }} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
+                    <label htmlFor="firstName" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">First Name</label>
+                    <input type="text" id="firstName" name="given-name" autoComplete="given-name" value={contactFirstName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactFirstName(v); saveAnswers({ contactFirstName: v }); }} onChange={(e) => { setContactFirstName(e.target.value); saveAnswers({ contactFirstName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="First" />
                   </div>
                   <div className="flex-1 relative">
-                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
-                    <input type="text" id="lastName" name="lastName" autoComplete="family-name" value={contactLastName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactLastName(v); saveAnswers({ contactLastName: v }); }} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
+                    <label htmlFor="lastName" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Last Name</label>
+                    <input type="text" id="lastName" name="family-name" autoComplete="family-name" value={contactLastName} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactLastName(v); saveAnswers({ contactLastName: v }); }} onChange={(e) => { setContactLastName(e.target.value); saveAnswers({ contactLastName: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="Last" />
                   </div>
                 </div>
 
                 {/* Address — single line */}
                 <div className="relative">
-                  <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
-                  <input type="text" id="address" name="address" autoComplete="street-address" value={contactAddress} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactAddress(v); saveAnswers({ contactAddress: v }); }} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
+                  <label htmlFor="address" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Address</label>
+                  <input type="text" id="address" name="street-address" autoComplete="street-address" value={contactAddress} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactAddress(v); saveAnswers({ contactAddress: v }); }} onChange={(e) => { setContactAddress(e.target.value); saveAnswers({ contactAddress: e.target.value }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="123 Main St, Miami, FL 33101" />
                 </div>
 
                 {/* DOB + Phone — side by side */}
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
-                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
+                    <label htmlFor="bday" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Date of Birth</label>
                     <input type="text" inputMode="numeric" id="bday" name="bday" autoComplete="bday" value={contactDob} onChange={(e) => {
                       let v = e.target.value.replace(/[^\d/]/g, "");
                       const digits = v.replace(/\D/g, "");
@@ -1630,14 +1642,14 @@ export default function ExpressCheckoutPage() {
                     }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="MM/DD/YYYY" />
                   </div>
                   <div className="flex-1 relative">
-                    <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
-                    <input type="tel" inputMode="tel" id="phone" name="phone" autoComplete="tel" value={(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return `(${d.slice(0,3)}) ${d.slice(3)}`; return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`; })()} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
+                    <label htmlFor="phone" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Phone</label>
+                    <input type="tel" inputMode="tel" id="phone" name="tel" autoComplete="tel" value={contactPhone} onChange={(e) => { const raw = e.target.value.replace(/\D/g, "").slice(0, 10); setContactPhone(raw); saveAnswers({ contactPhone: raw }); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="(000) 000-0000" />
                   </div>
                 </div>
 
                 {/* Email — full width */}
                 <div className="relative">
-                  <label className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
+                  <label htmlFor="email" className="text-white/50 text-[8px] font-bold uppercase tracking-wide absolute top-1.5 left-3">Email</label>
                   <input type="email" inputMode="email" id="email" name="email" autoComplete="email" value={contactEmail} onInput={(e) => { const v = (e.target as HTMLInputElement).value; setContactEmail(v); saveAnswers({ contactEmail: v }); }} onChange={(e) => { setContactEmail(e.target.value); saveAnswers({ contactEmail: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} className="w-full bg-[#0d1218] border-2 border-[#00CBA9]/40 rounded-xl px-3 pt-5 pb-2 text-[14px] text-white focus:outline-none focus:border-[#00CBA9] caret-white placeholder:text-gray-600" placeholder="you@email.com" />
                 </div>
 
@@ -1650,16 +1662,11 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 6: Payment — inline PaymentElement */}
+          {/* STEP 6: Payment — Express wallets first, card fallback */}
           <div ref={step6Ref}>
           {uiStep === 6 && (() => { console.log("[Step6 Render] clientSecret:", clientSecret ? "SET" : "EMPTY", "stripeOptions:", stripeOptions ? "SET" : "UNDEF", "error:", paymentIntentError); return true; })() && (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
-                <span className="text-white text-[16px] font-black uppercase tracking-wide">Complete Payment</span>
-              </div>
-              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
-                {/* Stripe Payment — wallets (Apple Pay, Google Pay) load automatically */}
+              <div className={`rounded-xl bg-transparent p-3 space-y-2.5 transition-all ${activeOrangeBorder}`}>
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} />
@@ -1677,11 +1684,11 @@ export default function ExpressCheckoutPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-6 gap-2">
                     <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
-                    <p className="text-gray-400 text-[11px]">Loading payment methods…</p>
+                    <p className="text-gray-400 text-[11px]">Loading payment…</p>
                   </div>
                 )}
                 {/* Back button */}
-                <button onClick={goBack} className="w-full py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
             </div>
           )}
@@ -1841,6 +1848,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
