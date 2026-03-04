@@ -852,9 +852,10 @@ export default function ExpressCheckoutPage() {
     return 6;
   }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient]);
 
-  const totalSteps = isReturningPatient ? 5 : 6;
+  const totalSteps = 4.5;
 
   const uiStep = activeGuideStep;
+  const [cardFormExpanded, setCardFormExpanded] = useState(false);
   const headerIsStep5 = uiStep >= 4.5;
   const headerUltraCompact = cardFormExpanded && isTightViewport;
   const progressPct = paymentLoading ? 90 : Math.min((uiStep / totalSteps) * 100, 100);
@@ -970,7 +971,6 @@ export default function ExpressCheckoutPage() {
   const visitTypeRef = useRef<HTMLDivElement>(null);
   const step6Ref = useRef<HTMLDivElement>(null);
   const [step4PopupFired, setStep4PopupFired] = useState(false);
-  const [cardFormExpanded, setCardFormExpanded] = useState(false);
 
   // Auto-scroll to visit type step when pharmacy is selected
   useEffect(() => {
@@ -1728,6 +1728,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
