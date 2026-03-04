@@ -112,7 +112,7 @@ function Step2PaymentForm({
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
-  const isNewPatient = !patient?.id;
+  const isNewPatient = !patient?.id && (!patient?.source || patient.source === "new");
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
   const [newDobYear, setNewDobYear] = useState("");
@@ -426,7 +426,7 @@ function Step2PaymentForm({
             </div>
 
             {/* Card form — ALWAYS open for new patients, collapsed for returning */}
-            {showCardForm || !expressVisible || isNewPatient ? (
+            {showCardForm || isNewPatient ? (
               <>
                 {/* DOB field — new patients only */}
                 {isNewPatient && (
@@ -1973,6 +1973,8 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
 
 
 
