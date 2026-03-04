@@ -833,6 +833,7 @@ export default function ExpressCheckoutPage() {
 
   // Auto-show first visit type popup when Step 4 finishes rolling in
   const visitTypeRef = useRef<HTMLDivElement>(null);
+  const step6Ref = useRef<HTMLDivElement>(null);
   const [step4PopupFired, setStep4PopupFired] = useState(false);
 
   // Auto-scroll to visit type step when pharmacy is selected
@@ -853,6 +854,16 @@ export default function ExpressCheckoutPage() {
       return () => clearTimeout(timer);
     }
   }, [activeGuideStep, visitTypeConfirmed, step4PopupFired, visitTypePopup]);
+
+  // ── Auto-scroll Step 6 (payment) into view when it activates ──
+  useEffect(() => {
+    if (uiStep === 6 && step6Ref.current) {
+      const timer = setTimeout(() => {
+        step6Ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [uiStep]);
 
   // ── iOS keyboard handler: scroll focused input into view ──
   useEffect(() => {
@@ -1238,8 +1249,10 @@ export default function ExpressCheckoutPage() {
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none" }}>
 
-          {/* STEP 1: Reason for Visit — ONLY visible when it's the active step */}
-          {uiStep === 1 && (
+          {/* STEP 1: Reason for Visit */}
+          {reason ? (
+            <CompletedPill text={reason} onReset={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} />
+          ) : (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2 mb-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" /><span className="text-white text-[15px] font-black uppercase tracking-wide">What Brings You In?</span></div>
               <div className={`rounded-xl bg-transparent p-4 transition-all ${activeOrangeBorder}`}>
@@ -1251,8 +1264,10 @@ export default function ExpressCheckoutPage() {
             </div>
           )}
 
-          {/* STEP 2: Describe Symptoms — ONLY visible when it's the active step */}
-          {uiStep === 2 && (
+          {/* STEP 2: Describe Symptoms */}
+          {reason && symptomsDone ? (
+            <CompletedPill text={chiefComplaint || "Symptoms described"} onReset={() => { setSymptomsDone(false); saveAnswers({ symptomsDone: false }); }} />
+          ) : reason && !symptomsDone ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
 <div className="flex items-center justify-center gap-2 mt-3 mb-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1271,10 +1286,12 @@ export default function ExpressCheckoutPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* STEP 3: Preferred Pharmacy — ONLY visible when it's the active step */}
-          {uiStep === 3 && (
+          {/* STEP 3: Preferred Pharmacy */}
+          {reason && symptomsDone && pharmacy ? (
+            <PharmacyCompletedView />
+          ) : reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2 mt-3 mb-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1291,11 +1308,13 @@ export default function ExpressCheckoutPage() {
                 }} placeholder="Search pharmacy..." className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-gray-600" />
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* STEP 4: Select Visit Type — ONLY visible when it's the active step */}
+          {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
-          {uiStep === 4 && (
+          {reason && symptomsDone && pharmacy && visitTypeChosen ? (
+            <CompletedPill text={visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"} onReset={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} />
+          ) : reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2 mt-3 mb-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1321,7 +1340,7 @@ export default function ExpressCheckoutPage() {
                   </div>
                 </div>
               </div>
-          )}
+          ) : null}
 
           {/* ═══ VISIT TYPE INFO — compact popup with confirm button inside ═══ */}
           {visitTypePopup && !visitTypeConfirmed && (
@@ -1380,8 +1399,10 @@ export default function ExpressCheckoutPage() {
           </div>
           {/* END Step 4 wrapper */}
 
-          {/* STEP 4.5: Confirm — summary with blurred reason, no ack */}
-          {uiStep === 4.5 && (
+          {/* STEP 4.5: Confirm */}
+          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed ? (
+            <CompletedPill text="✓ Booking Confirmed" onReset={() => { setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} />
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && !visitTypeConfirmed ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1443,10 +1464,12 @@ export default function ExpressCheckoutPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
-          {/* STEP 5: Secure Contact — demographics + phone */}
-          {uiStep === 5 && (
+          {/* STEP 5: Secure Contact */}
+          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && phoneConfirmed ? (
+            <CompletedPill text={`${contactFirstName} ${contactLastName} · ${(() => { const d = contactPhone.replace(/\D/g, ""); if (d.length <= 3) return d; if (d.length <= 6) return "(" + d.slice(0,3) + ") " + d.slice(3); return "(" + d.slice(0,3) + ") " + d.slice(3,6) + "-" + d.slice(6); })()}`} onReset={() => { setPhoneConfirmed(false); saveAnswers({ phoneConfirmed: false }); }} />
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !phoneConfirmed ? (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
@@ -1504,9 +1527,10 @@ export default function ExpressCheckoutPage() {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {/* STEP 6: Payment — inline, same page feel */}
+          <div ref={step6Ref}>
           {uiStep === 6 && (() => { console.log("[Step6 Render] clientSecret:", clientSecret ? "SET" : "EMPTY", "stripeOptions:", stripeOptions ? "SET" : "UNDEF", "error:", paymentIntentError); return true; })() && (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
@@ -1540,6 +1564,7 @@ export default function ExpressCheckoutPage() {
               </div>
             </div>
           )}
+          </div>
 
         </div>
 
@@ -1695,3 +1720,4 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
