@@ -581,7 +581,7 @@ export default function ExpressCheckoutPage() {
   const [visitIntentId, setVisitIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
-  const isReturningPatient = !!patient?.id;
+  const isReturningPatient = !!patient?.id || (!!patient?.source && patient.source !== "new");
   useEffect(() => { console.log("[Patient] isReturning:", isReturningPatient, "id:", patient?.id, "source:", patient?.source); }, [patient, isReturningPatient]);
 
   // ── Load patient ───────────────────────────────────────
@@ -590,7 +590,8 @@ export default function ExpressCheckoutPage() {
     if (stored) {
       try {
         const p = JSON.parse(stored);
-        console.log("[Patient] loaded from sessionStorage:", JSON.stringify({ id: p.id, source: p.source, email: p.email, hasId: !!p.id }));
+        console.warn("🔴 [PATIENT DEBUG] raw sessionStorage:", stored);
+        console.warn("🔴 [PATIENT DEBUG] id:", p.id, "| type:", typeof p.id, "| truthy:", !!p.id, "| source:", p.source);
         setPatient(p);
         // Pre-fill contact fields from patient data
         if (p.firstName) setContactFirstName(p.firstName);
@@ -1972,6 +1973,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
