@@ -396,9 +396,7 @@ export default function ExpressCheckoutPage() {
   const [contactDob, setContactDob] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [phoneConfirmed, setPhoneConfirmed] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [checkoutTermsAccepted, setCheckoutTermsAccepted] = useState(false);
+
 
   // Post-payment intake form
   const [intakePhase, setIntakePhase] = useState(false);
@@ -654,57 +652,7 @@ export default function ExpressCheckoutPage() {
     setIntakePhase(true);
   };
 
-  // ── Stripe Checkout Session redirect ──
-  const handleCheckoutRedirect = async () => {
-    if (!checkoutTermsAccepted) { setCheckoutError("Please accept the terms to continue."); return; }
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    try {
-      // Build chief complaint
-      let fullCC = chiefComplaint || reason;
-      if (selectedMeds.length > 0) fullCC = `Rx Refill: ${selectedMeds.join(", ")}. ${fullCC}`;
-      if (symptomsText) fullCC = `${fullCC}\n\nAdditional symptoms: ${symptomsText}`;
 
-      const res = await fetch("/api/create-checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          visit_amount: visitFeePrice.amount,
-          patient_email: patient?.email || contactEmail,
-          patient_first_name: patient?.firstName || contactFirstName,
-          patient_last_name: patient?.lastName || contactLastName,
-          patient_phone: patient?.phone || contactPhone,
-          patient_dob: convertDateToISO(patient?.dateOfBirth || contactDob),
-          patient_address: patient?.address || contactAddress,
-          patient_id: patient?.id || null,
-          reason,
-          chief_complaint: fullCC,
-          visit_type: visitType,
-          appointment_date: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
-          appointment_time: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
-          pharmacy: pharmacy || patient?.pharmacy || "",
-          pharmacy_address: pharmacyAddress || "",
-          selected_medications: selectedMeds.join(", "),
-          symptoms_text: symptomsText,
-          browser_info: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
-          is_returning_patient: isReturningPatient,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
-
-      // Store visit intent ID for post-payment flows
-      if (data.visitIntentId) sessionStorage.setItem("visitIntentId", data.visitIntentId);
-
-      // Redirect to Stripe Checkout
-      window.location.href = data.checkoutUrl;
-    } catch (err: any) {
-      console.error("[Checkout] Error:", err);
-      setCheckoutError(err.message || "Something went wrong. Please try again.");
-      setCheckoutLoading(false);
-    }
-  };
 
   // After intake is submitted, route to success/appointment
   const handleIntakeSubmit = async () => {
@@ -1577,63 +1525,36 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 6: Payment — Stripe Checkout Session redirect */}
+          {/* STEP 6: Payment — inline PaymentElement */}
           <div ref={step6Ref}>
-          {uiStep === 6 && (
+          {uiStep === 6 && (() => { console.log("[Step6 Render] clientSecret:", clientSecret ? "SET" : "EMPTY", "stripeOptions:", stripeOptions ? "SET" : "UNDEF", "error:", paymentIntentError); return true; })() && (
             <div style={{ animation: "fadeInStep 0.7s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="flex items-center justify-center gap-2.5 mt-3 mb-2.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#f97316]" />
                 <span className="text-white text-[16px] font-black uppercase tracking-wide">Complete Payment</span>
               </div>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all ${activeOrangeBorder}`}>
-
-                {/* Order summary */}
-                <div className="rounded-xl bg-[#0d1218] border border-white/10 p-3 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 text-[11px] font-semibold">Booking Reserve Fee</span>
-                    <span className="text-white text-[14px] font-bold">{currentPrice.display}</span>
+                {/* Stripe Payment — wallets (Apple Pay, Google Pay) load automatically */}
+                {clientSecret && stripeOptions ? (
+                  <Elements options={stripeOptions} stripe={stripePromise}>
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} />
+                  </Elements>
+                ) : paymentIntentError ? (
+                  <div className="space-y-2 py-2">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-center">
+                      <p className="text-red-400 text-[11px] font-semibold mb-1">Payment setup failed</p>
+                      <p className="text-gray-400 text-[9px]">{paymentIntentError}</p>
+                    </div>
+                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>
+                      Retry Payment Setup
+                    </button>
                   </div>
-                  <div className="border-t border-white/5 pt-2">
-                    <p className="text-gray-500 text-[9px] leading-relaxed">Secures your provider. Visit fee ({visitFeePrice.display}) collected separately after provider review.</p>
-                  </div>
-                </div>
-
-                {/* Wallet badges */}
-                <div className="flex items-center justify-center gap-3 py-1">
-                  <span className="bg-black border border-white/20 rounded-md px-2.5 py-1 text-white text-[11px] font-bold"> Pay</span>
-                  <span className="bg-black border border-white/20 rounded-md px-2.5 py-1 text-white text-[11px] font-bold">G Pay</span>
-                  <span className="bg-white/10 border border-white/10 rounded-md px-2.5 py-1 text-gray-400 text-[11px] font-semibold">Card</span>
-                  <span className="bg-[#00D64B]/10 border border-[#00D64B]/20 rounded-md px-2.5 py-1 text-[#00D64B] text-[11px] font-semibold">Cash App</span>
-                </div>
-
-                {/* Terms checkbox */}
-                <div className="flex items-start gap-1.5">
-                  <input type="checkbox" id="checkoutTerms" checked={checkoutTermsAccepted} onChange={(e) => setCheckoutTermsAccepted(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: "12px", height: "12px", borderRadius: "2px", accentColor: "#2dd4a0" }} />
-                  <label htmlFor="checkoutTerms" className="leading-[1.4]" style={{ fontSize: "7px", color: "#888" }}>
-                    By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
-                  </label>
-                </div>
-
-                {/* Proceed to checkout button */}
-                <button
-                  onClick={handleCheckoutRedirect}
-                  disabled={checkoutLoading || !checkoutTermsAccepted}
-                  className="w-full py-3.5 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-2 border border-[#2dd4a0] disabled:opacity-50"
-                  style={{ background: "rgba(110,231,183,0.08)" }}
-                >
-                  {checkoutLoading ? (
-                    <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Redirecting...</>
-                  ) : (
-                    <><Lock size={14} /> Pay {currentPrice.display} & Reserve</>
-                  )}
-                </button>
-
-                {checkoutError && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 text-center">
-                    <p className="text-red-400 text-[10px] font-semibold">{checkoutError}</p>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 gap-2">
+                    <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                    <p className="text-gray-400 text-[11px]">Loading payment methods…</p>
                   </div>
                 )}
-
                 {/* Back button */}
                 <button onClick={goBack} className="w-full py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
               </div>
@@ -1795,6 +1716,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
