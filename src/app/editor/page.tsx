@@ -99,10 +99,10 @@ export default function VisualEditorPro() {
   const [ghBranch, setGhBranch] = useState("main");
   const [ghPath, setGhPath] = useState("src/app/page.tsx");
   const [pushSt, setPushSt] = useState<string | null>(null);
-  const iframeRef = useRef(null);
-  const fileRef = useRef(null);
-  const imgRef = useRef(null);
-  const containerRef = useRef(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -188,7 +188,7 @@ document.addEventListener('click',(e)=>{
 
   // ═══ ELEMENT SELECTION ═══
   useEffect(() => {
-    const h = (e) => { if (e.data?.type === "sel") { setSel(e.data); setPanel("props"); } };
+    const h = (e: MessageEvent) => { if (e.data?.type === "sel") { setSel(e.data); setPanel("props"); } };
     window.addEventListener("message", h);
     return () => window.removeEventListener("message", h);
   }, []);
@@ -197,7 +197,7 @@ document.addEventListener('click',(e)=>{
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f) return;
     const r = new FileReader();
-    r.onload = (ev) => { setCode(ev.target?.result); };
+    r.onload = (ev) => { if (typeof ev.target?.result === 'string') setCode(ev.target.result); };
     r.readAsText(f);
   };
   const download = () => { const b = new Blob([code], { type: "text/plain" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "page.tsx"; a.click(); };
@@ -218,7 +218,7 @@ document.addEventListener('click',(e)=>{
     const f = e.target.files?.[0]; if (!f) return;
     setImgAnalyzing(true); setPanel("image");
     try {
-      const b64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.readAsDataURL(f); });
+      const b64 = await new Promise(res => { const r = new FileReader(); r.onload = () => res((r.result as string).split(",")[1]); r.readAsDataURL(f); });
       const resp = await fetch("https://api.anthropic.com/v1/messages", { method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000,
@@ -227,9 +227,9 @@ document.addEventListener('click',(e)=>{
             { type: "text", text: `Analyze this UI. Return ONLY JSON: {"colors":[{"hex":"#...","name":"...","usage":"..."}],"typography":[{"el":"...","size":"...","weight":"...","family":"...","color":"#..."}],"spacing":[{"el":"...","value":"..."}],"borders":[{"el":"...","radius":"...","color":"#...","width":"..."}],"backgrounds":[{"el":"...","value":"..."}]}` }
           ]}]})});
       const data = await resp.json();
-      const txt = data.content?.find(b => b.type === "text")?.text || "";
+      const txt = data.content?.find((b: any) => b.type === "text")?.text || "";
       setImgResult(JSON.parse(txt.replace(/```json|```/g, "").trim()));
-    } catch (err) { setImgResult({ error: err.message }); }
+    } catch (err: any) { setImgResult({ error: err.message }); }
     setImgAnalyzing(false);
   };
 
@@ -244,10 +244,10 @@ document.addEventListener('click',(e)=>{
         body: JSON.stringify({ message: "Update via EditorPro", content: btoa(unescape(encodeURIComponent(code))), branch: ghBranch, ...(ex?.sha ? { sha: ex.sha } : {}) }) });
       if (!p.ok) throw new Error(`${p.status}`);
       setPushSt("✓"); setTimeout(() => setPushSt(null), 2000);
-    } catch (err) { setPushSt("✗ " + err.message); setTimeout(() => setPushSt(null), 4000); }
+    } catch (err: any) { setPushSt("✗ " + err.message); setTimeout(() => setPushSt(null), 4000); }
   };
 
-  const rgb2hex = (rgb) => { if (!rgb || rgb === "transparent" || rgb.includes("0, 0, 0, 0")) return "transparent"; const m = rgb.match(/\d+/g); if (!m || m.length < 3) return rgb; return "#" + m.slice(0, 3).map(n => parseInt(n).toString(16).padStart(2, "0")).join(""); };
+  const rgb2hex = (rgb: string) => { if (!rgb || rgb === "transparent" || rgb.includes("0, 0, 0, 0")) return "transparent"; const m = rgb.match(/\d+/g); if (!m || m.length < 3) return rgb; return "#" + m.slice(0, 3).map((n: string) => parseInt(n).toString(16).padStart(2, "0")).join(""); };
   const sc = { critical: "#ef4444", high: "#f97316", medium: "#eab308" };
   const deviceWarnings = useMemo(() => {
     const w = [WARN[0]]; // 100vh always
@@ -334,7 +334,7 @@ document.addEventListener('click',(e)=>{
 
         {/* Browser mode */}
         <div style={{ display: "flex", gap: 2 }}>
-          {avail.map(k => <Chip key={k} active={k === bid} onClick={() => setBid(k)}>{B[k].n}</Chip>)}
+          {avail.map(k => <Chip key={k} active={k === bid} onClick={() => setBid(k)}>{B[k as keyof typeof B].n}</Chip>)}
         </div>
         <div style={{ flex: 1 }} />
 
@@ -486,9 +486,9 @@ document.addEventListener('click',(e)=>{
 
               {/* WARNINGS */}
               {panel === "warnings" && deviceWarnings.map((w, i) => (
-                <div key={i} style={{ background: "#111318", borderRadius: 6, padding: 8, border: `1px solid ${sc[w.s]}33`, marginBottom: 6 }}>
+                <div key={i} style={{ background: "#111318", borderRadius: 6, padding: 8, border: `1px solid ${sc[w.s as keyof typeof sc]}33`, marginBottom: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: 8, fontWeight: 700, color: sc[w.s], textTransform: "uppercase" }}>{w.s}</span>
+                    <span style={{ fontSize: 8, fontWeight: 700, color: sc[w.s as keyof typeof sc], textTransform: "uppercase" }}>{w.s}</span>
                     <span style={{ fontSize: 11, fontWeight: 600, color: "#e5e7eb" }}>{w.t}</span>
                   </div>
                   <p style={{ fontSize: 10, color: "#6b7280", marginBottom: 4 }}>{w.d}</p>
@@ -510,14 +510,14 @@ document.addEventListener('click',(e)=>{
                   </div>
                 : imgResult?.error ? <p style={{ color: "#f87171", fontSize: 11 }}>Error: {imgResult.error}</p>
                 : imgResult ? <>
-                    {imgResult.colors?.map((c, i) => (
+                    {imgResult.colors?.map((c: any, i: number) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, background: "#111318", borderRadius: 5, padding: "5px 8px", border: "1px solid #1f2937", marginBottom: 3 }}>
                         <span style={{ width: 16, height: 16, borderRadius: 3, background: c.hex, border: "1px solid #333", flexShrink: 0 }} />
                         <span style={{ fontSize: 10, fontFamily: "monospace", color: "#e5e7eb" }}>{c.hex}</span>
                         <span style={{ fontSize: 9, color: "#6b7280", flex: 1 }}>{c.name}</span>
                       </div>
                     ))}
-                    {imgResult.typography?.map((t, i) => (
+                    {imgResult.typography?.map((t: any, i: number) => (
                       <div key={i} style={{ background: "#111318", borderRadius: 5, padding: 6, border: "1px solid #1f2937", marginBottom: 3 }}>
                         <div style={{ fontSize: 10, color: "#e5e7eb", fontWeight: 600 }}>{t.el}</div>
                         <div style={{ fontSize: 9, color: "#6b7280", fontFamily: "monospace" }}>{t.size} / {t.weight} / {t.color}</div>
