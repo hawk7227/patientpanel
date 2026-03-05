@@ -103,8 +103,8 @@ export default function VisualEditorPro() {
   const fileRef = useRef(null);
   const imgRef = useRef(null);
   const containerRef = useRef(null);
-  const saveTimer = useRef(null);
-  const previewTimer = useRef(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dev = D[did as keyof typeof D];
   const brw = B[bid as keyof typeof B];
