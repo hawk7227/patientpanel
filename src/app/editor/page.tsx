@@ -182,7 +182,7 @@ document.addEventListener('click',(e)=>{
     if (previewTimer.current) clearTimeout(previewTimer.current);
     previewTimer.current = setTimeout(() => {
       const blob = new Blob([previewHTML], { type: "text/html" });
-      iframeRef.current.src = URL.createObjectURL(blob);
+      if (iframeRef.current) iframeRef.current.src = URL.createObjectURL(blob);
     }, 250);
   }, [previewHTML]);
 
