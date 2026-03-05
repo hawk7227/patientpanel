@@ -625,7 +625,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
         <div className="px-1 mt-4 mb-1">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
             {title.split("\n").map((line, i) => {
               // Last word of last line gets green accent
               const words = line.split(" ");
@@ -655,7 +655,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
         <div className="px-1 mt-4 mb-2">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
             {title.split("\n").map((line, i) => {
               const words = line.split(" ");
               if (i === title.split("\n").length - 1 && words.length > 0) {
@@ -2153,6 +2153,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
