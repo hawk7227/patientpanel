@@ -1,0 +1,996 @@
+[
+    {
+      "name": "Urinary Tract Infection (UTI)",
+      "smart_search": ["uti", "urinary", "bladder infection"]
+    },
+    {
+      "name": "Gastroesophageal Reflux Disease (GERD)",
+      "smart_search": ["gerd", "acid reflux", "heartburn"]
+    },
+    {
+      "name": "Tension Headache",
+      "smart_search": ["headache", "tension", "pressure head"]
+    },
+    {
+      "name": "Acute Upper Respiratory Infection (URI)",
+      "smart_search": ["uri", "cold symptoms", "runny nose"]
+    },
+    {
+      "name": "Allergic Rhinitis",
+      "smart_search": ["allergies", "hay fever", "sneezing"]
+    },
+    {
+      "name": "Acute Sinusitis",
+      "smart_search": ["sinusitis", "sinus pressure", "face pain"]
+    },
+    {
+      "name": "Acute Pharyngitis",
+      "smart_search": ["sore throat", "pharyngitis", "throat pain"]
+    },
+    {
+      "name": "Gastroenteritis",
+      "smart_search": ["nausea", "vomiting", "diarrhea"]
+    },
+    {
+      "name": "Acute Diarrhea",
+      "smart_search": ["diarrhea", "loose stool", "watery stool"]
+    },
+    {
+      "name": "Functional Constipation",
+      "smart_search": ["constipation", "hard stool", "difficult bowel"]
+    },
+    {
+      "name": "Fatigue, General",
+      "smart_search": ["fatigue", "tired", "low energy"]
+    },
+    {
+      "name": "Eczema (Atopic Dermatitis)",
+      "smart_search": ["eczema", "itchy skin", "dry patches"]
+    },
+    {
+      "name": "Arthralgia (Joint Pain)",
+      "smart_search": ["joint pain", "arthralgia", "joint ache"]
+    },
+    {
+      "name": "Lumbar Strain",
+      "smart_search": ["back pain", "lumbar pain", "muscle strain"]
+    },
+    {
+      "name": "Overactive Bladder (OAB)",
+      "smart_search": ["frequent urination", "oab", "urgency"]
+    },
+    {
+      "name": "Bacterial Vaginosis (BV)",
+      "smart_search": ["bv", "vaginal odor", "discharge"]
+    },
+    {
+      "name": "Candidal Vaginitis (Yeast Infection)",
+      "smart_search": ["yeast", "itching", "white discharge"]
+    },
+    {
+      "name": "Primary Dysmenorrhea",
+      "smart_search": ["menstrual cramps", "period cramps", "dysmenorrhea"]
+    },
+    {
+      "name": "Amenorrhea",
+      "smart_search": ["missed period", "no period", "amenorrhea"]
+    },
+    {
+      "name": "Menopause Transition",
+      "smart_search": ["hot flashes", "night sweats", "menopause"]
+    },
+    {
+      "name": "Erectile Dysfunction (ED)",
+      "smart_search": ["ed", "erection", "erectile problem"]
+    },
+    {
+      "name": "Hypogonadism",
+      "smart_search": ["low testosterone", "hypogonadism", "low libido"]
+    },
+    {
+      "name": "Sexually Transmitted Infection Screening (STI)",
+      "smart_search": ["sti", "std test", "infection screening"]
+    },
+    {
+      "name": "Acne Vulgaris",
+      "smart_search": ["acne", "pimples", "breakouts"]
+    },
+    {
+      "name": "Urticaria (Hives)",
+      "smart_search": ["hives", "urticaria", "itchy welts"]
+    },
+    {
+      "name": "Pruritus",
+      "smart_search": ["itching", "pruritus", "itchy skin"]
+    },
+    {
+      "name": "Tinea Corporis (Ringworm)",
+      "smart_search": ["ringworm", "tinea", "circular rash"]
+    },
+    {
+      "name": "Onychomycosis (Nail Fungus)",
+      "smart_search": ["nail fungus", "onychomycosis", "thick nail"]
+    },
+    {
+      "name": "Gastrointestinal Pain",
+      "smart_search": ["abdominal pain", "stomach pain", "gi pain"]
+    },
+    {
+      "name": "Bronchitis, Acute",
+      "smart_search": ["bronchitis", "productive cough", "chest cold"]
+    },
+    {
+      "name": "Viral Upper Respiratory Infection (Viral URI)",
+      "smart_search": ["viral uri", "viral cold", "dry cough"]
+    },
+    {
+      "name": "Mild Asthma Exacerbation",
+      "smart_search": ["asthma", "wheezing", "short breath"]
+    },
+    {
+      "name": "Otitis Media",
+      "smart_search": ["ear pain", "otitis", "ear infection"]
+    },
+    {
+      "name": "Tinnitus",
+      "smart_search": ["ear ringing", "tinnitus", "buzzing ear"]
+    },
+    {
+      "name": "Eustachian Tube Dysfunction (ETD)",
+      "smart_search": ["ear pressure", "etd", "clogged ear"]
+    },
+    {
+      "name": "Streptococcal Pharyngitis (Strep Throat)",
+      "smart_search": ["strep", "strep throat", "white patches"]
+    },
+    {
+      "name": "Common Cold",
+      "smart_search": ["cold", "runny nose", "sneezing"]
+    },
+    {
+      "name": "Dental Infection",
+      "smart_search": ["tooth pain", "dental abscess", "tooth infection"]
+    },
+    {
+      "name": "Temporomandibular Joint Disorder (TMJ)",
+      "smart_search": ["tmj", "jaw pain", "jaw clicking"]
+    },
+    {
+      "name": "Benign Positional Vertigo (BPV)",
+      "smart_search": ["vertigo", "dizziness", "bpv"]
+    },
+    {
+      "name": "Generalized Anxiety Disorder (GAD)",
+      "smart_search": ["anxiety", "gad", "nervousness"]
+    },
+    {
+      "name": "Major Depressive Disorder (MDD)",
+      "smart_search": ["depression", "mdd", "low mood"]
+    },
+    {
+      "name": "Panic Disorder",
+      "smart_search": ["panic", "panic attack", "fear episode"]
+    },
+    {
+      "name": "Attention-Deficit/Hyperactivity Disorder (ADHD)",
+      "smart_search": ["adhd", "focus trouble", "attention"]
+    },
+    {
+      "name": "Primary Insomnia",
+      "smart_search": ["insomnia", "can't sleep", "restless sleep"]
+    },
+    {
+      "name": "Chronic Fatigue Syndrome (CFS)",
+      "smart_search": ["fatigue", "cfs", "exhaustion"]
+    },
+    {
+      "name": "Migraine Headache",
+      "smart_search": ["migraine", "throbbing headache", "light sensitive"]
+    },
+    {
+      "name": "Osteoarthritis (OA)",
+      "smart_search": ["osteoarthritis", "oa", "joint stiffness"]
+    },
+    {
+      "name": "Knee Strain",
+      "smart_search": ["knee pain", "knee strain", "knee injury"]
+    },
+    {
+      "name": "Shoulder Tendonitis",
+      "smart_search": ["shoulder pain", "tendonitis", "rotator pain"]
+    },
+    {
+      "name": "Cervical Strain",
+      "smart_search": ["neck pain", "cervical strain", "stiff neck"]
+    },
+    {
+      "name": "Sciatica",
+      "smart_search": ["sciatica", "nerve pain", "leg radiating pain"]
+    },
+    {
+      "name": "Carpal Tunnel Syndrome (CTS)",
+      "smart_search": ["cts", "wrist pain", "numb fingers"]
+    },
+    {
+      "name": "Plantar Fasciitis",
+      "smart_search": ["heel pain", "plantar", "foot pain"]
+    },
+    {
+      "name": "Hypertension (HTN)",
+      "smart_search": ["htn", "high blood pressure", "elevated bp"]
+    },
+    {
+      "name": "Type 2 Diabetes Mellitus (T2DM)",
+      "smart_search": ["t2dm", "diabetes", "high sugar"]
+    },
+    {
+      "name": "Hyperlipidemia (HLD)",
+      "smart_search": ["hld", "cholesterol", "lipids"]
+    },
+    {
+      "name": "Hypothyroidism",
+      "smart_search": ["low thyroid", "hypothyroid", "tsh high"]
+    },
+    {
+      "name": "Chronic Bronchitis",
+      "smart_search": ["chronic cough", "bronchitis", "mucus"]
+    },
+    {
+      "name": "Tobacco Dependence",
+      "smart_search": ["smoking", "quit smoking", "nicotine"]
+    },
+    {
+      "name": "Alcohol Use Disorder (AUD)",
+      "smart_search": ["alcohol", "addiction", "drink problem"]
+    },
+    {
+      "name": "Obstructive Sleep Apnea (OSA)",
+      "smart_search": ["osa", "snoring", "sleep apnea"]
+    },
+    {
+      "name": "Conjunctivitis",
+      "smart_search": ["pink eye", "conjunctivitis", "red eye"]
+    },
+    {
+      "name": "Dry Eye Syndrome",
+      "smart_search": ["dry eye", "burning eye", "tearing"]
+    },
+    {
+      "name": "Otitis Externa",
+      "smart_search": ["swimmer ear", "otitis externa", "ear drainage"]
+    },
+    {
+      "name": "Peripheral Neuropathy",
+      "smart_search": ["neuropathy", "numbness", "tingling feet"]
+    },
+    {
+      "name": "Edema",
+      "smart_search": ["swelling", "edema", "ankle swelling"]
+    },
+    {
+      "name": "COVID-19 Infection",
+      "smart_search": ["covid", "coronavirus", "covid symptoms"]
+    },
+    {
+      "name": "Influenza (Flu)",
+      "smart_search": ["flu", "fever", "body aches"]
+    },
+    {
+      "name": "Viral Syndrome",
+      "smart_search": ["viral", "flu like", "sick"]
+    },
+    {
+      "name": "Pneumonia, Mild",
+      "smart_search": ["pneumonia", "chest congestion", "cough fever"]
+    },
+    {
+      "name": "Cellulitis",
+      "smart_search": ["cellulitis", "skin infection", "red swollen"]
+    },
+    {
+      "name": "Herpes Zoster (Shingles)",
+      "smart_search": ["shingles", "zoster", "painful rash"]
+    },
+    {
+      "name": "HSV Outbreak",
+      "smart_search": ["herpes", "hsv", "sores"]
+    },
+    {
+      "name": "Infected Bite",
+      "smart_search": ["bite infection", "insect bite", "swollen bite"]
+    },
+    {
+      "name": "Rosacea",
+      "smart_search": ["rosacea", "red cheeks", "facial redness"]
+    },
+    {
+      "name": "Seborrheic Dermatitis",
+      "smart_search": ["seborrheic", "flaky scalp", "dandruff"]
+    },
+    {
+      "name": "Folliculitis",
+      "smart_search": ["folliculitis", "ingrown hair", "red bumps"]
+    },
+    {
+      "name": "Psoriasis",
+      "smart_search": ["psoriasis", "scaly patches", "skin plaques"]
+    },
+
+    {
+      "name": "Tinea Pedis (Athlete’s Foot)",
+      "smart_search": ["athlete foot", "tinea pedis", "foot fungus"]
+    },
+    {
+      "name": "Tinea Cruris (Jock Itch)",
+      "smart_search": ["jock itch", "tinea cruris", "groin rash"]
+    },
+    {
+      "name": "Melasma",
+      "smart_search": ["melasma", "dark patches", "hyperpigmentation"]
+    },
+    {
+      "name": "Alopecia (Hair Loss)",
+      "smart_search": ["hair loss", "alopecia", "thinning hair"]
+    },
+    {
+      "name": "Irritable Bowel Syndrome – Diarrhea (IBS-D)",
+      "smart_search": ["ibs-d", "diarrhea ibs", "loose stool"]
+    },
+    {
+      "name": "Irritable Bowel Syndrome – Constipation (IBS-C)",
+      "smart_search": ["ibs-c", "constipation ibs", "hard stool"]
+    },
+    {
+      "name": "Gastritis",
+      "smart_search": ["gastritis", "stomach burning", "upper pain"]
+    },
+    {
+      "name": "Hemorrhoids",
+      "smart_search": ["hemorrhoids", "rectal pain", "itching"]
+    },
+    {
+      "name": "Post-Traumatic Stress Disorder (PTSD)",
+      "smart_search": ["ptsd", "trauma", "flashbacks"]
+    },
+    {
+      "name": "Obsessive-Compulsive Disorder (OCD)",
+      "smart_search": ["ocd", "obsession", "compulsion"]
+    },
+    {
+      "name": "Adjustment Disorder",
+      "smart_search": ["stress disorder", "adjustment", "emotional stress"]
+    },
+    {
+      "name": "Ankle Sprain",
+      "smart_search": ["ankle sprain", "ankle pain", "twisted ankle"]
+    },
+    {
+      "name": "Wrist Sprain",
+      "smart_search": ["wrist sprain", "wrist injury", "wrist pain"]
+    },
+    {
+      "name": "Finger Tendonitis",
+      "smart_search": ["finger pain", "tendonitis", "finger strain"]
+    },
+    {
+      "name": "Trigger Finger",
+      "smart_search": ["trigger finger", "finger locking", "tendon issue"]
+    },
+    {
+      "name": "Bursitis",
+      "smart_search": ["bursitis", "joint swelling", "joint cushion pain"]
+    },
+    {
+      "name": "Myofascial Pain Syndrome",
+      "smart_search": ["myofascial", "muscle knots", "persistent pain"]
+    },
+    {
+      "name": "Weight-Loss Injection — Initial Visit",
+      "smart_search": ["semaglutide", "tirzepatide", "weight loss start"]
+    },
+    {
+      "name": "Weight-Loss Injection — Follow-Up",
+      "smart_search": ["weight loss follow", "semaglutide follow", "tirzepatide follow"]
+    },
+    {
+      "name": "Metabolic Monitoring Visit",
+      "smart_search": ["metabolic", "monitoring", "weight labs"]
+    },
+    {
+      "name": "ADHD Medication Follow-Up",
+      "smart_search": ["adhd follow", "med check", "focus follow-up"]
+    },
+    {
+      "name": "Work Excuse Documentation",
+      "smart_search": ["work excuse", "work note", "job letter"]
+    },
+    {
+      "name": "School Excuse Documentation",
+      "smart_search": ["school excuse", "school note", "absence letter"]
+    },
+    {
+      "name": "Referral Request",
+      "smart_search": ["referral", "specialist referral", "doctor referral"]
+    },
+
+    {
+      "name": "Keratosis Pilaris",
+      "smart_search": ["kp", "bumpy skin", "keratosis"]
+    },
+    {
+      "name": "Nummular Eczema",
+      "smart_search": ["nummular", "coin rash", "round eczema"]
+    },
+    {
+      "name": "Lichen Simplex Chronicus",
+      "smart_search": ["lichen", "thick skin", "itch rash"]
+    },
+    {
+      "name": "Molluscum Contagiosum",
+      "smart_search": ["molluscum", "viral bumps", "pearly bumps"]
+    },
+    {
+      "name": "Viral Warts",
+      "smart_search": ["warts", "hpv wart", "skin wart"]
+    },
+    {
+      "name": "Perioral Dermatitis",
+      "smart_search": ["perioral", "face rash", "mouth rash"]
+    },
+    {
+      "name": "Pityriasis Rosea",
+      "smart_search": ["pityriasis", "herald patch", "rash"]
+    },
+    {
+      "name": "Hyperhidrosis",
+      "smart_search": ["hyperhidrosis", "sweaty palms", "excess sweating"]
+    },
+    {
+      "name": "Sunburn (Photodermatitis)",
+      "smart_search": ["sunburn", "burned skin", "sun pain"]
+    },
+    {
+      "name": "Chilblains",
+      "smart_search": ["chilblains", "cold rash", "red toes"]
+    },
+    {
+      "name": "Calluses",
+      "smart_search": ["callus", "thick skin", "foot callus"]
+    },
+    {
+      "name": "Corns",
+      "smart_search": ["corn", "foot corn", "toe pain"]
+    },
+    {
+      "name": "Scabies",
+      "smart_search": ["scabies", "mite rash", "burrow marks"]
+    },
+    {
+      "name": "Bedbug Bites",
+      "smart_search": ["bedbug", "bug bites", "bite marks"]
+    },
+    {
+      "name": "Psoriasis — Plaque Type",
+      "smart_search": ["plaque", "psoriasis plaque", "scaly patch"]
+    },
+    {
+      "name": "Tinea Versicolor",
+      "smart_search": ["versicolor", "discoloration", "fungal spots"]
+    },
+    {
+      "name": "Bacterial Folliculitis",
+      "smart_search": ["folliculitis", "pustules", "hair follicle infection"]
+    },
+    {
+      "name": "Hand-Foot-Mouth Disease",
+      "smart_search": ["hfm", "blisters", "viral rash"]
+    },
+    {
+      "name": "Mononucleosis Evaluation",
+      "smart_search": ["mono", "fatigue", "sore throat fatigue"]
+    },
+    {
+      "name": "Traveler’s Diarrhea",
+      "smart_search": ["travel diarrhea", "traveler sick", "water infection"]
+    },
+    {
+      "name": "Chlamydia Infection",
+      "smart_search": ["chlamydia", "std", "sti"]
+    },
+    {
+      "name": "Trichomonas Infection",
+      "smart_search": ["trichomonas", "trich", "std"]
+    },
+    {
+      "name": "Pelvic Inflammatory Disease (PID) — Low Suspicion",
+      "smart_search": ["pid", "pelvic pain", "female infection"]
+    },
+    {
+      "name": "PCOS (Polycystic Ovary Syndrome)",
+      "smart_search": ["pcos", "irregular periods", "ovarian cysts"]
+    },
+    {
+      "name": "Premenstrual Dysphoric Disorder (PMDD)",
+      "smart_search": ["pmdd", "severe pms", "mood swings"]
+    },
+    {
+      "name": "Hormonal Acne",
+      "smart_search": ["hormonal acne", "acne breakout", "chin acne"]
+    },
+    {
+      "name": "Vaginal Atrophy",
+      "smart_search": ["vaginal dryness", "atrophy", "painful intercourse"]
+    },
+    {
+      "name": "Fibrocystic Breast Changes",
+      "smart_search": ["breast lumps", "fibrocystic", "breast tenderness"]
+    },
+    {
+      "name": "Lactation Mastitis",
+      "smart_search": ["mastitis", "breast infection", "breast pain"]
+    },
+    {
+      "name": "Hyperemesis (Early Pregnancy Nausea)",
+      "smart_search": ["hyperemesis", "severe nausea", "pregnancy vomiting"]
+    },
+    {
+      "name": "Acute Pelvic Pain (Telehealth Triage)",
+      "smart_search": ["pelvic pain", "lower abdominal pain", "female pain"]
+    },
+    {
+      "name": "Irregular Menstruation",
+      "smart_search": ["irregular periods", "unpredictable cycle", "abnormal cycle"]
+    },
+    {
+      "name": "Social Anxiety Disorder",
+      "smart_search": ["social anxiety", "fear social", "shyness"]
+    },
+    {
+      "name": "Seasonal Affective Disorder (SAD)",
+      "smart_search": ["sad", "seasonal depression", "winter depression"]
+    },
+    {
+      "name": "Illness Anxiety Disorder",
+      "smart_search": ["health anxiety", "hypochondria", "fear illness"]
+    },
+    {
+      "name": "Acute Stress Reaction",
+      "smart_search": ["acute stress", "shock reaction", "emotional distress"]
+    },
+    {
+      "name": "Restless Sleep Disorder",
+      "smart_search": ["restless sleep", "poor sleep", "night wakings"]
+    },
+    {
+      "name": "Cluster Headache",
+      "smart_search": ["cluster headache", "severe head pain", "eye pain"]
+    },
+    {
+      "name": "Hypoglycemia (Non-Emergent)",
+      "smart_search": ["low sugar", "hypoglycemia", "shaking"]
+    },
+    {
+      "name": "Prediabetes",
+      "smart_search": ["prediabetes", "high sugar", "borderline diabetes"]
+    },
+    {
+      "name": "Metabolic Syndrome",
+      "smart_search": ["metabolic", "cholesterol issues", "insulin resistance"]
+    },
+    {
+      "name": "Hyperthyroidism",
+      "smart_search": ["hyperthyroid", "low tsh", "overactive thyroid"]
+    },
+    {
+      "name": "Vitamin D Deficiency",
+      "smart_search": ["vitamin d", "low vitamin d", "fatigue"]
+    },
+    {
+      "name": "Vitamin B12 Deficiency",
+      "smart_search": ["b12", "neuropathy", "fatigue"]
+    },
+    {
+      "name": "Celiac Disease Evaluation",
+      "smart_search": ["celiac", "gluten pain", "digestive reaction"]
+    },
+    {
+      "name": "Anal Fissure",
+      "smart_search": ["rectal pain", "anal fissure", "pain bowel movement"]
+    },
+    {
+      "name": "Post-Infectious IBS",
+      "smart_search": ["ibs", "after infection", "stomach issues"]
+    },
+    {
+      "name": "Flatulence / Gas Disorder",
+      "smart_search": ["gas", "bloating", "flatulence"]
+    },
+    {
+      "name": "Nutrition Deficiency Evaluation",
+      "smart_search": ["nutrition", "vitamin deficiency", "weakness"]
+    },
+    {
+      "name": "Burnout Syndrome",
+      "smart_search": ["burnout", "overworked", "exhaustion"]
+    },
+    {
+      "name": "Exercise Intolerance",
+      "smart_search": ["exercise fatigue", "can’t exercise", "low stamina"]
+    },
+    {
+      "name": "Sleep Hygiene Counseling",
+      "smart_search": ["sleep hygiene", "better sleep", "sleep habits"]
+    },
+    {
+      "name": "Chronic Medication Review",
+      "smart_search": ["medication review", "chronic meds", "rx review"]
+    },
+    {
+      "name": "New Medication Initiation",
+      "smart_search": ["start medication", "new rx", "begin medicine"]
+    },
+    {
+      "name": "Treatment Plan Follow-Up",
+      "smart_search": ["treatment follow", "care follow", "follow plan"]
+    },
+    {
+      "name": "Vaccination Counseling",
+      "smart_search": ["vaccine advice", "immunization", "vaccine consult"]
+    },
+    {
+      "name": "Return-to-Work Clearance",
+      "smart_search": ["return work", "work clearance", "clearance note"]
+    },
+    {
+      "name": "Pre-Surgical Telehealth Clearance",
+      "smart_search": ["surgery clearance", "preop check", "telehealth eval"]
+    },
+    {
+      "name": "Non-Cardiac Chest Pain",
+      "smart_search": ["chest pain", "non cardiac", "chest discomfort"]
+    },
+    {
+      "name": "Palpitations (Benign)",
+      "smart_search": ["palpitations", "heart flutter", "fast heartbeat"]
+    },
+    {
+      "name": "Lightheadedness (Non-Emergent)",
+      "smart_search": ["lightheaded", "dizzy", "near faint"]
+    },
+    {
+      "name": "Tension Headache – Chronic",
+      "smart_search": ["tension headache", "chronic headache", "head pressure"]
+    },
+    {
+      "name": "Sleep-Related Headache",
+      "smart_search": ["headache sleep", "morning headache", "night headache"]
+    },
+    {
+      "name": "Occipital Neuralgia",
+      "smart_search": ["occipital pain", "head nerve pain", "back head pain"]
+    },
+    {
+      "name": "Trigeminal Neuralgia",
+      "smart_search": ["facial nerve pain", "trigeminal", "face shock pain"]
+    },
+    {
+      "name": "Post-Concussion Syndrome",
+      "smart_search": ["concussion", "head injury", "pcs"]
+    },
+    {
+      "name": "Cervical Radiculopathy",
+      "smart_search": ["neck nerve", "radiating arm pain", "pinched nerve"]
+    },
+    {
+      "name": "Lumbar Radiculopathy",
+      "smart_search": ["sciatic nerve", "leg numbness", "pinched nerve"]
+    },
+    {
+      "name": "Patellofemoral Pain Syndrome",
+      "smart_search": ["knee cap pain", "pfs", "knee grinding"]
+    },
+    {
+      "name": "Achilles Tendonitis",
+      "smart_search": ["achilles pain", "heel tendon", "ankle tendonitis"]
+    },
+    {
+      "name": "Hip Bursitis",
+      "smart_search": ["hip pain", "bursitis hip", "outer hip pain"]
+    },
+    {
+      "name": "Shoulder Bursitis",
+      "smart_search": ["shoulder bursitis", "shoulder swelling", "shoulder pain"]
+    },
+    {
+      "name": "General Tendinopathy",
+      "smart_search": ["tendon pain", "tendinopathy", "overuse injury"]
+    },
+    {
+      "name": "Myalgia (Muscle Pain)",
+      "smart_search": ["muscle pain", "myalgia", "sore muscles"]
+    },
+    {
+      "name": "Post-Viral Fatigue",
+      "smart_search": ["post viral", "fatigue", "after illness"]
+    },
+    {
+      "name": "Reactive Hypoglycemia",
+      "smart_search": ["low sugar", "hypoglycemia", "shaky"]
+    },
+    {
+      "name": "Obesity (BMI 30+)",
+      "smart_search": ["obesity", "bmi 30", "weight treatment"]
+    },
+    {
+      "name": "Weight Regain Evaluation",
+      "smart_search": ["weight regain", "regain weight", "plateau"]
+    },
+    {
+      "name": "Thyroid Hormone Imbalance",
+      "smart_search": ["thyroid imbalance", "t4 t3 issue", "thyroid symptoms"]
+    },
+    {
+      "name": "Hormonal Imbalance Evaluation",
+      "smart_search": ["hormone imbalance", "low hormones", "high hormones"]
+    },
+    {
+      "name": "GI Viral Illness",
+      "smart_search": ["stomach virus", "gi viral", "vomiting diarrhea"]
+    },
+    {
+      "name": "Non-Ulcer Dyspepsia",
+      "smart_search": ["indigestion", "dyspepsia", "stomach discomfort"]
+    },
+    {
+      "name": "Lactose Intolerance",
+      "smart_search": ["lactose", "milk reaction", "bloating milk"]
+    },
+    {
+      "name": "Abdominal Bloating",
+      "smart_search": ["bloating", "gas", "abdominal stretch"]
+    },
+    {
+      "name": "Chronic Diarrhea (Non-Emergent)",
+      "smart_search": ["chronic diarrhea", "persistent loose stool", "ongoing diarrhea"]
+    },
+    {
+      "name": "Opioid-Induced Constipation",
+      "smart_search": ["opioid constipation", "opiates", "hard stool"]
+    },
+    {
+      "name": "Pruritus Ani (Rectal Itching)",
+      "smart_search": ["rectal itching", "anal itch", "pruritus ani"]
+    },
+    {
+      "name": "Anal Irritation (Non-Emergent)",
+      "smart_search": ["anal irritation", "burning anus", "discomfort rectal"]
+    },
+    {
+      "name": "Canker Sores (Aphthous Ulcers)",
+      "smart_search": ["canker sore", "mouth ulcer", "aphthous"]
+    },
+    {
+      "name": "Gingivitis (Mild)",
+      "smart_search": ["gum pain", "gingivitis", "gum bleed"]
+    },
+    {
+      "name": "Sinus Headache",
+      "smart_search": ["sinus headache", "face pressure", "forehead pain"]
+    },
+    {
+      "name": "Allergic Conjunctivitis",
+      "smart_search": ["allergy eye", "itchy eyes", "watery eyes"]
+    },
+    {
+      "name": "Bacterial Conjunctivitis",
+      "smart_search": ["pink eye", "yellow discharge", "crusted eye"]
+    },
+    {
+      "name": "Viral Conjunctivitis",
+      "smart_search": ["viral eye", "pink eye viral", "watery eye"]
+    },
+    {
+      "name": "Stye (Hordeolum)",
+      "smart_search": ["stye", "eyelid bump", "tender eyelid"]
+    },
+    {
+      "name": "Chalazion",
+      "smart_search": ["chalazion", "eyelid cyst", "lid swelling"]
+    },
+    {
+      "name": "Blepharitis",
+      "smart_search": ["blepharitis", "eyelid inflammation", "crusty eyelid"]
+    },
+    {
+      "name": "Foreign Body Sensation (Eye)",
+      "smart_search": ["eye irritation", "gritty eye", "foreign body feeling"]
+    },
+    {
+      "name": "Sunburned Eyes (Photokeratitis)",
+      "smart_search": ["photokeratitis", "sunburn eye", "snow blindness"]
+    },
+    {
+      "name": "Motion Sickness",
+      "smart_search": ["motion sick", "car sick", "nausea travel"]
+    },
+    {
+      "name": "Nausea (Non-Specific)",
+      "smart_search": ["nausea", "queasy", "stomach upset"]
+    },
+    {
+      "name": "Vomiting (Non-Emergent)",
+      "smart_search": ["vomiting", "throwing up", "nauseated"]
+    },
+    {
+      "name": "Dysuria (Non-UTI causes)",
+      "smart_search": ["dysuria", "pain peeing", "urination pain"]
+    },
+    {
+      "name": "Urinary Frequency (Non-OAB)",
+      "smart_search": ["frequent urination", "peeing often", "urinary"]
+    },
+    {
+      "name": "Urinary Hesitancy",
+      "smart_search": ["hesitant urination", "difficulty starting", "slow urine"]
+    },
+    {
+      "name": "Benign Prostatic Hyperplasia (BPH)",
+      "smart_search": ["bph", "prostate enlarged", "urination issues"]
+    },
+    {
+      "name": "Testicular Pain (Telehealth Triage)",
+      "smart_search": ["testicular pain", "ball pain", "scrotal discomfort"]
+    },
+    {
+      "name": "Orchitis (Mild)",
+      "smart_search": ["orchitis", "testicle inflammation", "testicular pain"]
+    },
+    {
+      "name": "Prostatitis (Mild Chronic)",
+      "smart_search": ["prostatitis", "pelvic pain male", "urination pain male"]
+    },
+    {
+      "name": "Penile Rash (Non-Emergent)",
+      "smart_search": ["penile rash", "penis redness", "itchy penis"]
+    },
+    {
+      "name": "Yeast Balanitis",
+      "smart_search": ["balanitis", "penis yeast", "red foreskin"]
+    },
+    {
+      "name": "Dyspareunia (Painful Intercourse)",
+      "smart_search": ["dyspareunia", "sex pain", "painful intercourse"]
+    },
+    {
+      "name": "Libido Changes (Low Libido)",
+      "smart_search": ["low libido", "low sex drive", "sexual interest"]
+    },
+    {
+      "name": "Breast Pain (Mastalgia)",
+      "smart_search": ["breast pain", "mastalgia", "tender breast"]
+    },
+    {
+      "name": "Galactorrhea (Milk Discharge)",
+      "smart_search": ["galactorrhea", "breast discharge", "milk leakage"]
+    },
+    {
+      "name": "Nipple Dermatitis",
+      "smart_search": ["nipple rash", "itchy nipple", "dermatitis nipple"]
+    },
+    {
+      "name": "Menstrual Migraine",
+      "smart_search": ["menstrual migraine", "period migraine", "hormone headache"]
+    },
+    {
+      "name": "Abnormal Uterine Bleeding",
+      "smart_search": ["heavy bleeding", "spotting", "aub"]
+    },
+    {
+      "name": "Breast Abscess (Telehealth Eval)",
+      "smart_search": ["breast abscess", "breast lump", "pain lump"]
+    },
+    {
+      "name": "Lactation Consultation",
+      "smart_search": ["lactation", "breastfeeding help", "milk supply"]
+    },
+    {
+      "name": "Nipple Pain (Lactation)",
+      "smart_search": ["nipple pain", "breastfeeding pain", "nipple injury"]
+    },
+    {
+      "name": "Night Sweats (Non-Emergent)",
+      "smart_search": ["night sweats", "sweating", "sleep sweat"]
+    },
+    {
+      "name": "Hot Flashes (Non-Menopause)",
+      "smart_search": ["hot flash", "hot feeling", "warm episodes"]
+    },
+    {
+      "name": "Chronic Stress Syndrome",
+      "smart_search": ["stress", "overwhelmed", "chronic stress"]
+    },
+    {
+      "name": "Acute Anxiety Episode",
+      "smart_search": ["anxiety attack", "panic", "fear episode"]
+    },
+    {
+      "name": "Grief Reaction",
+      "smart_search": ["grief", "loss reaction", "sadness"]
+    },
+    {
+      "name": "Poor Concentration (Non-ADHD)",
+      "smart_search": ["concentration", "focus", "mental fog"]
+    },
+    {
+      "name": "Brain Fog",
+      "smart_search": ["brain fog", "unclear thinking", "mental fatigue"]
+    },
+    {
+      "name": "Memory Difficulty (Non-Dementia)",
+      "smart_search": ["memory issues", "forgetful", "mild memory"]
+    },
+    {
+      "name": "Restless Legs (Non-RLS)",
+      "smart_search": ["restless legs", "leg discomfort", "need to move legs"]
+    },
+    {
+      "name": "Leg Cramps (Non-Neuropathic)",
+      "smart_search": ["leg cramp", "muscle cramp", "night cramp"]
+    },
+    {
+      "name": "Foot Pain (Non-Fracture)",
+      "smart_search": ["foot pain", "sole pain", "arch pain"]
+    },
+    {
+      "name": "Hand Pain (Non-Fracture)",
+      "smart_search": ["hand pain", "hand ache", "hand strain"]
+    },
+    {
+      "name": "Elbow Pain (Non-Fracture)",
+      "smart_search": ["elbow pain", "elbow strain", "joint pain elbow"]
+    },
+    {
+      "name": "Shoulder Pain (Non-Fracture)",
+      "smart_search": ["shoulder pain", "shoulder ache", "shoulder injury"]
+    },
+    {
+      "name": "Knee Pain (Non-Fracture)",
+      "smart_search": ["knee pain", "knee ache", "knee discomfort"]
+    },
+    {
+      "name": "Hip Pain (Non-Fracture)",
+      "smart_search": ["hip pain", "hip ache", "hip discomfort"]
+    },
+    {
+      "name": "Neck Stiffness (Non-Emergent)",
+      "smart_search": ["neck stiff", "neck tight", "sore neck"]
+    },
+    {
+      "name": "Back Spasm",
+      "smart_search": ["back spasm", "muscle spasm", "back tight"]
+    },
+    {
+      "name": "Muscle Strain (Generalized)",
+      "smart_search": ["muscle strain", "pulled muscle", "sore muscle"]
+    },
+    {
+      "name": "Medication Side Effect Evaluation",
+      "smart_search": ["side effects", "med reaction", "rx problem"]
+    },
+    {
+      "name": "Medication Renewal – Long-Term",
+      "smart_search": ["med renewal", "rx refill", "long-term medication"]
+    },
+    {
+      "name": "Chronic Condition Check-In",
+      "smart_search": ["chronic follow-up", "condition check", "routine follow-up"]
+    },
+    {
+      "name": "Telehealth Follow-Up Visit",
+      "smart_search": ["follow-up", "return visit", "check back"]
+    },
+    {
+      "name": "General Health Question",
+      "smart_search": ["health question", "medical question", "concern"]
+    }
+  ]
