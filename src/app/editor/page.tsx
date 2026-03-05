@@ -179,7 +179,7 @@ document.addEventListener('click',(e)=>{
 
   useEffect(() => {
     if (!iframeRef.current) return;
-    clearTimeout(previewTimer.current);
+    if (previewTimer.current) clearTimeout(previewTimer.current);
     previewTimer.current = setTimeout(() => {
       const blob = new Blob([previewHTML], { type: "text/html" });
       iframeRef.current.src = URL.createObjectURL(blob);
@@ -205,7 +205,7 @@ document.addEventListener('click',(e)=>{
   // ═══ AUTOSAVE ═══
   useEffect(() => {
     setSaveStatus("saving");
-    clearTimeout(saveTimer.current);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       try { localStorage.setItem("vep-code", code); } catch {}
       setSaveStatus("saved");
