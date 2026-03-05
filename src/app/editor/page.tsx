@@ -35,7 +35,7 @@ const B = {
   "desk": {n:"Desktop Browser",   tc:0, bc:0, p:"desk"},
 };
 
-const bForD = (d) => d.c==="ios"?["saf","safc","safb","pwa"]:d.c==="and"?["chr","chrc"]:["desk"];
+const bForD = (d: any) => d.c==="ios"?["saf","safc","safb","pwa"]:d.c==="and"?["chr","chrc"]:["desk"];
 
 const WARN = [
   {s:"critical",t:"100vh Bug",d:"100vh ignores browser chrome. Content cut off on load.",f:"Use 100dvh or 100svh"},
