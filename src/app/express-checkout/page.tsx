@@ -401,7 +401,7 @@ function Step2PaymentForm({
             🧪 Test Pay — {currentPrice.display}
           </button>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {/* Express Checkout — one-tap Apple Pay / Google Pay / Link */}
             <div style={{ visibility: expressVisible ? "visible" : "hidden", height: expressVisible ? "auto" : "0" }}>
               <ExpressCheckoutElement
@@ -410,18 +410,18 @@ function Step2PaymentForm({
                 options={{
                   buttonType: { applePay: "buy", googlePay: "buy" },
                   buttonTheme: { applePay: "white-outline", googlePay: "white" },
-                  buttonHeight: 48,
+                  buttonHeight: 40,
                 }}
               />
             </div>
 
             {/* Booking fee notice */}
-            <p className="text-center text-gray-500 text-[9px] py-0.5">{currentPrice.display} booking fee · Visit fee collected separately after provider review</p>
+            <p className="text-center text-gray-500 text-[8px] py-0">{currentPrice.display} booking fee · Visit fee collected separately after provider review</p>
 
             {/* Divider */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="flex-1 h-px bg-white/10" />
-              <span className="text-gray-500 text-[10px] font-semibold uppercase">or pay with card</span>
+              <span className="text-gray-500 text-[9px] font-semibold uppercase">or pay with card</span>
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
@@ -431,23 +431,23 @@ function Step2PaymentForm({
                 {/* DOB field — new patients only */}
                 {isNewPatient && (
                   <div className={`space-y-1.5 rounded-lg px-1 py-1 transition-all ${pulseField === "dob" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
-                    <label className="text-white text-[11px] font-semibold">Date of Birth</label>
+                    <label className="text-white text-[10px] font-semibold">Date of Birth</label>
                     <div className="flex gap-2">
                       <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
+                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
                         onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
                         onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
+                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
                         onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
                         onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
                         onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
+                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
                         onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
                         onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
                       />
@@ -468,8 +468,8 @@ function Step2PaymentForm({
                 </div>
 
                 {/* Sticky terms + pay button */}
-                <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 8px), 8px)" }}>
-                  <div className={`flex items-start gap-1.5 mb-2 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
+                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 4px), 4px)" }}>
+                  <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
                       By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
@@ -480,7 +480,7 @@ function Step2PaymentForm({
                     if (isNewPatient && !newDobComplete) { setPulseField("dob"); setTimeout(() => setPulseField(null), 1500); return; }
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
-                  }} className="w-full text-white font-extrabold py-3.5 rounded-xl transition-all text-[14px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
+                  }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
                     <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
                   </button>
                 </div>
@@ -540,6 +540,170 @@ export default function ExpressCheckoutPage() {
   // Dialogs
   const [reasonDialogOpen, setReasonDialogOpen] = useState(false);
   const [reasonQuery, setReasonQuery] = useState("");
+
+  // ═══ ROTATING BELOW-CARD CONTENT ═══
+  // Session-seeded so it stays consistent within one visit but changes next time
+  const contentSeed = useMemo(() => {
+    try {
+      const stored = sessionStorage.getItem("medazon_content_seed");
+      if (stored) return parseInt(stored);
+      const seed = Math.floor(Math.random() * 10000);
+      sessionStorage.setItem("medazon_content_seed", String(seed));
+      return seed;
+    } catch { return Math.floor(Math.random() * 10000); }
+  }, []);
+  const pick = (arr: string[], step: number) => arr[(contentSeed + step) % arr.length];
+
+  const step1Titles = ["What Brings\nYou In?", "How Can We\nHelp?", "Let's Get You\nTreated", "What's Going\nOn?"];
+  const step1Subs = [
+    "Everything is private. Only your provider sees your answers.",
+    "Select your concern — your visit stays between you and your provider.",
+    "100% discreet. Board-certified provider. Same person every visit.",
+    "No judgment. No waiting rooms. Just private care.",
+  ];
+  const step2Titles = ["Tell Us\nMore", "Describe What's\nGoing On", "Share Your\nSymptoms", "Help Us\nHelp You"];
+  const step2Subs = [
+    "Only your provider sees this. Take your time.",
+    "The more detail, the better your provider can help.",
+    "Everything you share is encrypted and private.",
+    "Your words go directly to your provider — no one else.",
+  ];
+  const step3Titles = ["Choose Your\nPharmacy", "Where Should We\nSend Your Rx?", "Pick Up\nDiscreetly", "Select\nPharmacy"];
+  const step3Subs = [
+    "Discreet pickup. No questions asked.",
+    "Your prescription goes directly — private and fast.",
+    "Same-day Rx to your preferred pharmacy.",
+    "We send it. You pick it up. Nobody knows.",
+  ];
+  const step4Titles = ["How Would You Like\nTo Be Seen?", "Choose Your\nVisit Type", "Pick What Works\nFor You", "Your Visit,\nYour Way"];
+  const step4Subs = [
+    "Every option is private. Same provider every time.",
+    "No cameras required unless you want one.",
+    "All visit types are HIPAA encrypted end-to-end.",
+    "Choose what's comfortable — your provider handles the rest.",
+  ];
+  const confirmTitles = ["You're In\nGood Hands", "Almost\nThere", "Confirm\nYour Visit", "One Step\nAway"];
+  const confirmSubs = [
+    "Your provider personally reviews every case.",
+    "Review your details — then we take it from here.",
+    "Everything looks good. Your provider is ready.",
+    "Private. Discreet. Board-certified care.",
+  ];
+  const confirmPayTitles = ["Welcome\nBack", "Good To See\nYou Again", "Ready When\nYou Are", "Let's Get\nStarted"];
+
+  // Timeline items rotate wording
+  const timelineVariants = [
+    { s1: "Share What's Going On", d1: "Private intake — only your provider sees", s2: "Provider Reviews Personally", d2: "The same provider who knows you", s3: "Treatment Sent Privately", d3: "Discreet Rx to your pharmacy" },
+    { s1: "Tell Us What's Bothering You", d1: "Encrypted. Confidential. Just for your provider.", s2: "Your Provider Evaluates", d2: "Not a stranger — your dedicated provider", s3: "Prescription to Pharmacy", d3: "Same day. Discreet packaging available." },
+    { s1: "Describe Your Symptoms", d1: "Takes under 2 minutes. Fully private.", s2: "Personal Case Review", d2: "Board-certified. Knows your history.", s3: "Rx Sent Directly", d3: "To your pharmacy. No one has to know." },
+  ];
+  const activeTimeline = timelineVariants[(contentSeed + 5) % timelineVariants.length];
+
+  // Privacy callouts rotate
+  const privacyCallouts = [
+    "Nobody has to know. No insurance contacted. Billing shows as \"Medazon Health.\" No trace.",
+    "Complete discretion. No insurance. Discreet billing. Your case stays between you and your provider.",
+    "100% private. No apps to install. No insurance required. Discreet from start to finish.",
+  ];
+  const activePrivacy = privacyCallouts[(contentSeed + 7) % privacyCallouts.length];
+
+  // Provider quotes rotate
+  const providerQuotes = [
+    "\"Your privacy and care come first — always.\"",
+    "\"I personally review every case. You're not a number here.\"",
+    "\"Every patient deserves to be heard and treated with dignity.\"",
+    "\"I treat every patient like family. Discretion is non-negotiable.\"",
+  ];
+  const activeQuote = providerQuotes[(contentSeed + 3) % providerQuotes.length];
+
+  // Below-card component
+  const BelowCardContent = ({ step }: { step: number }) => {
+    const titles = step === 1 ? step1Titles : step === 2 ? step2Titles : step === 3 ? step3Titles : step === 4 ? step4Titles : confirmTitles;
+    const subs = step === 1 ? step1Subs : step === 2 ? step2Subs : step === 3 ? step3Subs : step === 4 ? step4Subs : confirmSubs;
+    const title = pick(titles, step);
+    const sub = pick(subs, step);
+    return (
+      <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
+        <div className="px-1 mt-4 mb-1">
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)" }}>
+            {title.split("\n").map((line, i) => {
+              // Last word of last line gets green accent
+              const words = line.split(" ");
+              if (i === title.split("\n").length - 1 && words.length > 0) {
+                const last = words.pop();
+                return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+              }
+              return <span key={i}>{line}{"\n"}</span>;
+            })}
+          </h2>
+          <p className="text-[11px] text-[#6b7280] mt-2 leading-relaxed">{sub}</p>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-2 px-1">
+          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
+          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👩‍⚕️ Board-Certified</span>}
+          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>⭐ 4.9 · 10K+</span>}
+          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👤 Same Provider</span>}
+        </div>
+      </div>
+    );
+  };
+
+  // Confirm below-card with timeline + privacy + quote
+  const ConfirmBelowContent = ({ isReturn }: { isReturn: boolean }) => {
+    const title = isReturn ? pick(confirmPayTitles, 10) : pick(confirmTitles, 5);
+    const sub = isReturn ? "Your provider is ready for you." : pick(confirmSubs, 5);
+    return (
+      <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
+        <div className="px-1 mt-4 mb-2">
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)" }}>
+            {title.split("\n").map((line, i) => {
+              const words = line.split(" ");
+              if (i === title.split("\n").length - 1 && words.length > 0) {
+                const last = words.pop();
+                return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+              }
+              return <span key={i}>{line}{"\n"}</span>;
+            })}
+          </h2>
+          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed">{sub}</p>
+        </div>
+        {/* Timeline */}
+        <div className="mt-3 space-y-0">
+          {[{ icon: "📝", t: activeTimeline.s1, d: activeTimeline.d1, time: "~2 min" },
+            { icon: "👩‍⚕️", t: activeTimeline.s2, d: activeTimeline.d2, time: "~18 min" },
+            { icon: "💊", t: activeTimeline.s3, d: activeTimeline.d3, time: "Same day" }].map((item, i) => (
+            <div key={i}>
+              {i > 0 && <div className="ml-[17px] w-px h-1.5 bg-[#2dd4a0]/15"></div>}
+              <div className="flex gap-3 py-2">
+                <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
+                <div>
+                  <div className="text-[11px] font-bold text-white">{item.t}</div>
+                  <div className="text-[9px] text-[#6b7280] mt-0.5">{item.d}</div>
+                  <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Discretion callout */}
+        <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)" }}>
+          <span className="text-[18px] flex-shrink-0">🙈</span>
+          <p className="text-[10px] text-[#9ca3af] leading-relaxed"><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
+        </div>
+        {/* Provider quote */}
+        <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/6" style={{ background: "rgba(255,255,255,0.02)" }}>
+          <img src="/assets/provider-lamonica.png" alt="" className="w-[34px] h-[34px] rounded-full border-2 border-[#2dd4a0] object-cover object-top flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }} />
+          <div>
+            <p className="text-[10px] text-[#9ca3af] italic leading-relaxed">{activeQuote}</p>
+            <p className="text-[8px] text-[#2dd4a0] font-bold mt-0.5">— LaMonica A. Hodges, APRN</p>
+          </div>
+        </div>
+        {/* Rating */}
+        <div className="mt-2 text-center text-[10px] text-[#4b5563]">⭐⭐⭐⭐⭐ <strong className="text-[#f59e0b]">4.9</strong> · 10,000+ patients</div>
+        <div className="mt-1 text-center text-[9px] text-[#374151]">Your case stays between you and your provider. <strong className="text-[#2dd4a0]">No one else.</strong></div>
+      </div>
+    );
+  };
   const [dateTimeDialogOpen, setDateTimeDialogOpen] = useState(false);
   const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [calSelectedDay, setCalSelectedDay] = useState("");
@@ -804,22 +968,22 @@ export default function ExpressCheckoutPage() {
         colorText: "#ffffff",
         colorTextSecondary: "#ffffff",
         colorTextPlaceholder: "rgba(255,255,255,0.5)",
-        borderRadius: "10px",
-        spacingUnit: "3px",
+        borderRadius: "8px",
+        spacingUnit: "2px",
         fontFamily: "system-ui, -apple-system, sans-serif",
-        fontSizeBase: "13px",
-        fontSizeSm: "11px",
+        fontSizeBase: "12px",
+        fontSizeSm: "10px",
       },
       rules: {
-        ".Tab": { border: "2px solid rgba(45,212,160,0.35)", backgroundColor: "#0b0f0c", padding: "8px 0" },
+        ".Tab": { border: "2px solid rgba(45,212,160,0.35)", backgroundColor: "#0b0f0c", padding: "6px 0" },
         ".Tab--selected": { border: "2px solid #2dd4a0", backgroundColor: "rgba(45,212,160,0.08)", color: "#ffffff" },
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
-        ".Label": { color: "#ffffff", fontSize: "11px", fontWeight: "600" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
+        ".Label": { color: "#ffffff", fontSize: "10px", fontWeight: "600", marginBottom: "2px" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "6px 8px", fontSize: "12px" },
         ".Input:focus": { border: "2px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
         ".Input::placeholder": { color: "rgba(255,255,255,0.5)" },
-        ".Block": { padding: "8px 0" },
+        ".Block": { padding: "4px 0" },
       },
     },
   } : undefined, [clientSecret]);
@@ -1421,6 +1585,7 @@ export default function ExpressCheckoutPage() {
         @keyframes fadeInBtn { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes fadeInPill { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+        @keyframes fadeInBelow { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         @keyframes pillIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideUpCalendar { from { transform: translateY(100%); opacity: 0.5; } to { transform: translateY(0); opacity: 1; } }
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -1455,19 +1620,20 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 1: Reason for Visit — hidden when answered */}
           {!reason ? (
-            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`}>
                 <button onClick={() => setReasonDialogOpen(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60 text-left transition-all">
                   <span className="text-gray-300 text-[15px]">{reason || "Select a reason..."}</span>
                   <ChevronDown size={14} className="text-gray-500" />
                 </button>
               </div>
+              <BelowCardContent step={1} />
             </div>
           ) : null}
 
           {/* STEP 2: Describe Symptoms — hidden when answered */}
           {reason && !symptomsDone ? (
-            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all mt-3 ${activeOrangeBorder} flex flex-col min-h-0`}>
                 <textarea id="symptoms-textarea" value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-white/50 caret-white transition-all ${pulseSection === "symptoms" ? "ring-2 ring-[#f97316] animate-pulse border-[#f97316]" : chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316] focus:border-[#f97316]"}`} />
                 {chiefComplaint.length < 10 ? (
@@ -1480,12 +1646,13 @@ export default function ExpressCheckoutPage() {
                   <button onClick={() => { if (chiefComplaint.length < 10) { triggerPulse("symptoms"); document.getElementById("symptoms-textarea")?.focus(); return; } setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 border-[#f97316]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.25)" }}>Continue →</button>
                 </div>
               </div>
+              <BelowCardContent step={2} />
             </div>
           ) : null}
 
           {/* STEP 3: Preferred Pharmacy — hidden when answered */}
           {reason && symptomsDone && !pharmacy ? (
-            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 ${activeOrangeBorder}`}>
                 <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
                   setPharmacy(val);
@@ -1496,13 +1663,14 @@ export default function ExpressCheckoutPage() {
                   } else { saveAnswers({ pharmacy: val }); }
                 }} placeholder="Search pharmacy..." className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-white/50" />
               </div>
+              <BelowCardContent step={3} />
             </div>
           ) : null}
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
-              <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <div className="grid grid-cols-4 gap-2">
                     {([
@@ -1588,13 +1756,14 @@ export default function ExpressCheckoutPage() {
               </div>
             </div>
           )}
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && <BelowCardContent step={4} />}
           </div>
           {/* END Step 4 wrapper */}
 
           {/* STEP 4.5: Confirm Summary (new patient) / Summary + Pay (returning patient) */}
           {reason && symptomsDone && pharmacy && visitTypeChosen && !confirmReviewed && !isReturningPatient ? (
             /* ── NEW PATIENT: Confirm Summary with CONTINUE button ── */
-            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Summary card */}
                 <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
@@ -1648,10 +1817,11 @@ export default function ExpressCheckoutPage() {
                   CONTINUE
                 </button>
               </div>
+              <ConfirmBelowContent isReturn={false} />
             </div>
           ) : reason && symptomsDone && pharmacy && visitTypeChosen && isReturningPatient ? (
             /* ── RETURNING PATIENT: Summary + Wallets + collapsed card form ── */
-            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Summary card — collapses when card form is open */}
                 <div className="rounded-xl border border-white/10 overflow-hidden transition-all" style={{ background: "rgba(255,255,255,0.02)", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
@@ -1723,12 +1893,13 @@ export default function ExpressCheckoutPage() {
                 {/* Back button */}
                 <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
+              <ConfirmBelowContent isReturn={true} />
             </div>
           ) : null}
 
           {/* STEP 4.75: New Patient Payment Form (after CONTINUE from confirm) */}
           {reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? (
-            <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Payment — Express wallets + DOB + card form open */}
                 {clientSecret && stripeOptions ? (
@@ -1982,6 +2153,7 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
 
 
 
