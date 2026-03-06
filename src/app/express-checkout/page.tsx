@@ -168,7 +168,7 @@ function Step2PaymentForm({
         elements, redirect: "if_required",
         confirmParams: {
           return_url: `${window.location.origin}/success`,
-          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone } },
+          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone, address: { country: "US" } } },
         },
       });
 
@@ -331,6 +331,7 @@ function Step2PaymentForm({
                 name: `${pd.firstName} ${pd.lastName}`.trim(),
                 email: pd.email || undefined,
                 phone: pd.phone || undefined,
+                address: { country: "US" },
               },
             },
           },
@@ -511,7 +512,7 @@ function Step2PaymentForm({
                   />
                   <input
                     type="text" inputMode="numeric" autoComplete="off" autoCorrect="off" spellCheck={false}
-                    placeholder="D.O.B MM/DD/YYYY"
+                    placeholder="MM/DD/YYYY"
                     value={
                       newDobMonth +
                       (newDobMonth.length === 2 && (newDobDay || newDobYear) ? "/" : "") +
@@ -2253,6 +2254,51 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
