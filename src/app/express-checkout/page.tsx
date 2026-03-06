@@ -168,7 +168,7 @@ function Step2PaymentForm({
         elements, redirect: "if_required",
         confirmParams: {
           return_url: `${window.location.origin}/success`,
-          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone, address: { country: "US" } } },
+          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone, address: { country: "US", postal_code: (pd.address?.match(/\b\d{5}\b/)?.[0] ?? "") } } },
         },
       });
 
@@ -331,7 +331,7 @@ function Step2PaymentForm({
                 name: `${pd.firstName} ${pd.lastName}`.trim(),
                 email: pd.email || undefined,
                 phone: pd.phone || undefined,
-                address: { country: "US" },
+                address: { country: "US", postal_code: (pd.address?.match(/\b\d{5}\b/)?.[0] ?? "") },
               },
             },
           },
@@ -2254,6 +2254,51 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
