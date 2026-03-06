@@ -832,7 +832,7 @@ export async function POST(request: Request) {
       pharmacy_address: data.pharmacyAddress || null,
 
       // Browser/device info
-      browser_info: data.browserInfo || null,
+      // browser_info: data.browserInfo || null, // column not yet migrated — run add-browser-info-column.sql first
 
       // Consent (will be set during consent flow)
       consent_accepted: false,
@@ -958,8 +958,21 @@ export async function POST(request: Request) {
         );
       }
 
+      console.error("[CREATE_APPOINTMENT] ❌ appointments.insert failed:", {
+        code: error.code, message: error.message, hint: (error as any).hint, details: (error as any).details,
+        snapshot: {
+          patient_id: appointmentInsert.patient_id,
+          doctor_id: appointmentInsert.doctor_id,
+          visit_type: appointmentInsert.visit_type,
+          status: appointmentInsert.status,
+          payment_status: appointmentInsert.payment_status,
+          patient_first_name: appointmentInsert.patient_first_name,
+          patient_email: appointmentInsert.patient_email,
+          patient_dob: appointmentInsert.patient_dob,
+        },
+      });
       return NextResponse.json(
-        { error: "Failed to create appointment", details: error.message },
+        { error: "Failed to create appointment", details: error.message, hint: (error as any).hint, code: error.code },
         { status: 500 },
       );
     }
@@ -2099,6 +2112,9 @@ async function generateCDSSInBackground(
     console.error("[CDSS_PRE_GENERATE] ❌ Error:", error.message);
   }
 }
+
+
+
 
 
 
