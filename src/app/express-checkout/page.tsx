@@ -444,84 +444,92 @@ function Step2PaymentForm({
             </div>
 
             {/* ── NEW PATIENT FIELDS — collected by us, passed to Stripe billing_details ── */}
+            {/* Honeypot: browser autofill targets these hidden fields instead of ours */}
             {isNewPatient && (
-              <div className={`space-y-1.5 transition-all ${pulseField === "fields" ? "ring-2 ring-[#f97316] rounded-xl animate-pulse" : ""}`}>
-                {/* Name row */}
-                <div className="flex gap-1.5">
-                  <div className="flex-1">
-                    <input
-                      type="text" autoComplete="given-name" placeholder="First name" value={newFirstName}
-                      onChange={(e) => setNewFirstName(e.target.value)}
-                      className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
-                      style={{ background: "rgba(0,0,0,0.3)", border: newFirstName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = newFirstName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="text" autoComplete="family-name" placeholder="Last name" value={newLastName}
-                      onChange={(e) => setNewLastName(e.target.value)}
-                      className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
-                      style={{ background: "rgba(0,0,0,0.3)", border: newLastName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = newLastName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                    />
-                  </div>
+              <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", height: 0, overflow: "hidden" }}>
+                <input type="text" name="fake-first" autoComplete="given-name" tabIndex={-1} />
+                <input type="text" name="fake-last" autoComplete="family-name" tabIndex={-1} />
+                <input type="email" name="fake-email" autoComplete="email" tabIndex={-1} />
+                <input type="tel" name="fake-phone" autoComplete="tel" tabIndex={-1} />
+                <input type="text" name="fake-address" autoComplete="street-address" tabIndex={-1} />
+              </div>
+            )}
+            {isNewPatient && (
+              <div className={`space-y-1 transition-all ${pulseField === "fields" ? "ring-2 ring-[#f97316] rounded-xl animate-pulse" : ""}`}>
+                {/* Row 1: First + Last */}
+                <div className="flex gap-1">
+                  <input
+                    type="text" autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                    placeholder="First name" value={newFirstName}
+                    onChange={(e) => setNewFirstName(e.target.value)}
+                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                    style={{ background: "rgba(0,0,0,0.3)", border: newFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                    onBlur={(e) => { e.target.style.border = newFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                  />
+                  <input
+                    type="text" autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                    placeholder="Last name" value={newLastName}
+                    onChange={(e) => setNewLastName(e.target.value)}
+                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                    style={{ background: "rgba(0,0,0,0.3)", border: newLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                    onBlur={(e) => { e.target.style.border = newLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                  />
                 </div>
-                {/* Email */}
-                <input
-                  type="email" autoComplete="email" placeholder="Email address" value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
-                  style={{ background: "rgba(0,0,0,0.3)", border: newEmail.includes("@") ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                  onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                  onBlur={(e) => { e.target.style.border = newEmail.includes("@") ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                />
-                {/* Phone */}
-                <input
-                  type="tel" autoComplete="tel" placeholder="Phone number" value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
-                  style={{ background: "rgba(0,0,0,0.3)", border: newPhone.replace(/\D/g,"").length >= 10 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                  onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                  onBlur={(e) => { e.target.style.border = newPhone.replace(/\D/g,"").length >= 10 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                />
-                {/* Address */}
-                <input
-                  type="text" autoComplete="street-address" placeholder="Street address (optional)" value={newAddress}
-                  onChange={(e) => setNewAddress(e.target.value)}
-                  className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
-                  style={{ background: "rgba(0,0,0,0.3)", border: newAddress.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                  onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                  onBlur={(e) => { e.target.style.border = newAddress.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                />
-                {/* DOB */}
-                <div className={`transition-all ${pulseField === "dob" ? "ring-2 ring-[#f97316] rounded-lg animate-pulse bg-[#f97316]/10" : ""}`}>
-                  <label className="text-white/50 text-[9px] font-semibold uppercase tracking-wide pl-0.5">Date of Birth</label>
-                  <div className="flex gap-1.5 mt-0.5">
-                    <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
-                      onChange={(e) => { const v = e.target.value.replace(/\D/g,"").slice(0,2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("np-dob-day") as HTMLInputElement)?.focus(); }}
-                      className="flex-1 rounded-lg px-2 py-2 text-white text-[12px] text-center focus:outline-none placeholder:text-white/40"
-                      style={{ background: "rgba(0,0,0,0.3)", border: newDobMonth.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = newDobMonth.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                    />
-                    <input id="np-dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
-                      onChange={(e) => { const v = e.target.value.replace(/\D/g,"").slice(0,2); setNewDobDay(v); if (v.length === 2) (document.getElementById("np-dob-year") as HTMLInputElement)?.focus(); }}
-                      className="flex-1 rounded-lg px-2 py-2 text-white text-[12px] text-center focus:outline-none placeholder:text-white/40"
-                      style={{ background: "rgba(0,0,0,0.3)", border: newDobDay.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = newDobDay.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                    />
-                    <input id="np-dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
-                      onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g,"").slice(0,4))}
-                      className="flex-1 rounded-lg px-2 py-2 text-white text-[12px] text-center focus:outline-none placeholder:text-white/40"
-                      style={{ background: "rgba(0,0,0,0.3)", border: newDobYear.length === 4 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = newDobYear.length === 4 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
-                    />
-                  </div>
+                {/* Row 2: Email + Phone */}
+                <div className="flex gap-1">
+                  <input
+                    type="text" inputMode="email" autoComplete="off" autoCorrect="off" spellCheck={false}
+                    placeholder="Email" value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                    style={{ background: "rgba(0,0,0,0.3)", border: newEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                    onBlur={(e) => { e.target.style.border = newEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                  />
+                  <input
+                    type="text" inputMode="tel" autoComplete="off" autoCorrect="off" spellCheck={false}
+                    placeholder="Phone" value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                    style={{ background: "rgba(0,0,0,0.3)", border: newPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                    onBlur={(e) => { e.target.style.border = newPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                  />
+                </div>
+                {/* Row 3: Address (flex-[3]) + DOB single field (flex-[2]) */}
+                <div className={`flex gap-1 ${pulseField === "dob" ? "ring-2 ring-[#f97316] rounded-lg animate-pulse" : ""}`}>
+                  <input
+                    type="text" autoComplete="off" autoCorrect="off" spellCheck={false}
+                    placeholder="Street address" value={newAddress}
+                    onChange={(e) => setNewAddress(e.target.value)}
+                    className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                    style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: newAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                    onBlur={(e) => { e.target.style.border = newAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                  />
+                  <input
+                    type="text" inputMode="numeric" autoComplete="off" autoCorrect="off" spellCheck={false}
+                    placeholder="MM/DD/YYYY"
+                    value={
+                      newDobMonth +
+                      (newDobMonth.length === 2 && (newDobDay || newDobYear) ? "/" : "") +
+                      newDobDay +
+                      (newDobDay.length === 2 && newDobYear ? "/" : "") +
+                      newDobYear
+                    }
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      setNewDobMonth(raw.slice(0, 2));
+                      setNewDobDay(raw.slice(2, 4));
+                      setNewDobYear(raw.slice(4, 8));
+                    }}
+                    className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
+                    style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: newDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                    onBlur={(e) => { e.target.style.border = newDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                  />
                 </div>
               </div>
             )}
@@ -2245,6 +2253,51 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
