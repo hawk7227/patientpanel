@@ -179,7 +179,7 @@ function Step2PaymentForm({
 
       setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
 
-      if (result.paymentIntent?.status === "succeeded") {
+      if (result.paymentIntent?.status === "succeeded" || result.paymentIntent?.status === "requires_capture") {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -205,7 +205,7 @@ function Step2PaymentForm({
           body: JSON.stringify(appointmentPayload),
         });
         const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
         setProgress(100); setStatusText("Appointment booked!");
         sessionStorage.setItem("appointmentData", JSON.stringify({
@@ -275,7 +275,7 @@ function Step2PaymentForm({
           body: JSON.stringify(appointmentPayload),
         });
         const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
         setProgress(100); setStatusText("Appointment booked!");
         sessionStorage.setItem("appointmentData", JSON.stringify({
@@ -346,7 +346,7 @@ function Step2PaymentForm({
       // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
       setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
 
-      if (paymentIntent?.status === "succeeded") {
+      if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "requires_capture") {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -372,7 +372,7 @@ function Step2PaymentForm({
           body: JSON.stringify(appointmentPayload),
         });
         const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
         setProgress(100); setStatusText("Appointment booked!");
         sessionStorage.setItem("appointmentData", JSON.stringify({
@@ -2252,6 +2252,52 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
