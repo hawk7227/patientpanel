@@ -94,12 +94,15 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
   currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand, isNewPatient,
+  npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
   symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
   isNewPatient: boolean;
+  npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
+  npDobMonth?: string; npDobDay?: string; npDobYear?: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -113,15 +116,15 @@ function Step2PaymentForm({
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
-  // New patient — collected in our own fields, passed to Stripe billing_details
-  const [newFirstName, setNewFirstName] = useState(patient.firstName || "");
-  const [newLastName, setNewLastName] = useState(patient.lastName || "");
-  const [newEmail, setNewEmail] = useState(patient.email || "");
-  const [newPhone, setNewPhone] = useState(patient.phone || "");
-  const [newAddress, setNewAddress] = useState(patient.address || "");
-  const [newDobMonth, setNewDobMonth] = useState("");
-  const [newDobDay, setNewDobDay] = useState("");
-  const [newDobYear, setNewDobYear] = useState("");
+  // New patient — values lifted to page level, received as props
+  const newFirstName = npFirstName ?? "";
+  const newLastName  = npLastName  ?? "";
+  const newEmail     = npEmail     ?? "";
+  const newPhone     = npPhone     ?? "";
+  const newAddress   = npAddress   ?? "";
+  const newDobMonth  = npDobMonth  ?? "";
+  const newDobDay    = npDobDay    ?? "";
+  const newDobYear   = npDobYear   ?? "";
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
   const newPatientFieldsComplete = !isNewPatient || (
@@ -168,7 +171,7 @@ function Step2PaymentForm({
         elements, redirect: "if_required",
         confirmParams: {
           return_url: `${window.location.origin}/success`,
-          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone, address: { country: "US", postal_code: (pd.address?.match(/\b\d{5}\b/)?.[0] ?? "") } } },
+          payment_method_data: { billing_details: { name: `${pd.firstName} ${pd.lastName}`, email: pd.email, phone: pd.phone } },
         },
       });
 
@@ -331,7 +334,6 @@ function Step2PaymentForm({
                 name: `${pd.firstName} ${pd.lastName}`.trim(),
                 email: pd.email || undefined,
                 phone: pd.phone || undefined,
-                address: { country: "US", postal_code: (pd.address?.match(/\b\d{5}\b/)?.[0] ?? "") },
               },
             },
           },
@@ -444,101 +446,11 @@ function Step2PaymentForm({
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* ── NEW PATIENT FIELDS — collected by us, passed to Stripe billing_details ── */}
-            {/* Honeypot: browser autofill targets these hidden fields instead of ours */}
-            {isNewPatient && (
-              <div aria-hidden="true" style={{ position: "absolute", opacity: 0, pointerEvents: "none", height: 0, overflow: "hidden" }}>
-                <input type="text" name="fake-first" autoComplete="given-name" tabIndex={-1} />
-                <input type="text" name="fake-last" autoComplete="family-name" tabIndex={-1} />
-                <input type="email" name="fake-email" autoComplete="email" tabIndex={-1} />
-                <input type="tel" name="fake-phone" autoComplete="tel" tabIndex={-1} />
-                <input type="text" name="fake-address" autoComplete="street-address" tabIndex={-1} />
-              </div>
-            )}
-            {isNewPatient && (
-              <div className={`space-y-1 transition-all ${pulseField === "fields" ? "ring-2 ring-[#f97316] rounded-xl animate-pulse" : ""}`}>
-                {/* Row 1: First + Last */}
-                <div className="flex gap-1">
-                  <input
-                    type="text" autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                    placeholder="First name" value={newFirstName}
-                    onChange={(e) => setNewFirstName(e.target.value)}
-                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
-                    style={{ background: "rgba(0,0,0,0.3)", border: newFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                    onBlur={(e) => { e.target.style.border = newFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
-                  />
-                  <input
-                    type="text" autoComplete="off" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                    placeholder="Last name" value={newLastName}
-                    onChange={(e) => setNewLastName(e.target.value)}
-                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
-                    style={{ background: "rgba(0,0,0,0.3)", border: newLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                    onBlur={(e) => { e.target.style.border = newLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
-                  />
-                </div>
-                {/* Row 2: Email + Phone */}
-                <div className="flex gap-1">
-                  <input
-                    type="text" inputMode="email" autoComplete="off" autoCorrect="off" spellCheck={false}
-                    placeholder="Email" value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
-                    style={{ background: "rgba(0,0,0,0.3)", border: newEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                    onBlur={(e) => { e.target.style.border = newEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
-                  />
-                  <input
-                    type="text" inputMode="tel" autoComplete="off" autoCorrect="off" spellCheck={false}
-                    placeholder="Phone" value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                    className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
-                    style={{ background: "rgba(0,0,0,0.3)", border: newPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                    onBlur={(e) => { e.target.style.border = newPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
-                  />
-                </div>
-                {/* Row 3: Address (flex-[3]) + DOB single field (flex-[2]) */}
-                <div className={`flex gap-1 ${pulseField === "dob" ? "ring-2 ring-[#f97316] rounded-lg animate-pulse" : ""}`}>
-                  <input
-                    type="text" autoComplete="off" autoCorrect="off" spellCheck={false}
-                    placeholder="Street address" value={newAddress}
-                    onChange={(e) => setNewAddress(e.target.value)}
-                    className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
-                    style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: newAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                    onBlur={(e) => { e.target.style.border = newAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
-                  />
-                  <input
-                    type="text" inputMode="numeric" autoComplete="off" autoCorrect="off" spellCheck={false}
-                    placeholder="MM/DD/YYYY"
-                    value={
-                      newDobMonth +
-                      (newDobMonth.length === 2 && (newDobDay || newDobYear) ? "/" : "") +
-                      newDobDay +
-                      (newDobDay.length === 2 && newDobYear ? "/" : "") +
-                      newDobYear
-                    }
-                    onChange={(e) => {
-                      const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
-                      setNewDobMonth(raw.slice(0, 2));
-                      setNewDobDay(raw.slice(2, 4));
-                      setNewDobYear(raw.slice(4, 8));
-                    }}
-                    className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
-                    style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: newDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                    onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                    onBlur={(e) => { e.target.style.border = newDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
-                  />
-                </div>
-              </div>
-            )}
 
             {/* Card form — always open for new patients, collapsed for returning */}
             {showCardForm || isNewPatient ? (
               <>
-                {/* Stripe PaymentElement — billing_details always "never" since we collect them above */}
+                {/* Stripe PaymentElement — name/email/phone collected above; address collected by Stripe */}
                 <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
                   <PaymentElement onReady={() => setElementReady(true)} options={{
                     layout: "tabs",
@@ -549,7 +461,7 @@ function Step2PaymentForm({
                         name: "never",
                         email: "never",
                         phone: "never",
-                        address: "never",
+                        address: "auto",
                       },
                     },
                   }} />
@@ -807,6 +719,18 @@ export default function ExpressCheckoutPage() {
   const [visitTypeChosen, setVisitTypeChosen] = useState(false);
   const [confirmReviewed, setConfirmReviewed] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
+  // ── New patient fields — live here, outside Elements, passed into Step2PaymentForm ──
+  const [npFirstName, setNpFirstName] = useState("");
+  const [npLastName,  setNpLastName]  = useState("");
+  const [npEmail,     setNpEmail]     = useState("");
+  const [npPhone,     setNpPhone]     = useState("");
+  const [npAddress,   setNpAddress]   = useState("");
+  const [npDobMonth,  setNpDobMonth]  = useState("");
+  const [npDobDay,    setNpDobDay]    = useState("");
+  const [npDobYear,   setNpDobYear]   = useState("");
+  const npDobComplete = npDobMonth.length === 2 && npDobDay.length === 2 && npDobYear.length === 4;
+  const npFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
+    npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0 && npDobComplete;
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [contactFirstName, setContactFirstName] = useState("");
@@ -2002,10 +1926,84 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                {/* Payment — Express wallets + DOB + card form open */}
+
+                {/* ── NEW PATIENT INFO — outside Elements, no Stripe autofill contamination ── */}
+                <div className="space-y-1">
+                  {/* Row 1: First + Last */}
+                  <div className="flex gap-1">
+                    <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                      name="pt-fn-x7k2" data-lpignore="true" data-form-type="other"
+                      placeholder="First name" value={npFirstName}
+                      onChange={(e) => setNpFirstName(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                      name="pt-ln-m9p4" data-lpignore="true" data-form-type="other"
+                      placeholder="Last name" value={npLastName}
+                      onChange={(e) => setNpLastName(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                  {/* Row 2: Email + Phone */}
+                  <div className="flex gap-1">
+                    <input type="text" inputMode="email" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-em-j3r8" data-lpignore="true" data-form-type="other"
+                      placeholder="Email" value={npEmail}
+                      onChange={(e) => setNpEmail(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input type="text" inputMode="tel" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-ph-q5w1" data-lpignore="true" data-form-type="other"
+                      placeholder="Phone" value={npPhone}
+                      onChange={(e) => setNpPhone(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                  {/* Row 3: Address (flex-3) + DOB single field (flex-2) */}
+                  <div className="flex gap-1">
+                    <input type="text" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-ad-h6n0" data-lpignore="true" data-form-type="other"
+                      placeholder="Street address" value={npAddress}
+                      onChange={(e) => setNpAddress(e.target.value)}
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input type="text" inputMode="numeric" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-db-c2v9" data-lpignore="true" data-form-type="other"
+                      placeholder="MM/DD/YYYY"
+                      value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g,"").slice(0,8);
+                        setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
+                      }}
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
+                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                </div>
+
+                {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
+                      npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
+                    />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -2254,6 +2252,51 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
