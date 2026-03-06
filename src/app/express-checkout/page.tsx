@@ -1009,7 +1009,20 @@ export default function ExpressCheckoutPage() {
 
   const handleSuccess = () => {
     if (hasControlledSelected) { setShowControlledScheduler(true); return; }
-    // Show post-payment intake form instead of routing immediately
+    // Returning patients skip intake — route directly to confirmation
+    if (isReturningPatient) {
+      const stored = sessionStorage.getItem("appointmentData");
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          if (data.accessToken) { clearAnswers(); router.push(`/appointment/${data.accessToken}`); return; }
+        } catch {}
+      }
+      clearAnswers();
+      router.push("/success");
+      return;
+    }
+    // New patients: show post-payment intake form
     setIntakePhase(true);
   };
 
@@ -2153,6 +2166,52 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
