@@ -113,17 +113,28 @@ function Step2PaymentForm({
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
+  // New patient — collected in our own fields, passed to Stripe billing_details
+  const [newFirstName, setNewFirstName] = useState(patient.firstName || "");
+  const [newLastName, setNewLastName] = useState(patient.lastName || "");
+  const [newEmail, setNewEmail] = useState(patient.email || "");
+  const [newPhone, setNewPhone] = useState(patient.phone || "");
+  const [newAddress, setNewAddress] = useState(patient.address || "");
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
   const [newDobYear, setNewDobYear] = useState("");
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
+  const newPatientFieldsComplete = !isNewPatient || (
+    newFirstName.trim().length > 0 && newLastName.trim().length > 0 &&
+    newEmail.includes("@") && newPhone.replace(/\D/g, "").length >= 10 &&
+    newDobComplete
+  );
 
   const getPatientData = () => {
     if (!isNewPatient) {
       return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
     }
-    return { email: patient.email || "", firstName: patient.firstName || "", lastName: patient.lastName || "", phone: patient.phone || "", dateOfBirth: newDobISO, address: patient.address || "" };
+    return { email: newEmail.trim(), firstName: newFirstName.trim(), lastName: newLastName.trim(), phone: newPhone.replace(/\D/g, ""), dateOfBirth: newDobISO, address: newAddress.trim() };
   };
 
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
@@ -315,6 +326,13 @@ function Step2PaymentForm({
           elements, redirect: "if_required",
           confirmParams: {
             return_url: `${window.location.origin}/success`,
+            payment_method_data: {
+              billing_details: {
+                name: `${pd.firstName} ${pd.lastName}`.trim(),
+                email: pd.email || undefined,
+                phone: pd.phone || undefined,
+              },
+            },
           },
         });
         paymentError = result.error; paymentIntent = result.paymentIntent;
@@ -384,7 +402,7 @@ function Step2PaymentForm({
   }
 
   const canPay = isNewPatient
-    ? (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight && newDobComplete))
+    ? (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight && newPatientFieldsComplete))
     : (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight));
 
   return (
@@ -402,7 +420,7 @@ function Step2PaymentForm({
           </button>
         ) : (
           <div className="space-y-1.5">
-            {/* Express Checkout — one-tap Apple Pay / Google Pay / Link */}
+            {/* Express Checkout — one-tap Apple Pay / Google Pay */}
             <div style={{ visibility: expressVisible ? "visible" : "hidden", height: expressVisible ? "auto" : "0" }}>
               <ExpressCheckoutElement
                 onConfirm={handleExpressConfirm}
@@ -425,49 +443,110 @@ function Step2PaymentForm({
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Card form — ALWAYS open for new patients, collapsed for returning */}
+            {/* ── NEW PATIENT FIELDS — collected by us, passed to Stripe billing_details ── */}
+            {isNewPatient && (
+              <div className={`space-y-1.5 transition-all ${pulseField === "fields" ? "ring-2 ring-[#f97316] rounded-xl animate-pulse" : ""}`}>
+                {/* Name row */}
+                <div className="flex gap-1.5">
+                  <div className="flex-1">
+                    <input
+                      type="text" autoComplete="given-name" placeholder="First name" value={newFirstName}
+                      onChange={(e) => setNewFirstName(e.target.value)}
+                      className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: newFirstName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = newFirstName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text" autoComplete="family-name" placeholder="Last name" value={newLastName}
+                      onChange={(e) => setNewLastName(e.target.value)}
+                      className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: newLastName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = newLastName.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                </div>
+                {/* Email */}
+                <input
+                  type="email" autoComplete="email" placeholder="Email address" value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
+                  style={{ background: "rgba(0,0,0,0.3)", border: newEmail.includes("@") ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                  onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                  onBlur={(e) => { e.target.style.border = newEmail.includes("@") ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                />
+                {/* Phone */}
+                <input
+                  type="tel" autoComplete="tel" placeholder="Phone number" value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
+                  style={{ background: "rgba(0,0,0,0.3)", border: newPhone.replace(/\D/g,"").length >= 10 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                  onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                  onBlur={(e) => { e.target.style.border = newPhone.replace(/\D/g,"").length >= 10 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                />
+                {/* Address */}
+                <input
+                  type="text" autoComplete="street-address" placeholder="Street address (optional)" value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                  className="w-full rounded-lg px-2.5 py-2 text-white text-[12px] focus:outline-none placeholder:text-white/40"
+                  style={{ background: "rgba(0,0,0,0.3)", border: newAddress.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                  onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                  onBlur={(e) => { e.target.style.border = newAddress.trim() ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                />
+                {/* DOB */}
+                <div className={`transition-all ${pulseField === "dob" ? "ring-2 ring-[#f97316] rounded-lg animate-pulse bg-[#f97316]/10" : ""}`}>
+                  <label className="text-white/50 text-[9px] font-semibold uppercase tracking-wide pl-0.5">Date of Birth</label>
+                  <div className="flex gap-1.5 mt-0.5">
+                    <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g,"").slice(0,2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("np-dob-day") as HTMLInputElement)?.focus(); }}
+                      className="flex-1 rounded-lg px-2 py-2 text-white text-[12px] text-center focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: newDobMonth.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = newDobMonth.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input id="np-dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g,"").slice(0,2); setNewDobDay(v); if (v.length === 2) (document.getElementById("np-dob-year") as HTMLInputElement)?.focus(); }}
+                      className="flex-1 rounded-lg px-2 py-2 text-white text-[12px] text-center focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: newDobDay.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = newDobDay.length === 2 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input id="np-dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
+                      onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g,"").slice(0,4))}
+                      className="flex-1 rounded-lg px-2 py-2 text-white text-[12px] text-center focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: newDobYear.length === 4 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = newDobYear.length === 4 ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Card form — always open for new patients, collapsed for returning */}
             {showCardForm || isNewPatient ? (
               <>
-                {/* DOB field — new patients only */}
-                {isNewPatient && (
-                  <div className={`space-y-1.5 rounded-lg px-1 py-1 transition-all ${pulseField === "dob" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
-                    <label className="text-white text-[10px] font-semibold">Date of Birth</label>
-                    <div className="flex gap-2">
-                      <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
-                        onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
-                      />
-                      <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
-                        onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
-                      />
-                      <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
-                        onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
-                      />
-                    </div>
-                  </div>
-                )}
-
+                {/* Stripe PaymentElement — billing_details always "never" since we collect them above */}
                 <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
                   <PaymentElement onReady={() => setElementReady(true)} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
                     wallets: { applePay: "never", googlePay: "never" },
-                    fields: { billingDetails: isNewPatient
-                      ? { name: "auto", email: "auto", phone: "auto", address: "auto" }
-                      : { name: "never", email: "never", phone: "never" }
+                    fields: {
+                      billingDetails: {
+                        name: "never",
+                        email: "never",
+                        phone: "never",
+                        address: "never",
+                      },
                     },
                   }} />
                 </div>
 
-                {/* Sticky terms + pay button */}
+                {/* Terms + pay button */}
                 <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 4px), 4px)" }}>
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
@@ -477,7 +556,7 @@ function Step2PaymentForm({
                   </div>
                   <button onClick={() => {
                     if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
-                    if (isNewPatient && !newDobComplete) { setPulseField("dob"); setTimeout(() => setPulseField(null), 1500); return; }
+                    if (isNewPatient && !newPatientFieldsComplete) { setPulseField(newDobComplete ? "fields" : "dob"); setTimeout(() => setPulseField(null), 1500); return; }
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
                   }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
@@ -2166,6 +2245,52 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
