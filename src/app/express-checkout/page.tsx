@@ -1645,16 +1645,33 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 1: Reason for Visit — hidden when answered */}
           {!reason ? (
-            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both", position: "relative", zIndex: 1 }}>
-              <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`} style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ position: "relative", zIndex: 1, marginTop: "12px" }}>
+              <div className={`rounded-xl bg-transparent p-4 transition-all ${activeOrangeBorder}`} style={{ position: "relative" }}>
                 <button
                   type="button"
+                  onTouchEnd={(e) => { e.preventDefault(); setReasonDialogOpen(true); }}
                   onClick={() => setReasonDialogOpen(true)}
-                  style={{ position: "relative", zIndex: 2, WebkitTapHighlightColor: "transparent" }}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] text-left active:opacity-70"
+                  style={{
+                    position: "relative",
+                    zIndex: 10,
+                    WebkitTapHighlightColor: "transparent",
+                    touchAction: "manipulation",
+                    cursor: "pointer",
+                    display: "flex",
+                    width: "100%",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                    border: "2px solid rgba(45,212,160,0.4)",
+                    background: "#0d1218",
+                    textAlign: "left",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                  }}
                 >
-                  <span className="text-gray-300 text-[15px]">{reason || "Select a reason..."}</span>
-                  <ChevronDown size={14} className="text-gray-500" />
+                  <span style={{ color: "#d1d5db", fontSize: "15px" }}>{reason || "Select a reason..."}</span>
+                  <ChevronDown size={14} color="#6b7280" />
                 </button>
               </div>
               <BelowCardContent step={1} />
