@@ -1600,7 +1600,7 @@ export default function ExpressCheckoutPage() {
   );
 
   return (
-    <div className="ec-root text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "100vh" }}>
+    <div className="ec-root text-white font-sans" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "100vh", overflow: "hidden" }}>
       <style>{`
         @supports (height: 100dvh) { .ec-root { height: 100dvh !important; } }
         @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
@@ -1616,7 +1616,7 @@ export default function ExpressCheckoutPage() {
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
         <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
@@ -1641,13 +1641,18 @@ export default function ExpressCheckoutPage() {
 
         {/* ═══ SCROLLABLE GUIDED FORM ═══ */}
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none" }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
 
           {/* STEP 1: Reason for Visit — hidden when answered */}
           {!reason ? (
-            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`}>
-                <button onClick={() => setReasonDialogOpen(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60 text-left transition-all">
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both", position: "relative", zIndex: 1 }}>
+              <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`} style={{ position: "relative", zIndex: 1 }}>
+                <button
+                  type="button"
+                  onClick={() => setReasonDialogOpen(true)}
+                  style={{ position: "relative", zIndex: 2, WebkitTapHighlightColor: "transparent" }}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] text-left active:opacity-70"
+                >
                   <span className="text-gray-300 text-[15px]">{reason || "Select a reason..."}</span>
                   <ChevronDown size={14} className="text-gray-500" />
                 </button>
