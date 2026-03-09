@@ -250,7 +250,19 @@ export default function AssessmentPageContent() {
 
             {/* Video area */}
             <div className="relative w-full overflow-hidden" style={{ height: "clamp(180px, 42vw, 240px)" }}>
-              <video ref={videoRef} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" webkit-playsinline="true" x5-playsinline="true">
+              <video
+                ref={videoRef}
+                autoPlay
+                loop
+                muted
+                playsInline
+                onCanPlay={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
+                onLoadedData={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
+                className="absolute inset-0 w-full h-full object-cover"
+                webkit-playsinline="true"
+                x5-playsinline="true"
+                preload="auto"
+              >
                 <source src="/assets/doctor-instant-visit.mp4" type="video/mp4" />
               </video>
               {/* dark overlay */}
