@@ -190,7 +190,7 @@ export default function AssessmentPageContent() {
           )}
 
           {/* Desktop nav — shown only md+ */}
-          <nav className="hidden md:flex sticky top-0 z-50 bg-[#040807]/95 backdrop-blur-md border-b border-white/5 items-center justify-between px-4 py-3 mb-6 -mx-4">
+          <nav className="hidden md:flex sticky top-0 z-50 bg-[#040807]/95 backdrop-blur-md border-b border-white/5 items-center justify-between px-8 py-3 mb-6 -mx-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-400 font-bold">M</div>
               <span className="text-lg font-bold">Medazon<span className="text-teal-400">Health</span></span>
@@ -202,13 +202,10 @@ export default function AssessmentPageContent() {
               <a href="#faq" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</a>
               <StateBadge />
             </div>
-            <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center gap-1.5">
-              Book My Visit — $1.89 Reserve Fee <ArrowRight size={14} />
-            </Link>
           </nav>
 
-          {/* H1 — max-w forces "Instant Private" / "Medical Visits", no orphan */}
-          <h1 className="font-bold leading-tight font-serif mb-2 mx-auto" style={{ fontSize: "clamp(28px, 7.5vw, 52px)", maxWidth: "310px" }}>
+          {/* H1 — mobile: 310px cap / desktop: max-w-4xl matches panel width */}
+          <h1 className="font-bold leading-tight font-serif mb-2 mx-auto max-w-[310px] md:max-w-4xl" style={{ fontSize: "clamp(28px, 7.5vw, 52px)" }}>
             Instant Private Medical Visits
           </h1>
 
@@ -660,6 +657,12 @@ export default function AssessmentPageContent() {
     </main>
   );
 }
+
+
+
+
+
+
 
 
 
