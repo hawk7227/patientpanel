@@ -48,6 +48,22 @@ const getNowInTimezone = (timezone: string): Date => {
   return bestUTC || now;
 };
 
+// Get today's date string (YYYY-MM-DD) in a specific timezone — safe, no toISOString()
+const getTodayStringInTimezone = (timezone: string): string => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year')?.value || '0';
+  const month = parts.find(p => p.type === 'month')?.value || '0';
+  const day = parts.find(p => p.type === 'day')?.value || '0';
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
+
 // Helper function to create a date in a specific timezone from date string and time string
 const createDateInTimezone = (dateStr: string, timeStr: string, timezone: string): Date => {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -256,7 +272,7 @@ export async function GET(request: Request) {
 
     // Get current date/time in doctor's timezone (Phoenix)
     const nowInDoctorTZ = getNowInTimezone(doctorTimezone);
-    const todayInDoctorTZ = nowInDoctorTZ.toISOString().split('T')[0];
+    const todayInDoctorTZ = getTodayStringInTimezone(doctorTimezone); // safe: no toISOString
     const isToday = date === todayInDoctorTZ;
     
     // Minimum allowed time = now (no buffer) — show all future slots including imminent
@@ -514,7 +530,7 @@ async function handleBatchRequest(
   // Process each date
   const availabilityByDate: Record<string, { availableSlots: string[]; bookedSlots: string[] }> = {};
   const nowInDoctorTZ = getNowInTimezone(doctorTimezone);
-  const todayInDoctorTZ = nowInDoctorTZ.toISOString().split('T')[0];
+  const todayInDoctorTZ = getTodayStringInTimezone(doctorTimezone); // safe: no toISOString
 
   dates.forEach((dateStr) => {
     const isToday = dateStr === todayInDoctorTZ;
