@@ -1257,6 +1257,8 @@ export default function ExpressCheckoutPage() {
   const visitTypeRef = useRef<HTMLDivElement>(null);
   const step6Ref = useRef<HTMLDivElement>(null);
   const [step4PopupFired, setStep4PopupFired] = useState(false);
+  const [pharmacyDialogOpen, setPharmacyDialogOpen] = useState(false);
+  const [step3PopupFired, setStep3PopupFired] = useState(false);
 
   // Auto-scroll to visit type step when pharmacy is selected
   useEffect(() => {
@@ -1276,6 +1278,17 @@ export default function ExpressCheckoutPage() {
       return () => clearTimeout(timer);
     }
   }, [activeGuideStep, visitTypeConfirmed, step4PopupFired, visitTypePopup]);
+
+  // Auto-open pharmacy dialog when step 3 is reached
+  useEffect(() => {
+    if (activeGuideStep === 3 && !pharmacy && !step3PopupFired) {
+      const timer = setTimeout(() => {
+        setPharmacyDialogOpen(true);
+        setStep3PopupFired(true);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [activeGuideStep, pharmacy, step3PopupFired]);
 
   // ── Auto-scroll Step 6 (payment) into view when it activates ──
   // Step 6 scroll removed — payment is now in Step 4.5;
@@ -1701,18 +1714,51 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 ${activeOrangeBorder}`}>
-                <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
-                  setPharmacy(val);
-                  if (info) {
-                    const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined };
-                    setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
-                    saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
-                  } else { saveAnswers({ pharmacy: val }); }
-                }} placeholder="Search pharmacy..." className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-white/50" />
+                <button
+                  type="button"
+                  onClick={() => setPharmacyDialogOpen(true)}
+                  className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-left text-white/50 text-sm focus:outline-none"
+                  style={{ cursor: "pointer" }}
+                >
+                  Search pharmacy...
+                </button>
               </div>
               <BelowCardContent step={3} />
             </div>
           ) : null}
+
+          {/* Pharmacy bottom-sheet modal */}
+          {pharmacyDialogOpen && (
+            <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.7)", animation: "fadeIn 0.2s ease both" }}>
+              <div className="rounded-t-2xl flex flex-col" style={{ background: "#0b0f0c", maxHeight: "85vh", animation: "slideUpCalendar 0.4s cubic-bezier(0.22,1,0.36,1) both" }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
+                  <div>
+                    <h2 className="text-white font-black text-[20px] leading-tight">Select <span className="text-[#2dd4a0]">Pharmacy</span></h2>
+                    <p className="text-[#6b7280] text-[11px] mt-0.5">We send it. You pick it up. Nobody knows.</p>
+                  </div>
+                  <button onClick={() => setPharmacyDialogOpen(false)} className="w-9 h-9 rounded-full flex items-center justify-center text-white flex-shrink-0" style={{ background: "rgba(255,255,255,0.08)" }}><X size={18} /></button>
+                </div>
+                {/* Selector */}
+                <div className="flex-1 overflow-y-auto px-5 pb-6 min-h-0">
+                  <PharmacySelector
+                    value={pharmacy}
+                    onChange={(val: string, info?: any) => {
+                      setPharmacy(val);
+                      if (info) {
+                        const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined };
+                        setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
+                        saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
+                      } else { saveAnswers({ pharmacy: val }); }
+                      setPharmacyDialogOpen(false);
+                    }}
+                    placeholder="Search pharmacy..."
+                    className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-white/50"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>

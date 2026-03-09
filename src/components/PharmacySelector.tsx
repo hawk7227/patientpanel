@@ -52,7 +52,8 @@ export default function PharmacySelector({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const requestLocation = () => {
+    if (userLocation) return; // already have it
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -61,8 +62,6 @@ export default function PharmacySelector({
             lng: position.coords.longitude,
           };
           setUserLocation(location);
-          
-          // NEW: Call the callback to pass location to parent
           if (onLocationDetected) {
             onLocationDetected(location);
           }
@@ -73,11 +72,9 @@ export default function PharmacySelector({
         }
       );
     } else {
-      setTimeout(() => {
-        setLocationError("Geolocation is not supported by your browser.");
-      }, 0);
+      setLocationError("Geolocation is not supported by your browser.");
     }
-  }, [onLocationDetected]);
+  };
 
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
     const R = 3959;
@@ -216,7 +213,7 @@ export default function PharmacySelector({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <input ref={inputRef} type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); }} onFocus={() => { setIsOpen(true); if (userLocation && pharmacies.length === 0) searchPharmacies(value); }} placeholder={placeholder} className={className} />
+      <input ref={inputRef} type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); }} onFocus={() => { setIsOpen(true); requestLocation(); if (userLocation && pharmacies.length === 0) searchPharmacies(value); }} placeholder={placeholder} className={className} autoFocus />
       {locationError && <div className="text-red-400 text-[10px] mt-0.5 px-1">{locationError}</div>}
       {isOpen && (
         <div className="absolute z-50 w-full left-0 mt-1 bg-[#0d1218] border border-white/10 rounded-lg shadow-2xl max-h-[400px] overflow-y-auto">
