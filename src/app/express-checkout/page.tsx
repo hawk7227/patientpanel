@@ -625,7 +625,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
         <div className="px-1 mt-4 mb-1">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line text-center" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)", textAlign: "center" }}>
             {title.split("\n").map((line, i) => {
               // Last word of last line gets green accent
               const words = line.split(" ");
@@ -636,7 +636,7 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-2 leading-relaxed text-center">{sub}</p>
+          <p className="text-[11px] text-[#6b7280] mt-2 leading-relaxed text-center" style={{ textAlign: "center" }}>{sub}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2 px-1">
           {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
@@ -655,7 +655,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
         <div className="px-1 mt-4 mb-2">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line text-center" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)", textAlign: "center" }}>
             {title.split("\n").map((line, i) => {
               const words = line.split(" ");
               if (i === title.split("\n").length - 1 && words.length > 0) {
@@ -665,7 +665,7 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed text-center">{sub}</p>
+          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed text-center" style={{ textAlign: "center" }}>{sub}</p>
         </div>
         {/* Timeline */}
         <div className="mt-3 space-y-0">
