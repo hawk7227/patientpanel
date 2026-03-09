@@ -220,7 +220,7 @@ export default function PharmacySelector({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <input ref={inputRef} type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); }} onFocus={() => { setIsOpen(true); requestLocation(); if (userLocation && pharmacies.length === 0) searchPharmacies(value); }} placeholder={placeholder} className={className} autoFocus />
+      <input ref={inputRef} type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); if (!userLocation) requestLocation(); }} onFocus={() => { setIsOpen(true); }} placeholder={placeholder} className={className} />
       {locationError && <div className="text-red-400 text-[10px] mt-0.5 px-1">{locationError}</div>}
       {isOpen && (
         <div className="absolute z-50 w-full left-0 mt-1 bg-[#0d1218] border border-white/10 rounded-lg shadow-2xl max-h-[400px] overflow-y-auto">

@@ -1703,7 +1703,7 @@ export default function ExpressCheckoutPage() {
           {/* STEP 3: Preferred Pharmacy — inline, no modal */}
           {reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 ${activeOrangeBorder}`}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 relative z-10 ${activeOrangeBorder}`}>
                 <PharmacySelector
                   value={pharmacy}
                   onChange={(val: string, info?: any) => {
