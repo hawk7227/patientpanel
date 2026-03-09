@@ -145,8 +145,25 @@ export default function AssessmentPageContent() {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    // Set all autoplay attributes imperatively — iOS Safari requires this
     v.muted = true;
-    v.play().catch(() => {});
+    (v as HTMLVideoElement & { defaultMuted?: boolean }).defaultMuted = true;
+    v.setAttribute("muted", "");
+    v.setAttribute("playsinline", "");
+    v.setAttribute("webkit-playsinline", "");
+    v.loop = true;
+    const tryPlay = () => { v.play().catch(() => {}); };
+    tryPlay();
+    // Retry on first touch/click — covers browsers blocking before user gesture
+    const onInteract = () => { tryPlay(); };
+    document.addEventListener("touchstart", onInteract, { once: true, passive: true });
+    document.addEventListener("click", onInteract, { once: true });
+    // Retry when tab becomes visible again
+    const onVisible = () => { if (!document.hidden) tryPlay(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
   const handleConditionClick = (condition: string) => {
     window.dispatchEvent(new CustomEvent('medazon-start-chat', { detail: condition }));
