@@ -97,23 +97,15 @@ export default function PharmacySelector({
     return Math.round(R * c * 10) / 10;
   };
 
-  const searchPharmacies = async (query: string = "") => {
-    if (!userLocation) {
-      if (!locationError) setLocationError("Getting your location...");
-      return;
-    }
+  const searchPharmacies = async (query: string = "", loc?: { lat: number; lng: number } | null) => {
+    const location = loc !== undefined ? loc : userLocation;
     setIsLoading(true);
     try {
       setOptions({ key: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "", v: "weekly" });
       const placesLib = await importLibrary("places") as any;
       const service = new placesLib.PlacesService(document.createElement("div"));
-      const request = {
-        location: new (window as any).google.maps.LatLng(userLocation.lat, userLocation.lng),
-        radius: 8000,
-        type: "pharmacy",
-        keyword: query || undefined,
-      };
-      service.nearbySearch(request, (results: any[], status: string) => {
+
+      const handleResults = (results: any[], status: string) => {
         if (status === "OK" && results) {
           const detailedRequests = results.slice(0, 10).map((place: any) => {
             return new Promise<Pharmacy>((resolve) => {
@@ -132,7 +124,7 @@ export default function PharmacySelector({
                       photos: placeDetails.photos,
                       geometry: placeDetails.geometry,
                       opening_hours: placeDetails.opening_hours,
-                      distance: calculateDistance(userLocation.lat, userLocation.lng, pharmacyLat, pharmacyLng),
+                      distance: location ? calculateDistance(location.lat, location.lng, pharmacyLat, pharmacyLng) : undefined,
                       formatted_phone_number: placeDetails.formatted_phone_number,
                     });
                   } else {
@@ -146,7 +138,7 @@ export default function PharmacySelector({
                       user_ratings_total: place.user_ratings_total,
                       photos: place.photos,
                       geometry: place.geometry,
-                      distance: pharmacyLat && pharmacyLng ? calculateDistance(userLocation.lat, userLocation.lng, pharmacyLat, pharmacyLng) : 0,
+                      distance: location && pharmacyLat && pharmacyLng ? calculateDistance(location.lat, location.lng, pharmacyLat, pharmacyLng) : undefined,
                     });
                   }
                 }
@@ -154,14 +146,32 @@ export default function PharmacySelector({
             });
           });
           Promise.all(detailedRequests).then((pharmacyList) => {
-            pharmacyList.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+            if (location) pharmacyList.sort((a, b) => (a.distance || 999) - (b.distance || 999));
             setPharmacies(pharmacyList);
             setIsLoading(false);
           });
         } else {
           setIsLoading(false);
         }
-      });
+      };
+
+      if (location) {
+        // Nearby search — sorted by distance
+        const request = {
+          location: new (window as any).google.maps.LatLng(location.lat, location.lng),
+          radius: 8000,
+          type: "pharmacy",
+          keyword: query || undefined,
+        };
+        service.nearbySearch(request, handleResults);
+      } else {
+        // No location — text search fallback so list always appears
+        const request = {
+          query: query ? `${query} pharmacy` : "pharmacy near me",
+          type: "pharmacy",
+        };
+        service.textSearch(request, handleResults);
+      }
     } catch (error) {
       console.error("Error searching pharmacies:", error);
       setIsLoading(false);
@@ -169,7 +179,8 @@ export default function PharmacySelector({
   };
 
   useEffect(() => {
-    if (isOpen && userLocation) {
+    if (isOpen) {
+      // Search immediately on open — location optional, textSearch fallback handles no-location case
       const timeoutId = setTimeout(() => searchPharmacies(value), 300);
       return () => clearTimeout(timeoutId);
     }
@@ -220,7 +231,7 @@ export default function PharmacySelector({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <input ref={inputRef} type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); if (!userLocation) requestLocation(); }} onFocus={() => { setIsOpen(true); }} placeholder={placeholder} className={className} />
+      <input ref={inputRef} type="text" value={value} onChange={(e) => { onChange(e.target.value); setIsOpen(true); if (!userLocation) requestLocation(); searchPharmacies(e.target.value); }} onFocus={() => { setIsOpen(true); if (!userLocation) requestLocation(); }} placeholder={placeholder} className={className} />
       {locationError && <div className="text-red-400 text-[10px] mt-0.5 px-1">{locationError}</div>}
       {isOpen && (
         <div className="absolute z-50 w-full left-0 mt-1 bg-[#0d1218] border border-white/10 rounded-lg shadow-2xl max-h-[400px] overflow-y-auto">
