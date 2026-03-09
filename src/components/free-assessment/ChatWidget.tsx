@@ -34,11 +34,26 @@ export default function ChatWidget() {
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Hidden until user scrolls past ~2 viewport heights (3rd fold)
+  const [showBubble, setShowBubble] = useState(false);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Show chat bubble only after scrolling past 2 viewport heights (3rd fold)
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > window.innerHeight * 2) {
+        setShowBubble(true);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // Check on mount in case page is already scrolled (e.g. back-navigation)
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Focus input when opened
   useEffect(() => {
@@ -51,6 +66,7 @@ export default function ChatWidget() {
       const condition = e.detail;
       if (condition) {
         setIsOpen(true);
+        setShowBubble(true); // keep FAB visible after panel is closed
         setShowQuickReplies(false);
         handleSend(condition);
       }
@@ -107,11 +123,11 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* FAB */}
-      {!isOpen && (
+      {/* FAB — hidden until user scrolls to 3rd fold (~2× viewport height) */}
+      {!isOpen && showBubble && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-[60] w-14 h-14 bg-teal-500 text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(20,184,166,0.4)] hover:bg-teal-400 transition-all hover:scale-105"
+          className="fixed bottom-6 right-6 z-[60] w-14 h-14 bg-[#0d3d2a] text-white rounded-full flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.3)] hover:bg-[#0f4d35] transition-all duration-200 hover:scale-105"
         >
           <MessageCircle size={24} />
         </button>

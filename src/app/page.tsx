@@ -114,7 +114,7 @@ function PairedCTABlock() {
   return (
     <div className="flex flex-col items-center gap-5 w-full">
       <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
-        Book My Visit — $1.89 Reserve Fee <ArrowRight size={20} />
+        Book My 1st Visit — $1.89 Reserve Fee <ArrowRight size={20} />
       </Link>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
@@ -124,7 +124,7 @@ function PairedCTABlock() {
         </div>
         <form onSubmit={(e) => { e.preventDefault(); handleExpressBook(); }} className="flex gap-2 sm:gap-3 w-full" autoComplete="on">
           <input type="email" id="returning-email" name="email" autoComplete="email" inputMode="email" enterKeyHint="go" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} placeholder="Email" disabled={searching} className="flex-1 min-w-0 bg-white text-black border border-gray-300 rounded-xl px-4 sm:px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
-          <button type="submit" disabled={searching} className="bg-teal-500 text-black font-bold px-4 sm:px-6 py-3.5 rounded-xl hover:bg-teal-400 transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base flex-shrink-0 disabled:opacity-50">
+          <button type="submit" disabled={searching} className="bg-[#0d3d2a] text-white font-bold px-4 sm:px-6 py-3.5 rounded-xl hover:bg-[#0f4d35] transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base flex-shrink-0 disabled:opacity-50">
             {searching ? (
               <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin flex-shrink-0" /> Searching...</>
             ) : (
@@ -190,7 +190,7 @@ export default function AssessmentPageContent() {
                 <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">About Your Provider</a>
                 <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">FAQ</a>
                 <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-1 w-full whitespace-nowrap">
-                  Book My Visit — $1.89 Reserve Fee <ArrowRight size={16} />
+                  Book My 1st Visit — $1.89 Reserve Fee <ArrowRight size={16} />
                 </Link>
               </div>
             </div>
@@ -241,9 +241,7 @@ export default function AssessmentPageContent() {
 
               {/* Doctor info overlay — top 80% zone, stars clear of patient pill */}
               <div className="absolute left-0 right-0 top-0 flex flex-col items-center justify-center gap-1 z-10" style={{ height: "80%" }}>
-                <div className="w-14 h-14 rounded-full overflow-hidden mb-1" style={{ border: "1.5px solid rgba(45,212,191,0.5)", boxShadow: "0 0 16px rgba(45,212,191,0.3)" }}>
-                  <img src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg" alt="LaMonica A. Hodges" className="w-full h-full object-cover" />
-                </div>
+
                 <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: "clamp(13px,3.5vw,18px)" }}>LaMonica A. Hodges, MSN, APRN, FNP-C</h3>
                 <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(10px,2.5vw,13px)" }}>Board-Certified Family Nurse Practitioner</p>
                 <div className="flex items-center gap-1">
