@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import StateGate, { StateBadge } from "@/components/free-assessment/StateGate";
 import ChatWidget from "@/components/free-assessment/ChatWidget";
 import { 
@@ -141,6 +141,13 @@ function PairedCTABlock() {
 export default function AssessmentPageContent() {
   const [showMore, setShowMore] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.play().catch(() => {});
+  }, []);
   const handleConditionClick = (condition: string) => {
     window.dispatchEvent(new CustomEvent('medazon-start-chat', { detail: condition }));
   };
@@ -211,7 +218,8 @@ export default function AssessmentPageContent() {
 
           {/* Subtitle — explicit 2-line split, no orphan */}
           <p className="text-gray-400 mb-4 mx-auto" style={{ fontSize: "clamp(13px, 3.5vw, 16px)", maxWidth: "280px" }}>
-            See a Provider in minutes, not days.<br />No appointments. No waiting rooms.
+            <span style={{ display: "block" }}>See a Provider in minutes, not days.</span>
+            <span style={{ display: "block" }}>No appointments. No waiting rooms.</span>
           </p>
 
           {/* Laptop frame */}
@@ -225,7 +233,7 @@ export default function AssessmentPageContent() {
 
             {/* Video area */}
             <div className="relative w-full overflow-hidden" style={{ height: "clamp(180px, 42vw, 240px)" }}>
-              <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" webkit-playsinline="true" x5-playsinline="true">
+              <video ref={videoRef} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" webkit-playsinline="true" x5-playsinline="true">
                 <source src="/assets/doctor-instant-visit.mp4" type="video/mp4" />
               </video>
               {/* dark overlay */}
