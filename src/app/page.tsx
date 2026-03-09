@@ -254,8 +254,16 @@ export default function AssessmentPageContent() {
                 <div className="w-14 h-14 rounded-full flex items-center justify-center mb-2" style={{ background: "#2dd4bf", boxShadow: "0 0 16px rgba(45,212,191,0.4)" }}>
                   <span style={{ fontSize: 28 }}>👩‍⚕️</span>
                 </div>
-                <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: "clamp(15px,4vw,20px)" }}>Dr. LaMonica Hodges</h3>
-                <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(11px,3vw,14px)" }}>Board-Certified FNP</p>
+                <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: "clamp(13px,3.5vw,18px)" }}>LaMonica A. Hodges, MSN, APRN, FNP-C</h3>
+                <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(10px,2.5vw,13px)" }}>Board-Certified Family Nurse Practitioner</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                  <span className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(9px,2.5vw,11px)" }}>4.9 / 12,398 reviews</span>
+                </div>
               </div>
 
               {/* Currently with a patient pill */}
@@ -268,22 +276,7 @@ export default function AssessmentPageContent() {
             </div>
           </div>
 
-          {/* Book CTA */}
-          <Link
-            href="/express-checkout"
-            onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }}
-            className="flex items-center justify-center gap-2 w-full text-white font-black rounded-xl mb-2"
-            style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", padding: "clamp(14px,3.5vw,18px) 24px", fontSize: "clamp(15px,4vw,20px)", boxShadow: "0 0 24px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.3)" }}
-          >
-            Book My Visit — $1.89 Reserve Fee <ArrowRight size={20} />
-          </Link>
-
-          {/* BOOK IN 30 SECONDS */}
-          <p className="flex items-center justify-center gap-1.5 mb-3" style={{ color: "#f97316", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em" }}>
-            <Zap size={13} /> BOOK IN 30 SECONDS
-          </p>
-
-          {/* Email + Return Patient */}
+          {/* CTA + Email + Return Patient */}
           <div className="mb-4">
             <PairedCTABlock />
           </div>
@@ -685,6 +678,13 @@ export default function AssessmentPageContent() {
     </main>
   );
 }
+
+
+
+
+
+
+
 
 
 
