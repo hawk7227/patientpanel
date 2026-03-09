@@ -1328,12 +1328,16 @@ export default function ExpressCheckoutPage() {
 
   // ═══ STEP 3 — POST-PAYMENT: Controlled Substance Scheduler ═══
   if (showControlledScheduler) {
+    // Use local date string (YYYY-MM-DD) — NOT toISOString() which is UTC and can be tomorrow
+    const toLocalDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
     const getAvailableDates = () => {
       const dates: { label: string; value: string; dayLabel: string; monthDay: string }[] = [];
       const now = new Date();
       for (let i = 0; i < 7; i++) {
-        const d = new Date(now); d.setDate(d.getDate() + i);
-        const value = d.toISOString().split("T")[0];
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+        const value = toLocalDateStr(d); // local date, not UTC
         const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
         const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         dates.push({ label: `${monthNames[d.getMonth()]} ${d.getDate()}`, value, dayLabel: i === 0 ? "Today" : i === 1 ? "Tmrw" : dayNames[d.getDay()], monthDay: `${d.getDate()}` });
@@ -1342,11 +1346,19 @@ export default function ExpressCheckoutPage() {
     };
     const getTimeSlots = () => {
       const slots: { label: string; value: string }[] = [];
-      const isToday = controlledScheduleDate === new Date().toISOString().split("T")[0];
-      const currentHour = new Date().getHours();
+      const now = new Date();
+      const todayStr = toLocalDateStr(now); // local date, not UTC
+      const isToday = controlledScheduleDate === todayStr;
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
       for (let h = 9; h <= 21; h++) {
-        if (isToday && h <= currentHour) continue;
         for (const m of [0, 30]) {
+          // Skip if this slot has already passed (compare slot time vs current time in minutes)
+          if (isToday) {
+            const slotMinutes = h * 60 + m;
+            const nowMinutes = currentHour * 60 + currentMinute;
+            if (slotMinutes <= nowMinutes) continue;
+          }
           const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
           const ampm = h >= 12 ? "PM" : "AM";
           slots.push({ label: `${hr}:${String(m).padStart(2,"0")} ${ampm}`, value: `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}` });

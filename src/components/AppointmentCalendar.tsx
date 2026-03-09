@@ -367,11 +367,13 @@ export default function AppointmentCalendar({
       });
       
       // Find the UTC time that, when displayed in provider timezone, equals our target
+      // Step in 30-min increments (not 1-hour) — same fix as server-side.
+      // 1-hour steps caused :30 slots to never match → skipped entirely → missing from calendar.
       const approximateUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
       
       let bestUTC: Date | null = null;
-      for (let offsetHours = -12; offsetHours <= 12; offsetHours++) {
-        const testUTC = new Date(approximateUTC.getTime() + offsetHours * 60 * 60 * 1000);
+      for (let offsetMinutes = -14 * 60; offsetMinutes <= 14 * 60; offsetMinutes += 30) {
+        const testUTC = new Date(approximateUTC.getTime() + offsetMinutes * 60 * 1000);
         const providerParts = providerFormatter.formatToParts(testUTC);
         
         const testYear = parseInt(providerParts.find(p => p.type === 'year')?.value || '0');
