@@ -150,79 +150,70 @@ export default function AssessmentPageContent() {
       <StateGate />
       <ChatWidget />
 
-      {/* SECTION 1: ANNOUNCEMENT BAR */}
-      <div className="bg-gradient-to-r from-orange-500/20 via-orange-500/10 to-orange-500/20 border-b border-orange-500/30">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 text-center">
-          <span className="text-sm text-gray-300 tracking-wide">Private Practice · Same Provider Every Visit · Board-Certified</span>
-        </div>
-      </div>
-
-      {/* SECTION 2: STICKY NAVIGATION */}
-      <nav className="sticky top-0 z-50 bg-[#040807]/95 backdrop-blur-md border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-400 font-bold">M</div>
-            <span className="text-lg font-bold">Medazon<span className="text-teal-400">Health</span></span>
-          </div>
-
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Home</a>
-            <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors">How It Works</a>
-            <a href="#provider" className="text-sm text-gray-400 hover:text-white transition-colors">About Your Provider</a>
-            <a href="#faq" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</a>
-            <StateBadge />
-          </div>
-
-          {/* Desktop CTA */}
-          <div className="hidden md:block">
-            <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center gap-1.5">
-              Book My Visit — $1.89 Reserve Fee <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          {/* Mobile: StateBadge + Hamburger */}
-          <div className="flex md:hidden items-center gap-3">
-            <StateBadge />
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-gray-400 hover:text-white p-1 transition-colors">
-              {mobileMenuOpen ? (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Menu Dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#040807] border-t border-white/5 px-4 py-4 animate-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-col gap-3">
-              <a href="#" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">Home</a>
-              <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">How It Works</a>
-              <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">About Your Provider</a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-2 transition-colors">FAQ</a>
-              <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-2 w-full whitespace-nowrap">
-                Book My Visit — $1.89 Reserve Fee <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-        )}
-      </nav>
-
       {/* SECTION 3: HERO */}
-      <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(16px, 4vw, 40px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
+      <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(12px, 3vw, 32px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.12),transparent_60%)]" />
         <div className="max-w-lg mx-auto relative z-10 text-center">
 
-          {/* H1 */}
-          <h1 className="font-bold leading-tight font-serif mb-2" style={{ fontSize: "clamp(26px, 7vw, 52px)" }}>
+          {/* Compact logo row — mobile only, replaces announcement bar + nav */}
+          <div className="flex items-center justify-between mb-4 md:hidden">
+            {/* Hamburger left */}
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-gray-400 hover:text-white p-1 transition-colors">
+              {mobileMenuOpen ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              ) : (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              )}
+            </button>
+            {/* Logo center */}
+            <div className="flex items-center gap-2 absolute left-1/2 -translate-x-1/2">
+              <div className="w-7 h-7 bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-400 font-bold text-sm">M</div>
+              <span className="text-base font-bold">Medazon<span className="text-teal-400">Health</span></span>
+            </div>
+            {/* StateBadge right */}
+            <StateBadge />
+          </div>
+
+          {/* Mobile menu dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden bg-[#040807] border border-white/5 rounded-xl px-4 py-4 mb-4 text-left">
+              <div className="flex flex-col gap-3">
+                <a href="#" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">Home</a>
+                <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">How It Works</a>
+                <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">About Your Provider</a>
+                <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">FAQ</a>
+                <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-1 w-full whitespace-nowrap">
+                  Book My Visit — $1.89 Reserve Fee <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop nav — shown only md+ */}
+          <nav className="hidden md:flex sticky top-0 z-50 bg-[#040807]/95 backdrop-blur-md border-b border-white/5 items-center justify-between px-4 py-3 mb-6 -mx-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-teal-500/20 rounded-lg flex items-center justify-center text-teal-400 font-bold">M</div>
+              <span className="text-lg font-bold">Medazon<span className="text-teal-400">Health</span></span>
+            </div>
+            <div className="flex items-center gap-6">
+              <a href="#" className="text-sm text-gray-400 hover:text-white transition-colors">Home</a>
+              <a href="#how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors">How It Works</a>
+              <a href="#provider" className="text-sm text-gray-400 hover:text-white transition-colors">About Your Provider</a>
+              <a href="#faq" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</a>
+              <StateBadge />
+            </div>
+            <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center gap-1.5">
+              Book My Visit — $1.89 Reserve Fee <ArrowRight size={14} />
+            </Link>
+          </nav>
+
+          {/* H1 — max-w forces "Instant Private" / "Medical Visits", no orphan */}
+          <h1 className="font-bold leading-tight font-serif mb-2 mx-auto" style={{ fontSize: "clamp(28px, 7.5vw, 52px)", maxWidth: "310px" }}>
             Instant Private Medical Visits
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-gray-400 mb-4" style={{ fontSize: "clamp(13px, 3.5vw, 16px)" }}>
+          {/* Subtitle — max-w forces clean 2-line split, no orphan */}
+          <p className="text-gray-400 mb-4 mx-auto" style={{ fontSize: "clamp(13px, 3.5vw, 16px)", maxWidth: "280px" }}>
             See a Provider in minutes, not days. No appointments. No waiting rooms.
           </p>
 
@@ -243,20 +234,14 @@ export default function AssessmentPageContent() {
               {/* dark overlay */}
               <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.28)" }} />
 
-              {/* LIVE badge */}
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-md z-10" style={{ background: "#ef4444" }}>
-                <span className="w-2 h-2 rounded-full" style={{ background: "white", boxShadow: "0 0 4px white" }} />
-                <span className="text-xs font-black text-white tracking-wide">LIVE</span>
-              </div>
-
-              {/* Doctor info overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-2" style={{ background: "#2dd4bf", boxShadow: "0 0 16px rgba(45,212,191,0.4)" }}>
-                  <span style={{ fontSize: 28 }}>👩‍⚕️</span>
+              {/* Doctor info overlay — top 80% zone, stars clear of patient pill */}
+              <div className="absolute left-0 right-0 top-0 flex flex-col items-center justify-center gap-1 z-10" style={{ height: "80%" }}>
+                <div className="w-14 h-14 rounded-full overflow-hidden mb-1" style={{ border: "1.5px solid rgba(45,212,191,0.5)", boxShadow: "0 0 16px rgba(45,212,191,0.3)" }}>
+                  <img src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg" alt="LaMonica A. Hodges" className="w-full h-full object-cover" />
                 </div>
                 <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: "clamp(13px,3.5vw,18px)" }}>LaMonica A. Hodges, MSN, APRN, FNP-C</h3>
                 <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(10px,2.5vw,13px)" }}>Board-Certified Family Nurse Practitioner</p>
-                <div className="flex items-center gap-1 mt-1">
+                <div className="flex items-center gap-1">
                   <Star size={11} className="text-yellow-400 fill-yellow-400" />
                   <Star size={11} className="text-yellow-400 fill-yellow-400" />
                   <Star size={11} className="text-yellow-400 fill-yellow-400" />
@@ -266,8 +251,8 @@ export default function AssessmentPageContent() {
                 </div>
               </div>
 
-              {/* Currently with a patient pill */}
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
+              {/* Currently with a patient pill — bottom 20% zone */}
+              <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center z-10" style={{ height: "20%" }}>
                 <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}>
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
                   <span className="text-white font-semibold whitespace-nowrap" style={{ fontSize: "clamp(11px,3vw,14px)" }}>Currently with a patient</span>
@@ -282,10 +267,7 @@ export default function AssessmentPageContent() {
           </div>
 
           {/* Trust bar */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-gray-400" style={{ fontSize: "clamp(11px,3vw,13px)" }}>
-            <span className="flex items-center gap-1.5"><Lock size={13} className="text-teal-400 flex-shrink-0" /> HIPAA Compliant</span>
-            <span className="flex items-center gap-1.5"><Star size={13} className="text-yellow-400 fill-yellow-400 flex-shrink-0" /> 4.9 (12,398 patients)</span>
-            <span className="flex items-center gap-1.5"><Check size={13} className="text-teal-400 flex-shrink-0" /> Board-Certified</span>
+          <div className="flex items-center justify-center text-gray-400" style={{ fontSize: "clamp(11px,3vw,13px)" }}>
             <span className="flex items-center gap-1.5"><Users size={13} className="text-teal-400 flex-shrink-0" /> Same Provider Every Visit</span>
           </div>
 
@@ -678,6 +660,13 @@ export default function AssessmentPageContent() {
     </main>
   );
 }
+
+
+
+
+
+
+
 
 
 
