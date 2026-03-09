@@ -12,7 +12,6 @@ import {
   BarChart2, Shield, Image as ImageIcon, MessageCircle, Check, Lock, Users, RotateCcw, RefreshCw, Star, EyeOff, User
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { CONDITIONS_LIST, EXPANDED_CONDITIONS } from "@/lib/assessment-data";
 
 const getPillColorClass = (color: string) => {
@@ -213,64 +212,96 @@ export default function AssessmentPageContent() {
       </nav>
 
       {/* SECTION 3: HERO */}
-      <section className="relative pt-10 pb-16 px-4 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.15),transparent_60%)]" />
-        <div className="max-w-5xl mx-auto relative z-10 text-center">
+      <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(16px, 4vw, 40px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.12),transparent_60%)]" />
+        <div className="max-w-lg mx-auto relative z-10 text-center">
 
-           <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight font-serif mt-6">
-             Instant Private Medical Visits
-           </h1>
+          {/* H1 */}
+          <h1 className="font-bold leading-tight font-serif mb-2" style={{ fontSize: "clamp(26px, 7vw, 52px)" }}>
+            Instant Private Medical Visits
+          </h1>
 
-           <div className="flex justify-center mb-4">
-             <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 whitespace-nowrap">
-               GET TREATMENT FIRST <ArrowRight size={20} />
-             </Link>
-           </div>
+          {/* Subtitle */}
+          <p className="text-gray-400 mb-4" style={{ fontSize: "clamp(13px, 3.5vw, 16px)" }}>
+            See a Provider in minutes, not days. No appointments. No waiting rooms.
+          </p>
 
-           <p className="text-2xl md:text-4xl font-bold font-serif text-teal-400 mb-4" style={{ textShadow: '0 0 30px rgba(20,184,166,0.4)' }}>— Book for $1.89</p>
+          {/* Laptop frame */}
+          <div className="relative mb-4" style={{ borderRadius: 20, border: "1.5px solid rgba(45,212,191,0.35)", background: "#080e0c", boxShadow: "0 0 40px rgba(45,212,191,0.12), 0 0 80px rgba(45,212,191,0.06)" }}>
 
-           {/* Hero Card 1 */}
-           <div className="relative max-w-4xl mx-auto mt-10 mb-8">
-              <div className="absolute -inset-1 bg-gradient-to-b from-teal-500/20 to-teal-500/5 rounded-[35px] blur-lg opacity-60" />
-              <div className="relative bg-[#0a0f0d] border border-teal-500/40 rounded-[30px] p-8 md:p-12 shadow-2xl">
-                 <h2 className="text-2xl md:text-4xl font-bold mb-4 font-serif">
-                   From Symptoms to Treatment <span className="text-teal-400">in 2 Minutes</span>
-                 </h2>
-                 <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-                   Your own board-certified, private practice provider who personally reviews your case. Same provider. Every visit. You&apos;re only charged if your provider accepts and treats your case.
-                 </p>
-                 <div className="flex flex-col items-center gap-4 mb-8 py-6 border-t border-b border-teal-500/20">
-                    <div className="w-32 h-32 rounded-full border-[3px] border-teal-400 overflow-hidden shadow-[0_0_20px_rgba(0,203,169,0.3)]">
-                      <Image 
-                        src="/assets/F381103B-745E-4447-91B2-F1E32951D47F.jpeg" 
-                        alt="LaMonica A. Hodges" 
-                        width={128} 
-                        height={128}
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-white font-bold text-lg">LaMonica A. Hodges, MSN, APRN, FNP-C</p>
-                      <p className="text-teal-400 text-sm font-medium">Board-Certified Family Nurse Practitioner</p>
-                      <div className="flex items-center justify-center gap-1 mt-2">
-                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                        <Star size={14} className="text-yellow-400 fill-yellow-400" />
-                        <span className="text-gray-400 text-sm ml-1">4.9 / 12,398 reviews</span>
-                      </div>
-                    </div>
-                 </div>
-                 <div className="mb-8"><PairedCTABlock /></div>
-                 <div className="flex flex-wrap justify-center gap-4 md:gap-8 text-sm text-gray-400 font-medium">
-                    <span className="flex items-center gap-2"><Lock size={16} className="text-teal-400" /> HIPAA Compliant</span>
-                    <span className="flex items-center gap-2"><Star size={16} className="text-yellow-400 fill-yellow-400" /> 4.9 (12,398 patients)</span>
-                    <span className="flex items-center gap-2"><Check size={16} className="text-teal-400" /> Board-Certified</span>
-                    <span className="flex items-center gap-2"><Users size={16} className="text-teal-400" /> Same Provider Every Visit</span>
-                 </div>
+            {/* I'M ONLINE bar */}
+            <div className="flex items-center justify-center gap-2 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+              <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
+            </div>
+
+            {/* Video area */}
+            <div className="relative w-full overflow-hidden" style={{ height: "clamp(180px, 42vw, 240px)" }}>
+              <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
+                <source src="/assets/doctor-instant-visit.mp4" type="video/mp4" />
+              </video>
+              {/* dark overlay */}
+              <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.28)" }} />
+
+              {/* LIVE badge */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-md z-10" style={{ background: "#ef4444" }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: "white", boxShadow: "0 0 4px white" }} />
+                <span className="text-xs font-black text-white tracking-wide">LIVE</span>
               </div>
-           </div>
+
+              {/* Doctor info overlay */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-2" style={{ background: "#2dd4bf", boxShadow: "0 0 16px rgba(45,212,191,0.4)" }}>
+                  <span style={{ fontSize: 28 }}>👩‍⚕️</span>
+                </div>
+                <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: "clamp(15px,4vw,20px)" }}>Dr. LaMonica Hodges</h3>
+                <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(11px,3vw,14px)" }}>Board-Certified FNP</p>
+              </div>
+
+              {/* Currently with a patient pill */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10">
+                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+                  <span className="text-white font-semibold whitespace-nowrap" style={{ fontSize: "clamp(11px,3vw,14px)" }}>Currently with a patient</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Book CTA */}
+          <Link
+            href="/express-checkout"
+            onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }}
+            className="flex items-center justify-center gap-2 w-full text-white font-black rounded-xl mb-2"
+            style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", padding: "clamp(14px,3.5vw,18px) 24px", fontSize: "clamp(15px,4vw,20px)", boxShadow: "0 0 24px rgba(249,115,22,0.45), 0 4px 14px rgba(249,115,22,0.3)" }}
+          >
+            Book My Visit — $1.89 Reserve Fee <ArrowRight size={20} />
+          </Link>
+
+          {/* BOOK IN 30 SECONDS */}
+          <p className="flex items-center justify-center gap-1.5 mb-3" style={{ color: "#f97316", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em" }}>
+            <Zap size={13} /> BOOK IN 30 SECONDS
+          </p>
+
+          {/* Email + Return Patient */}
+          <div className="mb-4">
+            <PairedCTABlock />
+          </div>
+
+          {/* Trust bar */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-gray-400" style={{ fontSize: "clamp(11px,3vw,13px)" }}>
+            <span className="flex items-center gap-1.5"><Lock size={13} className="text-teal-400 flex-shrink-0" /> HIPAA Compliant</span>
+            <span className="flex items-center gap-1.5"><Star size={13} className="text-yellow-400 fill-yellow-400 flex-shrink-0" /> 4.9 (12,398 patients)</span>
+            <span className="flex items-center gap-1.5"><Check size={13} className="text-teal-400 flex-shrink-0" /> Board-Certified</span>
+            <span className="flex items-center gap-1.5"><Users size={13} className="text-teal-400 flex-shrink-0" /> Same Provider Every Visit</span>
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 4+: STATS + CONDITIONS + REST */}
+      <section className="relative px-4 pb-16 overflow-hidden">
+        <div className="max-w-5xl mx-auto text-center">
 
            {/* Stats Bar */}
            <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-8">
@@ -654,6 +685,13 @@ export default function AssessmentPageContent() {
     </main>
   );
 }
+
+
+
+
+
+
+
 
 
 
