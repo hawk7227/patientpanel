@@ -654,7 +654,7 @@ export default function ExpressCheckoutPage() {
     const sub = isReturn ? "Your provider is ready for you." : pick(confirmSubs, 5);
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
-        <div className="px-1 mt-4 mb-2">
+        <div className="px-1 mt-4 mb-2" style={{ textAlign: "center" }}>
           <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)", textAlign: "center" }}>
             {title.split("\n").map((line, i) => {
               const words = line.split(" ");
@@ -665,7 +665,7 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed text-center" style={{ textAlign: "center" }}>{sub}</p>
+          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{sub}</p>
         </div>
         {/* Timeline */}
         <div className="mt-3 space-y-0">
@@ -673,10 +673,10 @@ export default function ExpressCheckoutPage() {
             { icon: "👩‍⚕️", t: activeTimeline.s2, d: activeTimeline.d2, time: "~18 min" },
             { icon: "💊", t: activeTimeline.s3, d: activeTimeline.d3, time: "Same day" }].map((item, i) => (
             <div key={i}>
-              {i > 0 && <div className="ml-[17px] w-px h-1.5 bg-[#2dd4a0]/15"></div>}
-              <div className="flex gap-3 py-2">
+              {i > 0 && <div className="w-px h-1.5 bg-[#2dd4a0]/15" style={{ margin: "0 auto" }}></div>}
+              <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
                 <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
-                <div className="flex-1 text-center">
+                <div className="mt-1" style={{ textAlign: "center" }}>
                   <div className="text-[11px] font-bold text-white">{item.t}</div>
                   <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
                   <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
@@ -686,9 +686,9 @@ export default function ExpressCheckoutPage() {
           ))}
         </div>
         {/* Discretion callout */}
-        <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)" }}>
-          <span className="text-[18px] flex-shrink-0">🙈</span>
-          <p className="text-[11px] text-[#9ca3af] leading-relaxed text-center"><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
+        <div className="mt-3 rounded-xl px-3 py-2.5 flex flex-col items-center gap-1.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)", textAlign: "center" }}>
+          <span className="text-[18px]">🙈</span>
+          <p className="text-[11px] text-[#9ca3af] leading-relaxed" style={{ textAlign: "center" }}><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
         </div>
         {/* Provider quote */}
         <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/6" style={{ background: "rgba(255,255,255,0.02)" }}>
