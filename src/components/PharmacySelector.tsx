@@ -178,9 +178,17 @@ export default function PharmacySelector({
     }
   };
 
+  // On mount: request location + open dropdown + search immediately
+  useEffect(() => {
+    requestLocation();
+    setIsOpen(true);
+    searchPharmacies(value);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
-      // Search immediately on open — location optional, textSearch fallback handles no-location case
+      // Re-search when location arrives or value changes
       const timeoutId = setTimeout(() => searchPharmacies(value), 300);
       return () => clearTimeout(timeoutId);
     }
