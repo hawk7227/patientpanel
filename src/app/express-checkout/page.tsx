@@ -1723,7 +1723,7 @@ export default function ExpressCheckoutPage() {
                   Search pharmacy...
                 </button>
               </div>
-              <BelowCardContent step={3} />
+              {!pharmacyDialogOpen && <BelowCardContent step={3} />}
             </div>
           ) : null}
 
