@@ -145,9 +145,8 @@ export default function AppointmentCalendar({
             }
           });
           
-          // IMPORTANT: Always include today's date so patients can see today's availability
-          // This ensures the calendar doesn't appear completely empty on the current day
-          filteredDates.add(todayStr);
+          // Only add today if the API returned it with available slots
+          // (removed forced add — avoids showing today when all slots are past)
           
           setAvailableDates(filteredDates);
           
@@ -665,10 +664,8 @@ export default function AppointmentCalendar({
                             // Convert both to minutes for easy comparison
                             const timeSlotMinutes = hours * 60 + minutes;
                             const nowMinutes = todayHour * 60 + todayMinute;
-                            const threeHoursFromNowMinutes = nowMinutes + (3 * 60); // 3 hours = 180 minutes
-                            
-                            // Disable if time slot is less than 3 hours from now
-                            return timeSlotMinutes < threeHoursFromNowMinutes;
+                            // Disable if time slot has already passed
+                            return timeSlotMinutes < nowMinutes;
                           }
                           return false;
                         })();

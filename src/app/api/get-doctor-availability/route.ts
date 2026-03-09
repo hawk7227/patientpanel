@@ -259,8 +259,8 @@ export async function GET(request: Request) {
     const todayInDoctorTZ = nowInDoctorTZ.toISOString().split('T')[0];
     const isToday = date === todayInDoctorTZ;
     
-    // Calculate minimum allowed time (3 hours from now in doctor's timezone if today)
-    const minAllowedTime = isToday ? new Date(nowInDoctorTZ.getTime() + 3 * 60 * 60 * 1000) : null;
+    // Minimum allowed time = now (no buffer) — show all future slots including imminent
+    const minAllowedTime = isToday ? nowInDoctorTZ : null;
 
     // Generate available time slots from availability events
     const availableSlots: string[] = [];
@@ -290,7 +290,7 @@ export async function GET(request: Request) {
             }
             
             if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
-              // For today, check if slot is at least 3 hours from now in doctor's timezone
+              // For today, hide slots that have already passed
               if (minAllowedTime) {
                 const slotDateTime = createDateInTimezone(date, timeStr, doctorTimezone);
                 if (slotDateTime >= minAllowedTime) {
@@ -321,8 +321,12 @@ export async function GET(request: Request) {
         .eq("is_available", true)
         .order("start_time", { ascending: true });
 
-      if (recurringAvailability && recurringAvailability.length > 0) {
-        recurringAvailability.forEach((availability) => {
+      // Use recurring availability rows; if none exist, default to 09:00-21:00 every day
+      const effectiveSingleSlots = (recurringAvailability && recurringAvailability.length > 0)
+        ? recurringAvailability
+        : [{ start_time: "09:00", end_time: "21:00" }];
+      if (effectiveSingleSlots.length > 0) {
+        effectiveSingleSlots.forEach((availability) => {
           // Times in availability are in doctor's timezone (Phoenix)
           const [startHour, startMin] = availability.start_time.split(":").map(Number);
           const [endHour, endMin] = availability.end_time.split(":").map(Number);
@@ -514,7 +518,7 @@ async function handleBatchRequest(
 
   dates.forEach((dateStr) => {
     const isToday = dateStr === todayInDoctorTZ;
-    const minAllowedTime = isToday ? new Date(nowInDoctorTZ.getTime() + 3 * 60 * 60 * 1000) : null;
+    const minAllowedTime = isToday ? nowInDoctorTZ : null;
     
     const bookedTimes = appointmentsByDate[dateStr] || new Set<string>();
     const availableSlots: string[] = [];
@@ -571,7 +575,7 @@ async function handleBatchRequest(
             }
             
             if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
-              // For today, check if slot is at least 3 hours from now in doctor's timezone
+              // For today, hide slots that have already passed
               if (minAllowedTime) {
                 const slotDateTime = createDateInTimezone(dateStr, timeStr, doctorTimezone);
                 if (slotDateTime >= minAllowedTime) {
@@ -592,10 +596,13 @@ async function handleBatchRequest(
         }
       });
     } else if (recurringAvailability) {
-      // Use recurring availability
+      // Use recurring availability — fallback to 09:00-21:00 Mon-Sun if table is empty
       const dayRecurring = recurringAvailability.filter(r => r.day_of_week === dayOfWeek);
+      const effectiveSlots = dayRecurring.length > 0
+        ? dayRecurring
+        : [{ start_time: "09:00", end_time: "21:00" }]; // default: 9am-9pm every day
       
-      dayRecurring.forEach((availability) => {
+      effectiveSlots.forEach((availability) => {
         // Times in availability are in doctor's timezone (Phoenix)
         const [startHour, startMin] = availability.start_time.split(":").map(Number);
         const [endHour, endMin] = availability.end_time.split(":").map(Number);
@@ -618,7 +625,7 @@ async function handleBatchRequest(
             }
             
             if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
-              // For today, check if slot is at least 3 hours from now in doctor's timezone
+              // For today, hide slots that have already passed
               if (minAllowedTime) {
                 const slotDateTime = createDateInTimezone(dateStr, timeStr, doctorTimezone);
                 if (slotDateTime >= minAllowedTime) {
