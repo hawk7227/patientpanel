@@ -54,6 +54,7 @@ export default function PharmacySelector({
 
   const requestLocation = () => {
     if (userLocation) return; // already have it
+    setLocationError(null); // clear previous error on every attempt
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -62,17 +63,23 @@ export default function PharmacySelector({
             lng: position.coords.longitude,
           };
           setUserLocation(location);
+          setLocationError(null);
           if (onLocationDetected) {
             onLocationDetected(location);
           }
         },
         (error) => {
           console.error("Error getting location:", error);
-          setLocationError("Unable to get your location. Please enable location services.");
-        }
+          if (error.code === 1) {
+            setLocationError("Location blocked. Enable in Settings → Safari → Location, then tap here to retry.");
+          } else {
+            setLocationError("Could not get location. Type your pharmacy name to search.");
+          }
+        },
+        { timeout: 8000, maximumAge: 60000 }
       );
     } else {
-      setLocationError("Geolocation is not supported by your browser.");
+      setLocationError("Location not supported. Type your pharmacy name to search.");
     }
   };
 
