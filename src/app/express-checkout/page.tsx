@@ -636,13 +636,13 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-2 leading-relaxed text-center" style={{ textAlign: "center" }}>{sub}</p>
+          <p className="text-[11px] text-[#6b7280] mt-2 leading-relaxed text-center" style={{ textAlign: "center", fontSize: "11px" }}>{sub}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2 px-1 justify-center">
-          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
-          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👩‍⚕️ Board-Certified</span>}
-          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>⭐ 4.9 · 10K+</span>}
-          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👤 Same Provider</span>}
+          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1" style={{ fontSize: "11px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
+          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1" style={{ fontSize: "11px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👩‍⚕️ Board-Certified</span>}
+          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1" style={{ fontSize: "11px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>⭐ 4.9 · 10K+</span>}
+          {step <= 3 && <span className="text-[11px] text-[#6b7280] flex items-center gap-1" style={{ fontSize: "11px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👤 Same Provider</span>}
         </div>
       </div>
     );
