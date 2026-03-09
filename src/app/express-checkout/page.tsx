@@ -655,7 +655,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
         <div className="px-1 mt-4 mb-2">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line text-center" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
             {title.split("\n").map((line, i) => {
               const words = line.split(" ");
               if (i === title.split("\n").length - 1 && words.length > 0) {
@@ -665,7 +665,7 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed">{sub}</p>
+          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed text-center">{sub}</p>
         </div>
         {/* Timeline */}
         <div className="mt-3 space-y-0">
@@ -676,10 +676,10 @@ export default function ExpressCheckoutPage() {
               {i > 0 && <div className="ml-[17px] w-px h-1.5 bg-[#2dd4a0]/15"></div>}
               <div className="flex gap-3 py-2">
                 <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
-                <div>
+                <div className="flex-1 text-center">
                   <div className="text-[11px] font-bold text-white">{item.t}</div>
-                  <div className="text-[9px] text-[#6b7280] mt-0.5">{item.d}</div>
-                  <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                  <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
                 </div>
               </div>
             </div>
@@ -688,7 +688,7 @@ export default function ExpressCheckoutPage() {
         {/* Discretion callout */}
         <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)" }}>
           <span className="text-[18px] flex-shrink-0">🙈</span>
-          <p className="text-[10px] text-[#9ca3af] leading-relaxed"><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
+          <p className="text-[11px] text-[#9ca3af] leading-relaxed text-center"><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
         </div>
         {/* Provider quote */}
         <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/6" style={{ background: "rgba(255,255,255,0.02)" }}>
