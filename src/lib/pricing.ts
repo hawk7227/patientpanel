@@ -78,7 +78,7 @@ export interface PriceInfo {
   label: string;        // "Business hours" or "After-hours" or "Weekend" or "Holiday"
 }
 
-export type VisitType = 'instant' | 'refill' | 'video' | 'phone';
+export type VisitType = 'instant' | 'async' | 'refill' | 'video' | 'phone';
 
 export function getPrice(visitType: VisitType, timezone?: string): PriceInfo {
   const now = new Date();

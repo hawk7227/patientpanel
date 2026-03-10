@@ -31,7 +31,7 @@ interface MedicationItem {
 
 interface PharmacyInfo {
   name: string; address: string; photo?: string; rating?: number;
-  reviewCount?: number; isOpen?: boolean;
+  reviewCount?: number; isOpen?: boolean; phone?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -43,6 +43,57 @@ const VISIT_TYPES = [
   { key: "video" as VisitType, label: "Video", icon: Video, desc: "Secure 1-on-1", badge: null, needsCalendar: true },
   { key: "phone" as VisitType, label: "Phone", icon: Phone, desc: "Private line", badge: null, needsCalendar: true },
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// Visit Content — step-by-step timeline for each visit type
+// ═══════════════════════════════════════════════════════════════
+const visitContent = {
+  async: {
+    title: "Async Visit,\nHow It Works",
+    sub: "Your provider reviews your case privately without a live call.",
+    steps: [
+      { icon: "📝", t: "Describe Your Symptoms", d: "Answer a few quick questions and share what's going on.", time: "~2 min" },
+      { icon: "👩‍⚕️", t: "Provider Reviews Your Case", d: "A licensed provider reviews everything privately.", time: "~1–2 hrs" },
+      { icon: "💊", t: "Treatment Sent Directly", d: "Treatment or prescriptions are sent to your pharmacy if appropriate.", time: "Same day" },
+    ],
+  },
+  instant: {
+    title: "Instant Visit,\nHow It Works",
+    sub: "Join the queue and connect live with a provider as soon as one is available.",
+    steps: [
+      { icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need help with before joining the queue.", time: "~2 min" },
+      { icon: "⏱", t: "Wait For Your Turn", d: "You'll be notified when the provider is ready to see you.", time: "Usually minutes" },
+      { icon: "📹", t: "Connect Live", d: "Meet with a provider by live video and get treated in real time.", time: "Starts when called" },
+    ],
+  },
+  refill: {
+    title: "Refill Request,\nHow It Works",
+    sub: "Request your refill online and your provider will review it privately.",
+    steps: [
+      { icon: "💊", t: "Select Your Medication", d: "Choose the medication you want reviewed for refill.", time: "~1 min" },
+      { icon: "👩‍⚕️", t: "Provider Reviews Request", d: "Your provider checks your history and refill eligibility.", time: "Same day" },
+      { icon: "🏥", t: "Sent To Pharmacy", d: "Approved refills are sent directly to your pharmacy.", time: "Same day" },
+    ],
+  },
+  video: {
+    title: "Video Visit,\nHow It Works",
+    sub: "Schedule a time and meet with your provider face-to-face by secure video.",
+    steps: [
+      { icon: "📅", t: "Pick A Time", d: "Choose the date and time that works best for you.", time: "~1 min" },
+      { icon: "📹", t: "Meet By Video", d: "Join your secure video visit from your phone or computer.", time: "At appointment time" },
+      { icon: "💊", t: "Get Your Treatment Plan", d: "Your provider reviews your needs and sends treatment if appropriate.", time: "Same day" },
+    ],
+  },
+  phone: {
+    title: "Phone Visit,\nHow It Works",
+    sub: "Choose a time to speak with your provider privately by phone or text.",
+    steps: [
+      { icon: "📅", t: "Schedule Your Visit", d: "Pick the time that works best for your private consult.", time: "~1 min" },
+      { icon: "📞", t: "Talk With Your Provider", d: "Connect by phone or SMS without needing video.", time: "At appointment time" },
+      { icon: "💊", t: "Treatment Sent Directly", d: "Your provider sends treatment or prescriptions if appropriate.", time: "Same day" },
+    ],
+  },
+};
 
 // ═══════════════════════════════════════════════════════════════
 // LocalStorage helpers for answer persistence
@@ -93,12 +144,12 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand, isNewPatient,
+  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand, isNewPatient,
   npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
-  pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
+  pharmacy: string; pharmacyAddress: string; pharmacyPhone: string; selectedMedications: string[];
   symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
   isNewPatient: boolean;
   npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
@@ -155,6 +206,7 @@ function Step2PaymentForm({
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "",
+            pharmacyPhone: pharmacyPhone || "",
           }),
         });
         const createResult = await createRes.json();
@@ -300,6 +352,7 @@ function Step2PaymentForm({
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "",
+            pharmacyPhone: pharmacyPhone || "",
           }),
         });
         const createResult = await createRes.json();
@@ -1721,7 +1774,7 @@ export default function ExpressCheckoutPage() {
                   onChange={(val: string, info?: any) => {
                     setPharmacy(val);
                     if (info) {
-                      const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined };
+                      const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined, phone: info.phone || undefined };
                       setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
                       saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
                     } else { saveAnswers({ pharmacy: val }); }
@@ -1739,10 +1792,11 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-5 gap-1.5">
                     {([
-                      { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
-                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
+                      { key: "async" as VisitType, label: "Async", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
+                      { key: "instant" as VisitType, label: "Instant\nVisit", icon: Zap, color: "#f59e0b", badge: "⚡ FAST" },
+                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: null },
                       { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
                       { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
                     ] as const).map((vt) => {
@@ -1760,8 +1814,8 @@ export default function ExpressCheckoutPage() {
                         }
                       }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                        <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
-                        {hasPopupOpen && !isActive && <span className="text-[7px] text-gray-500 mt-0.5">tap to select</span>}
+                        <Icon size={16} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
+                        {hasPopupOpen && !isActive && <span className="text-[6px] text-gray-500 mt-0.5">tap to select</span>}
                       </button>);
                     })}
                   </div>
@@ -1774,11 +1828,69 @@ export default function ExpressCheckoutPage() {
             <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="p-3 space-y-2.5 relative bg-transparent border border-white/10 rounded-xl" style={{ minHeight: "140px" }}>
                 <button onClick={() => setVisitTypePopup(null)} className="absolute top-2.5 right-2.5 text-gray-500 hover:text-white transition-colors z-10"><X size={16} /></button>
+                {visitTypePopup === "async" && (<>
+                  <div className="px-1 mb-2" style={{ textAlign: "center" }}>
+                    <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)", textAlign: "center" }}>
+                      {visitContent.async.title.split("\n").map((line, i) => {
+                        const words = line.split(" ");
+                        if (i === visitContent.async.title.split("\n").length - 1 && words.length > 0) {
+                          const last = words.pop();
+                          return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+                        }
+                        return <span key={i}>{line}{"\n"}</span>;
+                      })}
+                    </h2>
+                    <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{visitContent.async.sub}</p>
+                  </div>
+                  <div className="space-y-0">
+                    {visitContent.async.steps.map((item, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="w-px h-1.5 bg-[#2dd4a0]/15" style={{ margin: "0 auto" }}></div>}
+                        <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
+                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1" style={{ textAlign: "center" }}>
+                            <div className="text-[11px] font-bold text-white">{item.t}</div>
+                            <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
+                </>)}
                 {visitTypePopup === "instant" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
-                  <p className="text-gray-300 text-[11px] leading-relaxed">Provider reviews your case privately, sends treatment + Rx to your pharmacy.</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">100% private</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">1–2 hours</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">Rx to pharmacy</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="px-1 mb-2" style={{ textAlign: "center" }}>
+                    <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)", textAlign: "center" }}>
+                      {visitContent.instant.title.split("\n").map((line, i) => {
+                        const words = line.split(" ");
+                        if (i === visitContent.instant.title.split("\n").length - 1 && words.length > 0) {
+                          const last = words.pop();
+                          return <span key={i}>{words.join(" ")} <span className="text-[#f59e0b]">{last}</span>{"\n"}</span>;
+                        }
+                        return <span key={i}>{line}{"\n"}</span>;
+                      })}
+                    </h2>
+                    <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{visitContent.instant.sub}</p>
+                  </div>
+                  <div className="space-y-0">
+                    {visitContent.instant.steps.map((item, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="w-px h-1.5 bg-[#f59e0b]/15" style={{ margin: "0 auto" }}></div>}
+                        <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
+                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1" style={{ textAlign: "center" }}>
+                            <div className="text-[11px] font-bold text-white">{item.t}</div>
+                            <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
@@ -1819,7 +1931,7 @@ export default function ExpressCheckoutPage() {
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
                   <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
-                <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
+                {(visitTypePopup === "refill" || visitTypePopup === "video" || visitTypePopup === "phone") && <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>}
               </div>
             </div>
           )}
@@ -1941,7 +2053,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card fallback */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -2043,7 +2155,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
                     />
                   </Elements>
