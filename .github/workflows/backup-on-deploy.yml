@@ -1,0 +1,110 @@
+name: Backup All Repos on Deploy Success
+
+on:
+  deployment_status:
+
+jobs:
+  backup:
+    # Only run when Vercel deployment succeeds
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Log deployment success
+        run: |
+          echo "═══════════════════════════════════════════════════════"
+          echo "  VERCEL DEPLOY SUCCESS - STARTING BACKUP"
+          echo "═══════════════════════════════════════════════════════"
+          echo "Repo: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "═══════════════════════════════════════════════════════"
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Clone and backup all repos
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_PAT }}
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+          
+          # Define all repos to backup
+          REPOS=(
+            "hawk7227/patientpanel"
+            "hawk7227/hipa-doctor-panel"
+          )
+          
+          # Clone backup repo
+          git clone https://${GH_TOKEN}@github.com/hawk7227/medazon-backups.git backups
+          cd backups
+          
+          # Create timestamped backup folder
+          mkdir -p "$TIMESTAMP"
+          
+          # Clone each repo into backup
+          for REPO in "${REPOS[@]}"; do
+            NAME=$(echo $REPO | cut -d'/' -f2)
+            echo ""
+            echo "→ Backing up $NAME..."
+            
+            git clone --depth 1 "https://${GH_TOKEN}@github.com/${REPO}.git" "$TIMESTAMP/$NAME"
+            
+            if [ -d "$TIMESTAMP/$NAME" ]; then
+              cd "$TIMESTAMP/$NAME"
+              COMMIT=$(git log -1 --oneline)
+              echo "  ✓ $NAME: $COMMIT"
+              
+              # Remove .git to save space
+              rm -rf .git
+              cd ../..
+            else
+              echo "  ✗ Failed to clone $NAME"
+            fi
+          done
+          
+          # Create manifest
+          cat > "$TIMESTAMP/MANIFEST.md" << EOF
+          # Backup Manifest
+          
+          **Triggered by:** ${{ github.repository }}
+          **Commit:** ${{ github.sha }}
+          **Timestamp:** $TIMESTAMP
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Repos Backed Up
+          $(for REPO in "${REPOS[@]}"; do echo "- $REPO"; done)
+          EOF
+          
+          # Commit and push
+          git add -A
+          git commit -m "Backup: $TIMESTAMP (triggered by ${{ github.repository }})"
+          git push origin main
+          
+          echo ""
+          echo "═══════════════════════════════════════════════════════"
+          echo "  BACKUP COMPLETE: $TIMESTAMP"
+          echo "═══════════════════════════════════════════════════════"
+
+      - name: Cleanup old backups (keep last 30)
+        env:
+          GH_TOKEN: ${{ secrets.BACKUP_PAT }}
+        run: |
+          cd backups
+          
+          # List directories, sort by name (timestamp), keep last 30
+          DIRS=$(ls -d */ 2>/dev/null | sort | head -n -30)
+          
+          if [ -n "$DIRS" ]; then
+            echo "Removing old backups:"
+            echo "$DIRS"
+            rm -rf $DIRS
+            git add -A
+            git commit -m "Cleanup: removed old backups" || true
+            git push origin main || true
+          else
+            echo "No old backups to remove"
+          fi
