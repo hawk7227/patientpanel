@@ -2138,7 +2138,13 @@ export default function ExpressCheckoutPage() {
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
                   <div className="grid grid-cols-5 gap-1.5">
-                    {VISIT_TYPES.map((vt) => {
+                    {([
+                      { key: "async" as VisitType, label: "Async", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
+                      { key: "instant" as VisitType, label: "Instant\nVisit", icon: Zap, color: "#f59e0b", badge: "⚡ FAST" },
+                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: null },
+                      { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
+                      { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
+                    ] as const).map((vt) => {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
                       const hasPopupOpen = !!visitTypePopup;
@@ -2147,6 +2153,7 @@ export default function ExpressCheckoutPage() {
                       }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
                         <Icon size={16} style={{ color: vt.color }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : ""}`} style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
+                        {hasPopupOpen && !isActive && <span className="text-[6px] text-gray-500 mt-0.5">tap to select</span>}
                       </button>);
                     })}
                   </div>
@@ -2342,6 +2349,8 @@ export default function ExpressCheckoutPage() {
                 }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
                   CONTINUE
                 </button>
+                {/* Back button */}
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-white/10" style={{ background: "rgba(255,255,255,0.04)" }}>← Back</button>
               </div>
               <ConfirmBelowContent isReturn={false} />
             </div>
