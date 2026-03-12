@@ -39,7 +39,7 @@ interface PharmacyInfo {
 // ═══════════════════════════════════════════════════════════════
 const VISIT_TYPES = [
   { key: "instant" as VisitType, label: "Instant", icon: Zap, desc: "Private & discreet", badge: "Fastest", needsCalendar: false },
-  { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: true },
+  { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: false },
   { key: "video" as VisitType, label: "Video", icon: Video, desc: "Secure 1-on-1", badge: null, needsCalendar: true },
   { key: "phone" as VisitType, label: "Phone", icon: Phone, desc: "Private line", badge: null, needsCalendar: true },
 ];
@@ -248,11 +248,6 @@ function Step2PaymentForm({
   const [pulseField, setPulseField] = useState<string | null>(null);
   const [declineState, setDeclineState] = useState<DeclineState | null>(null);
 
-  const visitFeePrice = useMemo(
-    () => getPrice(visitType as VisitType),
-    [visitType]
-  );
-
   const handleStripeError = (err: { type?: string; code?: string; decline_code?: string; message?: string }) => {
     const ds = getDeclineState(err);
     setDeclineState(ds);
@@ -280,28 +275,6 @@ function Step2PaymentForm({
     newDobComplete
   );
 
-  // ── Payment speed: pre-fire patient creation when all new patient fields complete ──
-  const [prefetchedPatientId, setPrefetchedPatientId] = useState<string | null>(null);
-  const prefetchPatientRef = useRef(false);
-  useEffect(() => {
-    if (!isNewPatient || !newPatientFieldsComplete || prefetchPatientRef.current) return;
-    const pd = getPatientData();
-    if (!pd.email || !pd.firstName || !pd.lastName) return;
-    prefetchPatientRef.current = true;
-    fetch("/api/check-create-patient", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
-        phone: pd.phone, dateOfBirth: pd.dateOfBirth,
-        address: pd.address, pharmacy: pharmacy || "",
-        pharmacyAddress: pharmacyAddress || "",
-      }),
-    })
-      .then(r => r.json())
-      .then(result => { if (result.patientId) setPrefetchedPatientId(result.patientId); })
-      .catch(() => { prefetchPatientRef.current = false; });
-  }, [isNewPatient, newPatientFieldsComplete]);
-
   const getPatientData = () => {
     if (!isNewPatient) {
       return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
@@ -316,7 +289,7 @@ function Step2PaymentForm({
     setPayInFlight(true);
     try {
       const pd = getPatientData();
-      let patientId = patient.id || prefetchedPatientId;
+      let patientId = patient.id;
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -324,7 +297,8 @@ function Step2PaymentForm({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
-            pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
+            pharmacyAddress: pharmacyAddress || "",
+            pharmacyPhone: pharmacyPhone || "",
           }),
         });
         const createResult = await createRes.json();
@@ -395,8 +369,8 @@ function Step2PaymentForm({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
+            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
+            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
@@ -440,7 +414,7 @@ function Step2PaymentForm({
     setPayInFlight(true);
 
     try {
-      let patientId = patient.id || prefetchedPatientId;
+      let patientId = patient.id;
 
       if (isTestMode) {
         // BYPASS MODE — skip patient creation, skip payment
@@ -466,8 +440,8 @@ function Step2PaymentForm({
             email: patient.email || "test@medazon.com", firstName: patient.firstName || "Test", lastName: patient.lastName || "Patient",
             phone: patient.phone || "0000000000", dateOfBirth: convertDateToISO(patient.dateOfBirth) || "1990-01-01",
             streetAddress: patient.address || "Test Address", symptoms: reason || "Test", chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
+            visitType, appointmentDate: isAsyncVisit ? new Date().toISOString().split("T")[0] : appointmentDate,
+            appointmentTime: isAsyncVisit ? new Date().toTimeString().slice(0, 5) : appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !!patient.id,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
@@ -597,8 +571,8 @@ function Step2PaymentForm({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
+            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
+            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
@@ -763,11 +737,11 @@ function Step2PaymentForm({
                 </div>
 
                 {/* Terms + pay button */}
-                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
+                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 4px), 4px)" }}>
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{visitFeePrice.display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -790,82 +764,6 @@ function Step2PaymentForm({
         )}
       </div>
     </>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// FAQ Accordion Components — Instant & Refill popup education
-// ═══════════════════════════════════════════════════════════════
-function FAQItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" as const, gap: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "#cbd5e1", lineHeight: 1.3, flex: 1 }}>{q}</span>
-        <span style={{ fontSize: 14, color: "#64748b", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
-      </button>
-      {open && (
-        <div style={{ paddingBottom: 8, paddingRight: 4 }}>
-          <p style={{ fontSize: 10, color: "#94a3b8", lineHeight: 1.5, margin: 0 }}>{a}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InstantFAQ() {
-  const [expanded, setExpanded] = useState(false);
-  const faqs = [
-    { q: "How long will I wait?", a: "Most patients connect within minutes. You'll see your position in the queue. If you book after 8:30 PM Arizona time, your visit is locked in for 9:00 AM the next morning." },
-    { q: "What if no one is available right now?", a: "You hold your spot in queue and we notify you the moment a provider is ready. You don't have to stay on the screen." },
-    { q: "Is this a real doctor?", a: "Yes. Our provider is a licensed nurse practitioner with full prescribing authority. Your care is clinically supervised." },
-    { q: "Can I get a prescription?", a: "Yes. If clinically appropriate, your prescription is sent directly to your pharmacy the same day." },
-    { q: "What if I book after 8:30 PM?", a: "We lock in your first available slot at 9:00 AM Arizona time the next morning — no need to book again." },
-    { q: "Is my visit completely private?", a: "Completely. Your reason for visiting is encrypted and never shared outside your care team." },
-  ];
-  return (
-    <div style={{ marginTop: 4, marginBottom: 2 }}>
-      <button
-        onClick={() => setExpanded(o => !o)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.04em" }}>Common Questions</span>
-        <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
-      </button>
-      {expanded && (
-        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
-          {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RefillFAQ() {
-  const [expanded, setExpanded] = useState(false);
-  const faqs = [
-    { q: "Do I need an appointment?", a: "No. Submit your refill request and your provider reviews it same day. No video, no phone call required." },
-    { q: "How fast will my pharmacy get it?", a: "Most refills are sent within a few hours during business hours. You'll receive a confirmation when it's sent." },
-    { q: "What if I need a controlled substance?", a: "Controlled medications require a brief live consultation (video or phone). We'll upgrade your visit automatically — no extra charge." },
-    { q: "Can they refill any medication?", a: "Most non-controlled medications, yes. Your provider will only decline if it's clinically unsafe to refill without a visit." },
-    { q: "What if my prescription is expired?", a: "Your provider can issue a new prescription if your history supports it. Most routine medications are approved." },
-    { q: "Is there a limit on refills?", a: "No standing limit. Each request is reviewed individually and approved based on your clinical history." },
-  ];
-  return (
-    <div style={{ marginTop: 4, marginBottom: 2 }}>
-      <button
-        onClick={() => setExpanded(o => !o)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.04em" }}>Common Questions</span>
-        <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
-      </button>
-      {expanded && (
-        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
-          {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -1080,8 +978,6 @@ export default function ExpressCheckoutPage() {
   const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [calSelectedDay, setCalSelectedDay] = useState("");
   const [calSelectedTime, setCalSelectedTime] = useState("");
-  const [calApiSlots, setCalApiSlots] = useState<string[]>([]);   // HH:MM from API
-  const [calApiLoading, setCalApiLoading] = useState(false);
 
   // Guided Sequence State
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
@@ -1127,49 +1023,12 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  // Scheduled visits (video/phone): price from selected slot. Instant/refill: price from now.
-  const visitFeePrice = useMemo(
-    () => getPrice(visitType),
-    [visitType]
-  );
+  const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
   const isReturningPatient = !!patient?.id || (!!patient?.source && patient.source !== "new");
-
-  // ── Arizona time helpers for instant visit after-hours cutoff ──
-  const getArizonaHour = (): number => {
-    try {
-      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", hour12: false }).formatToParts(new Date());
-      return parseInt(parts.find(p => p.type === "hour")?.value || "12");
-    } catch { return new Date().getHours(); }
-  };
-  const getArizonaTomorrowISO = (): string => {
-    const now = new Date();
-    const azFormatter = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", year: "numeric", month: "2-digit", day: "2-digit" });
-    const parts = azFormatter.formatToParts(now);
-    const y = parseInt(parts.find(p => p.type === "year")?.value || "0");
-    const m = parseInt(parts.find(p => p.type === "month")?.value || "0");
-    const d = parseInt(parts.find(p => p.type === "day")?.value || "0");
-    const tomorrow = new Date(y, m - 1, d + 1);
-    return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`;
-  };
-  // After 8:30PM Arizona time, instant visits are locked to 9AM next morning
-  const instantIsAfterCutoff = visitType === "instant" && getArizonaHour() >= 21;
-  // (20:30 = 8:30PM; getArizonaHour returns 20 for 8:00-8:59PM, we use >=21 for after 9PM cutoff,
-  //  but business logic is 8:30PM so we check minutes too)
-  const getInstantAZInfo = (): { isAfterCutoff: boolean; nextMorningDate: string; nextMorningTime: string } => {
-    try {
-      const now = new Date();
-      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
-      const parts = fmt.formatToParts(now);
-      const azHour = parseInt(parts.find(p => p.type === "hour")?.value || "12");
-      const azMin = parseInt(parts.find(p => p.type === "minute")?.value || "0");
-      const isAfterCutoff = azHour > 20 || (azHour === 20 && azMin >= 30); // after 8:30PM AZ
-      return { isAfterCutoff, nextMorningDate: getArizonaTomorrowISO(), nextMorningTime: "09:00" };
-    } catch { return { isAfterCutoff: false, nextMorningDate: getArizonaTomorrowISO(), nextMorningTime: "09:00" }; }
-  };
   useEffect(() => { console.log("[Patient] isReturning:", isReturningPatient, "id:", patient?.id, "source:", patient?.source); }, [patient, isReturningPatient]);
 
   // ── Load patient ───────────────────────────────────────
@@ -1785,7 +1644,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div className="text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "0" }}>
         <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="text-center pt-1 pb-1">
             <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span>
             <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS </span>
@@ -1867,7 +1726,7 @@ export default function ExpressCheckoutPage() {
           @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         `}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
 
           {/* Header — compact */}
           <div className="flex-shrink-0 text-center pt-1 pb-0.5">
@@ -2045,10 +1904,10 @@ export default function ExpressCheckoutPage() {
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)" }}>
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
           {/* Logo + Brand */}
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
@@ -2150,7 +2009,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
-          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup ? (
+          {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
@@ -2212,48 +2071,43 @@ export default function ExpressCheckoutPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("async"); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "instant" && (<>
-                  {/* Header */}
-                  <div className="flex items-center gap-2.5 mb-1">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(245,158,11,0.12)" }}><Zap size={16} className="text-[#f59e0b]" /></div>
-                    <div>
-                      <h3 className="text-white font-black text-[14px] leading-tight">⚡ Instant Visit</h3>
-                      <p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Connect with a provider right now</p>
-                    </div>
+                  <div className="px-1 mb-2" style={{ textAlign: "center" }}>
+                    <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)", textAlign: "center" }}>
+                      {visitContent.instant.title.split("\n").map((line, i) => {
+                        const words = line.split(" ");
+                        if (i === visitContent.instant.title.split("\n").length - 1 && words.length > 0) {
+                          const last = words.pop();
+                          return <span key={i}>{words.join(" ")} <span className="text-[#f59e0b]">{last}</span>{"\n"}</span>;
+                        }
+                        return <span key={i}>{line}{"\n"}</span>;
+                      })}
+                    </h2>
+                    <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{visitContent.instant.sub}</p>
                   </div>
-                  {/* After-hours notice */}
-                  {(() => { const azInfo = getInstantAZInfo(); return azInfo.isAfterCutoff ? (
-                    <div className="rounded-xl px-3 py-2 mb-1" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
-                      <p className="text-[#f97316] text-[10px] font-bold">🌙 After Hours</p>
-                      <p className="text-gray-300 text-[10px] mt-0.5">The provider will connect with you tomorrow at <strong>9:00 AM Arizona time</strong>. Your spot is locked in now.</p>
-                    </div>
-                  ) : null; })()}
-                  {/* Steps */}
                   <div className="space-y-0">
-                    {[{ icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need — takes about 2 minutes.", time: "~2 min" }, { icon: "⏱", t: "Join the Queue", d: "You'll be notified the moment a provider is ready.", time: "Usually minutes" }, { icon: "📹", t: "Connect Live", d: "Meet by live video and get treated in real time.", time: "Starts when called" }].map((item, i) => (
+                    {visitContent.instant.steps.map((item, i) => (
                       <div key={i}>
                         {i > 0 && <div className="w-px h-1.5 bg-[#f59e0b]/15" style={{ margin: "0 auto" }}></div>}
-                        <div className="flex flex-col items-center py-1.5" style={{ textAlign: "center" }}>
-                          <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 flex items-center justify-center text-[13px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
-                          <div className="mt-1">
-                            <div className="text-[10px] font-bold text-white">{item.t}</div>
-                            <div className="text-[10px] text-[#6b7280] mt-0.5">{item.d}</div>
-                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
+                        <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
+                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1" style={{ textAlign: "center" }}>
+                            <div className="text-[11px] font-bold text-white">{item.t}</div>
+                            <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  {/* FAQ accordion */}
-                  <InstantFAQ />
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
-                  <div className="flex items-center gap-2.5 mb-1"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">💊 Rx Refill</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Provider reviews &amp; sends to pharmacy same day</p></div></div>
+                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
                   <div className="rounded-xl bg-[#0d1218] border border-white/10 p-2.5 space-y-1.5">
                     <p className="text-white text-[10px] font-semibold">Select Medications to Refill</p>
                     {medsLoading ? (
@@ -2277,8 +2131,6 @@ export default function ExpressCheckoutPage() {
                     )}
                     <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-white/50" />
                   </div>
-                  {/* FAQ accordion */}
-                  <RefillFAQ />
                   <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("refill"); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "video" && (<>
@@ -2297,12 +2149,12 @@ export default function ExpressCheckoutPage() {
               </div>
             </div>
           )}
-          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup && <BelowCardContent step={4} />}
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && <BelowCardContent step={4} />}
           </div>
           {/* END Step 4 wrapper */}
 
           {/* STEP 4.5: Confirm Summary (new patient) / Summary + Pay (returning patient) */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !confirmReviewed && !isReturningPatient ? (
+          {reason && symptomsDone && pharmacy && visitTypeChosen && !confirmReviewed && !isReturningPatient ? (
             /* ── NEW PATIENT: Confirm Summary with CONTINUE button ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
@@ -2324,7 +2176,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
-                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
                       <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
@@ -2345,10 +2197,7 @@ export default function ExpressCheckoutPage() {
                   {appointmentDate && appointmentTime && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                      </div>
+                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
@@ -2357,19 +2206,13 @@ export default function ExpressCheckoutPage() {
                   </div>
                 </div>
                 {/* CONTINUE button */}
-                <button onClick={() => {
-                  if (needsCalendar && (!appointmentDate || !appointmentTime)) {
-                    setDateTimeDialogOpen(true);
-                    return;
-                  }
-                  setConfirmReviewed(true); saveAnswers({ confirmReviewed: true });
-                }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
+                <button onClick={() => { setConfirmReviewed(true); saveAnswers({ confirmReviewed: true }); }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
                   CONTINUE
                 </button>
               </div>
               <ConfirmBelowContent isReturn={false} />
             </div>
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && isReturningPatient ? (
             /* ── RETURNING PATIENT: Summary + Wallets + collapsed card form ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
@@ -2391,7 +2234,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
-                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
                       <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
@@ -2412,10 +2255,7 @@ export default function ExpressCheckoutPage() {
                   {appointmentDate && appointmentTime && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                      </div>
+                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
@@ -2607,61 +2447,8 @@ export default function ExpressCheckoutPage() {
         const DAY_ABBR = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
         const SHORT_MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM"];
+        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"];
         const convertTo24 = (t: string) => { const [time, period] = t.split(" "); let [h, m] = time.split(":").map(Number); if (period === "PM" && h !== 12) h += 12; if (period === "AM" && h === 12) h = 0; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; };
-        const getSlotBadge = (slot: string, day: Date): { label: string; color: string } | null => {
-          const dow = day.getDay(); // 0=Sun, 6=Sat
-          const isWeekendDay = dow === 0 || dow === 6;
-          if (isWeekendDay) return { label: "Weekend · $249", color: "#f59e0b" };
-          // After hours: 5:30 PM onward on weekdays
-          const t24 = convertTo24(slot);
-          const [h] = t24.split(":").map(Number);
-          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours · $249", color: "#f97316" };
-          return null;
-        };
-        // Convert HH:MM (API format) to display string "9:00 AM"
-        const to12h = (t24: string): string => {
-          const [h, m] = t24.split(":").map(Number);
-          const period = h >= 12 ? "PM" : "AM";
-          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-          return `${h12}:${String(m).padStart(2,"0")} ${period}`;
-        };
-        // Build slots for a given day:
-        // 1. If calApiSlots loaded from API — use those (already filtered by doctor availability + booked slots)
-        // 2. Otherwise fall back to static timeSlots with client-side AZ past-time filter
-        const filterSlotsForDay = (day: Date): string[] => {
-          if (calApiSlots.length > 0) {
-            // API returns HH:MM — convert to display format, apply past-time filter for today
-            const displaySlots = calApiSlots.map(t24 => to12h(t24));
-            if (!isSameDay(day, today)) return displaySlots;
-            try {
-              const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
-              const parts = fmt.formatToParts(new Date());
-              const azH = parseInt(parts.find(p => p.type === "hour")?.value || "0");
-              const azM = parseInt(parts.find(p => p.type === "minute")?.value || "0");
-              const nowMins = azH * 60 + azM;
-              return displaySlots.filter(slot => {
-                const t24 = convertTo24(slot);
-                const [sh, sm] = t24.split(":").map(Number);
-                return (sh * 60 + sm) > nowMins;
-              });
-            } catch { return displaySlots; }
-          }
-          // Fallback: static slots with AZ past-time filter for today
-          if (!isSameDay(day, today)) return timeSlots;
-          try {
-            const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
-            const parts = fmt.formatToParts(new Date());
-            const azH = parseInt(parts.find(p => p.type === "hour")?.value || "0");
-            const azM = parseInt(parts.find(p => p.type === "minute")?.value || "0");
-            const nowMins = azH * 60 + azM;
-            return timeSlots.filter(slot => {
-              const t24 = convertTo24(slot);
-              const [sh, sm] = t24.split(":").map(Number);
-              return (sh * 60 + sm) > nowMins;
-            });
-          } catch { return timeSlots; }
-        };
         const getSpecialLabel = (d: Date) => { if (isSameDay(d, today)) return "Today"; if (isSameDay(d, tomorrow)) return "Tomorrow"; return null; };
         const monthLabel = `${MONTH_FULL[visibleDays[0].getMonth()]} ${visibleDays[0].getFullYear()}`;
         const selectedDateObj = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : null;
@@ -2695,7 +2482,7 @@ export default function ExpressCheckoutPage() {
                   const isToday = isSameDay(day, today);
                   const special = getSpecialLabel(day);
                   return (
-                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(true); fetch(`/api/get-doctor-availability?date=${iso}`).then(r => r.json()).then(data => { if (data.availableSlots) setCalApiSlots(data.availableSlots); }).catch(() => {}).finally(() => setCalApiLoading(false)); }}
+                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); }}
                       className="flex-1 flex flex-col items-center justify-center rounded-[14px] transition-all active:scale-95"
                       style={{
                         padding: "10px 4px 8px",
@@ -2736,58 +2523,33 @@ export default function ExpressCheckoutPage() {
               {calSelectedDay ? (
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
-                  {calApiLoading ? (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 12 }}>
-                      <div className="animate-spin" style={{ width: 24, height: 24, border: "2px solid rgba(45,212,160,0.2)", borderTop: "2px solid #2dd4a0", borderRadius: "50%" }} />
-                      <p style={{ color: "#64748b", fontSize: 12 }}>Loading available times...</p>
-                    </div>
-                  ) : (
-                  <>
                   <div id="cal-time-grid" className="rounded-xl transition-all" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    {(() => {
-                      const selectedDayDate = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : today;
-                      const slots = filterSlotsForDay(selectedDayDate);
-                      if (slots.length === 0) return (
-                        <div style={{ gridColumn: "1/-1", padding: "24px 0", textAlign: "center" }}>
-                          <p style={{ color: "#64748b", fontSize: 13 }}>No more slots available today.</p>
-                          <p style={{ color: "#475569", fontSize: 11, marginTop: 4 }}>Please select a different day.</p>
-                        </div>
+                    {timeSlots.map((slot, i) => {
+                      const t24 = convertTo24(slot);
+                      const isActive = calSelectedTime === t24;
+                      return (
+                        <button key={slot} onClick={() => setCalSelectedTime(t24)}
+                          className="active:scale-95 transition-all"
+                          style={{
+                            padding: "14px 16px",
+                            borderRadius: 12,
+                            border: isActive ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.1)",
+                            background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "rgba(255,255,255,0.03)",
+                            color: isActive ? "#ffffff" : "#e2e8f0",
+                            fontSize: 16,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            textAlign: "center" as const,
+                            boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                            animation: "slotFadeIn 0.3s ease both",
+                            animationDelay: `${i * 0.05}s`,
+                          }}>
+                          {slot}
+                        </button>
                       );
-                      return slots.map((slot, i) => {
-                        const t24 = convertTo24(slot);
-                        const isActive = calSelectedTime === t24;
-                        const badge = getSlotBadge(slot, selectedDayDate);
-                        return (
-                          <button key={slot} onClick={() => setCalSelectedTime(t24)}
-                            className="active:scale-95 transition-all"
-                            style={{
-                              padding: badge ? "10px 12px 8px" : "14px 16px",
-                              borderRadius: 12,
-                              border: isActive ? "2px solid rgba(45,212,160,0.5)" : badge ? "2px solid rgba(249,115,22,0.2)" : "2px solid rgba(255,255,255,0.1)",
-                              background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : badge ? "rgba(249,115,22,0.04)" : "rgba(255,255,255,0.03)",
-                              color: isActive ? "#ffffff" : "#e2e8f0",
-                              fontSize: 15,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              textAlign: "center" as const,
-                              boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
-                              animation: "slotFadeIn 0.3s ease both",
-                              animationDelay: `${i * 0.05}s`,
-                              display: "flex",
-                              flexDirection: "column" as const,
-                              alignItems: "center",
-                              gap: 3,
-                            }}>
-                            <span>{slot}</span>
-                            {badge && <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? "#fed7aa" : badge.color, letterSpacing: "0.02em", lineHeight: 1 }}>{badge.label}</span>}
-                          </button>
-                        );
-                      });
-                    })()}
+                    })}
                   </div>
                   <p className="text-center mt-3" style={{ fontSize: 10, color: "#475569" }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-                  </>
-                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -2858,6 +2620,552 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
