@@ -2351,14 +2351,6 @@ export default function ExpressCheckoutPage() {
                       </div>
                     </div>
                   )}
-                  {visitFeePrice.visitLabel && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5" style={{ background: "rgba(249,115,22,0.04)" }}>
-                      <span className="text-[#f97316] text-[12px] font-bold flex items-center gap-1">
-                        {visitFeePrice.isWeekend ? "🌙" : "⏰"} {visitFeePrice.visitLabel}
-                      </span>
-                      <span className="text-[#f97316] font-black text-[15px]">{visitFeePrice.display}</span>
-                    </div>
-                  )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
                     <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
                     <span className="text-[#2dd4a0] font-black text-[18px]">{currentPrice.display}</span>
@@ -2424,14 +2416,6 @@ export default function ExpressCheckoutPage() {
                         <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
                         <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                       </div>
-                    </div>
-                  )}
-                  {visitFeePrice.visitLabel && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5" style={{ background: "rgba(249,115,22,0.04)" }}>
-                      <span className="text-[#f97316] text-[12px] font-bold flex items-center gap-1">
-                        {visitFeePrice.isWeekend ? "🌙" : "⏰"} {visitFeePrice.visitLabel}
-                      </span>
-                      <span className="text-[#f97316] font-black text-[15px]">{visitFeePrice.display}</span>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
