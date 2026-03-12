@@ -525,7 +525,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -1045,9 +1045,9 @@ export default function ExpressCheckoutPage() {
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
         ".Label": { color: "#ffffff", fontSize: "10px", fontWeight: "600", marginBottom: "2px" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "6px 8px", fontSize: "12px" },
-        ".Input:focus": { border: "2px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
-        ".Input::placeholder": { color: "rgba(255,255,255,0.5)" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "6px 8px", fontSize: "12px" },
+        ".Input:focus": { border: "3px solid #2dd4a0", boxShadow: "0 0 0 2px rgba(45,212,160,0.25)" },
+        ".Input::placeholder": { color: "rgba(255,255,255,0.75)", fontWeight: "600" },
         ".Block": { padding: "4px 0" },
       },
     },
@@ -1792,6 +1792,7 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
+                  <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
                   <div className="grid grid-cols-5 gap-1.5">
                     {([
                       { key: "async" as VisitType, label: "Async", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
@@ -1804,17 +1805,10 @@ export default function ExpressCheckoutPage() {
                       const isActive = visitTypePopup === vt.key;
                       const hasPopupOpen = !!visitTypePopup;
                       return (<button key={vt.key} onClick={() => {
-                        if (vt.key === "video" || vt.key === "phone") {
-                          setVisitType(vt.key); setVisitTypePopup(null);
-                          setDateTimeDialogOpen(true); setCalWeekOffset(0);
-                          setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
-                          setCalSelectedTime("");
-                        } else {
-                          setVisitTypePopup(vt.key);
-                        }
+                        setVisitTypePopup(vt.key);
                       }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                        <Icon size={16} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
+                        <Icon size={16} style={{ color: vt.color }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : ""}`} style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
                         {hasPopupOpen && !isActive && <span className="text-[6px] text-gray-500 mt-0.5">tap to select</span>}
                       </button>);
                     })}
@@ -2145,9 +2139,9 @@ export default function ExpressCheckoutPage() {
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
                       }}
                       className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
-                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = npDobComplete ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "3px solid rgba(45,212,160,0.65)" }}
+                      onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                      onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                     />
                   </div>
                 </div>
