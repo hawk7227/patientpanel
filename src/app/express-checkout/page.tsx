@@ -313,22 +313,11 @@ function Step2PaymentForm({
     setPayInFlight(true);
     try {
       const pd = getPatientData();
-      let patientId = patient.id || prefetchedPatientId;
-      if (!patientId) {
-        const createRes = await fetch("/api/check-create-patient", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
-            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
-            address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
-            pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
-          }),
-        });
-        const createResult = await createRes.json();
-        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
-        patientId = createResult.patientId;
-      }
 
+      // PERF: elements.submit() + stripe.confirmPayment() moved BEFORE check-create-patient.
+      // Native wallet sheet (Apple Pay / Google Pay) opens IMMEDIATELY on tap — no DB waterfall
+      // before the biometric prompt. patientId is only needed for /api/create-appointment,
+      // which runs after the hold is confirmed. Prefetch result still used when available.
       if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
 
       const { error: submitError } = await elements.submit();
@@ -351,6 +340,24 @@ function Step2PaymentForm({
         setError("Payment hold could not be confirmed. Please try again.");
         setPayInFlight(false);
         return;
+      }
+
+      // check-create-patient runs AFTER hold is confirmed — user has already completed
+      // biometric scan. DB round-trips no longer block the wallet sheet from opening.
+      let patientId = patient.id || prefetchedPatientId;
+      if (!patientId) {
+        const createRes = await fetch("/api/check-create-patient", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+            address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
+            pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
+          }),
+        });
+        const createResult = await createRes.json();
+        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
+        patientId = createResult.patientId;
       }
 
       // Step 2: Charge $1.89 booking fee server-side using same payment method
