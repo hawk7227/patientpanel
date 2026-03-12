@@ -1105,9 +1105,6 @@ export default function ExpressCheckoutPage() {
   const npDobComplete = npDobMonth.length === 2 && npDobDay.length === 2 && npDobYear.length === 4;
   const npFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
     npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0 && npDobComplete;
-  // Show payment UI as soon as name/email/phone/address are filled — DOB validated on submit only
-  const npBasicFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
-    npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0;
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [contactFirstName, setContactFirstName] = useState("");
@@ -1299,7 +1296,7 @@ export default function ExpressCheckoutPage() {
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
   // New patients: don't prefetch until all fields are complete — no point creating an intent
   // before we have a valid patient to attach it to.
-  const shouldPrefetch = visitTypeChosen && !clientSecret && (isReturningPatient || npBasicFieldsComplete);
+  const shouldPrefetch = visitTypeChosen && !clientSecret && (isReturningPatient || npFieldsComplete);
 
   useEffect(() => {
     if (!shouldPrefetch) {
@@ -1537,7 +1534,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Fallback: if we reach step 5 without a clientSecret, force-fetch ──
   useEffect(() => {
-    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && (isReturningPatient || npBasicFieldsComplete)) {
+    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && (isReturningPatient || npFieldsComplete)) {
       console.log("[Fallback] Step 6 reached with no clientSecret — force-fetching");
       const controller = new AbortController();
       paymentFetchController.current = controller;
@@ -2217,7 +2214,24 @@ export default function ExpressCheckoutPage() {
                       <p className="text-gray-300 text-[10px] mt-0.5">The provider will connect with you tomorrow at <strong>9:00 AM Arizona time</strong>. Your spot is locked in now.</p>
                     </div>
                   ) : null; })()}
-
+                  {/* Steps */}
+                  <div className="space-y-0">
+                    {[{ icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need — takes about 2 minutes.", time: "~2 min" }, { icon: "⏱", t: "Join the Queue", d: "You'll be notified the moment a provider is ready.", time: "Usually minutes" }, { icon: "📹", t: "Connect Live", d: "Meet by live video and get treated in real time.", time: "Starts when called" }].map((item, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="w-px h-1.5 bg-[#f59e0b]/15" style={{ margin: "0 auto" }}></div>}
+                        <div className="flex flex-col items-center py-1.5" style={{ textAlign: "center" }}>
+                          <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 flex items-center justify-center text-[13px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1">
+                            <div className="text-[10px] font-bold text-white">{item.t}</div>
+                            <div className="text-[10px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* FAQ accordion */}
+                  <InstantFAQ />
                   <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
@@ -2499,7 +2513,7 @@ export default function ExpressCheckoutPage() {
 
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {/* GUARD: new patients must complete all fields before payment is shown */}
-                {!npBasicFieldsComplete ? (
+                {!(isReturningPatient || npFieldsComplete) ? (
                   <div className="flex flex-col items-center justify-center py-4 gap-1.5">
                     <p className="text-white/40 text-[11px] font-semibold text-center">Complete your info above to continue</p>
                   </div>
