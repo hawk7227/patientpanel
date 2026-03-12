@@ -248,6 +248,11 @@ function Step2PaymentForm({
   const [pulseField, setPulseField] = useState<string | null>(null);
   const [declineState, setDeclineState] = useState<DeclineState | null>(null);
 
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType as VisitType),
+    [visitType]
+  );
+
   const handleStripeError = (err: { type?: string; code?: string; decline_code?: string; message?: string }) => {
     const ds = getDeclineState(err);
     setDeclineState(ds);
@@ -762,7 +767,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{visitFeePrice.display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -1124,8 +1129,8 @@ export default function ExpressCheckoutPage() {
   const currentPrice = useMemo(() => getBookingFee(), []);
   // Scheduled visits (video/phone): price from selected slot. Instant/refill: price from now.
   const visitFeePrice = useMemo(
-    () => getPrice(visitType, undefined, appointmentDate || undefined, appointmentTime || undefined),
-    [visitType, appointmentDate, appointmentTime]
+    () => getPrice(visitType),
+    [visitType]
   );
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");

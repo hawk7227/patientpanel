@@ -207,8 +207,8 @@ function Step2PaymentForm({
   const [pulseField, setPulseField] = useState<string | null>(null);
   const isNewPatient = !patient?.id;
   const visitFeePrice = useMemo(
-    () => getPrice(visitType as VisitType, undefined, appointmentDate || undefined, appointmentTime || undefined),
-    [visitType, appointmentDate, appointmentTime]
+    () => getPrice(visitType as VisitType),
+    [visitType]
   );
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
@@ -844,8 +844,8 @@ export default function ExpressCheckoutPage() {
   // For scheduled visits (video/phone), price from the selected appointment slot.
   // For instant/refill (no calendar), price from booking time (now).
   const visitFeePrice = useMemo(
-    () => getPrice(visitType, undefined, appointmentDate || undefined, appointmentTime || undefined),
-    [visitType, appointmentDate, appointmentTime]
+    () => getPrice(visitType),
+    [visitType]
   );
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");
