@@ -185,12 +185,12 @@ function getDeclineState(err: { type?: string; code?: string; decline_code?: str
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand,
+  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
-  symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
+  symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -259,6 +259,7 @@ function Step2PaymentForm({
       const { error: submitError } = await elements.submit();
       if (submitError) { handleStripeError(submitError); return; }
 
+      // Step 1: Confirm the $189 visit hold — verifies funds exist
       const result = await stripe.confirmPayment({
         elements, redirect: "if_required",
         confirmParams: {
@@ -269,9 +270,42 @@ function Step2PaymentForm({
 
       if (result.error) { handleStripeError(result.error); return; }
 
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified — this is the success signal
+      const holdCleared = result.paymentIntent?.status === "requires_capture" || result.paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (result.paymentIntent?.status === "succeeded") {
+      // Step 2: Charge the $1.89 booking fee server-side using same payment method
+      const paymentMethodId = typeof result.paymentIntent?.payment_method === "string"
+        ? result.paymentIntent.payment_method
+        : result.paymentIntent?.payment_method?.id;
+
+      if (!paymentMethodId) {
+        setError("Could not retrieve payment method. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      const bookingRes = await fetch("/api/confirm-booking-fee", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+      });
+      const bookingResult = await bookingRes.json();
+      if (!bookingRes.ok) {
+        setIsProcessing(false);
+        handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+        return;
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      // Hold cleared + booking fee charged — create appointment
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -404,34 +438,66 @@ function Step2PaymentForm({
 
       if (isTestMode) {
         setIsProcessing(true); setProgress(45); setStatusText("Test mode...");
-        paymentIntent = { id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, status: "succeeded" };
+        paymentIntent = { id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, status: "requires_capture" };
         await new Promise((r) => setTimeout(r, 500));
       } else {
         if (!stripe || !elements) { setError("Payment not ready. Please try again."); setPayInFlight(false); return; }
 
-        // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
+        // Submit elements first — validates form
         const submitResult = await elements.submit();
         if (submitResult.error) {
           handleStripeError(submitResult.error);
           return;
         }
 
-        // NOW confirm — PaymentElement is still mounted because isProcessing is false
+        // Step 1: Confirm the $189 visit hold — verifies funds exist
         const result = await stripe.confirmPayment({
           elements, redirect: "if_required",
-          confirmParams: {
-            return_url: `${window.location.origin}/success`,
-          },
+          confirmParams: { return_url: `${window.location.origin}/success` },
         });
         paymentError = result.error; paymentIntent = result.paymentIntent;
       }
 
       if (paymentError) { handleStripeError(paymentError); return; }
 
-      // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified
+      const holdCleared = paymentIntent?.status === "requires_capture" || paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (paymentIntent?.status === "succeeded") {
+      // Step 2: Charge the $1.89 booking fee server-side
+      const paymentMethodId = typeof paymentIntent?.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent?.payment_method?.id;
+
+      // Hold cleared — safe to show progress (PaymentElement no longer needed)
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      if (!isTestMode) {
+        if (!paymentMethodId) {
+          setIsProcessing(false);
+          setError("Could not retrieve payment method. Please try again.");
+          setPayInFlight(false);
+          return;
+        }
+        const bookingRes = await fetch("/api/confirm-booking-fee", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+        });
+        const bookingResult = await bookingRes.json();
+        if (!bookingRes.ok) {
+          setIsProcessing(false);
+          handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+          return;
+        }
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -749,6 +815,7 @@ export default function ExpressCheckoutPage() {
   const currentPrice = useMemo(() => getBookingFee(), []);
   const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
   const [visitIntentId, setVisitIntentId] = useState("");
+  const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
   const isReturningPatient = !!patient?.id;
@@ -919,6 +986,7 @@ export default function ExpressCheckoutPage() {
         if (data.clientSecret) setClientSecret(data.clientSecret);
         else throw new Error("No clientSecret in response");
         if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+        if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
       })
       .catch((err) => {
         if (err.name === "AbortError") { console.log("[PaymentPrefetch] aborted (expected)"); return; }
@@ -934,8 +1002,9 @@ export default function ExpressCheckoutPage() {
   // Retry handler for payment intent failures
   const retryPaymentIntent = useCallback(() => {
     setClientSecret("");
+    setVisitIntentId("");
+    setBookingIntentId("");
     setPaymentIntentError(null);
-    // useEffect above will re-fire because clientSecret is now ""
   }, []);
 
   // ── Fallback for step 5 payment — moved below uiStep declaration ──
@@ -943,7 +1012,7 @@ export default function ExpressCheckoutPage() {
   const handleVisitTypeChange = (type: VisitType) => {
     // Abort any in-flight payment intent fetch before changing type
     paymentFetchController.current?.abort();
-    setVisitType(type); setClientSecret(""); setVisitIntentId(""); setAsyncAcknowledged(false);
+    setVisitType(type); setClientSecret(""); setVisitIntentId(""); setBookingIntentId(""); setAsyncAcknowledged(false);
     setPaymentIntentError(null);
     setVisitTypeChosen(false);
     setVisitTypeConfirmed(false);
@@ -1134,6 +1203,7 @@ export default function ExpressCheckoutPage() {
           if (data.clientSecret) { setClientSecret(data.clientSecret); console.log("[Fallback] clientSecret received"); }
           else throw new Error("No clientSecret in response");
           if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+          if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
@@ -1884,7 +1954,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card fallback */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -1913,7 +1983,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + DOB + card form open */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
