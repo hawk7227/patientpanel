@@ -80,8 +80,11 @@ export interface PriceInfo {
 
 export type VisitType = 'instant' | 'async' | 'refill' | 'video' | 'phone';
 
-export function getPrice(visitType: VisitType, timezone?: string): PriceInfo {
-  const now = new Date();
+export function getPrice(visitType: VisitType, timezone?: string, atDate?: Date): PriceInfo {
+  // Price is based on the APPOINTMENT time, not the booking time.
+  // Pass atDate = the scheduled appointment datetime to get the correct tier.
+  // Falls back to now() when atDate is not provided (e.g. instant/refill with no calendar).
+  const now = atDate ?? new Date();
 
   // Get current time in patient's timezone
   let hour: number, dayOfWeek: number, dateStr: string;
