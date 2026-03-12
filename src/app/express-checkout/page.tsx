@@ -1105,6 +1105,9 @@ export default function ExpressCheckoutPage() {
   const npDobComplete = npDobMonth.length === 2 && npDobDay.length === 2 && npDobYear.length === 4;
   const npFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
     npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0 && npDobComplete;
+  // Show payment UI as soon as name/email/phone/address are filled — DOB validated on submit only
+  const npBasicFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
+    npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0;
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [contactFirstName, setContactFirstName] = useState("");
@@ -1296,7 +1299,7 @@ export default function ExpressCheckoutPage() {
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
   // New patients: don't prefetch until all fields are complete — no point creating an intent
   // before we have a valid patient to attach it to.
-  const shouldPrefetch = visitTypeChosen && !clientSecret && (isReturningPatient || npFieldsComplete);
+  const shouldPrefetch = visitTypeChosen && !clientSecret && (isReturningPatient || npBasicFieldsComplete);
 
   useEffect(() => {
     if (!shouldPrefetch) {
@@ -1534,7 +1537,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Fallback: if we reach step 5 without a clientSecret, force-fetch ──
   useEffect(() => {
-    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && (isReturningPatient || npFieldsComplete)) {
+    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && (isReturningPatient || npBasicFieldsComplete)) {
       console.log("[Fallback] Step 6 reached with no clientSecret — force-fetching");
       const controller = new AbortController();
       paymentFetchController.current = controller;
@@ -2496,7 +2499,7 @@ export default function ExpressCheckoutPage() {
 
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {/* GUARD: new patients must complete all fields before payment is shown */}
-                {!npFieldsComplete ? (
+                {!npBasicFieldsComplete ? (
                   <div className="flex flex-col items-center justify-center py-4 gap-1.5">
                     <p className="text-white/40 text-[11px] font-semibold text-center">Complete your info above to continue</p>
                   </div>
