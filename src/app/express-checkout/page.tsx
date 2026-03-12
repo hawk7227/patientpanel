@@ -2321,7 +2321,7 @@ export default function ExpressCheckoutPage() {
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
                       <div className="flex items-center gap-2">
                         <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                       </div>
                     </div>
                   )}
@@ -2390,7 +2390,7 @@ export default function ExpressCheckoutPage() {
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
                       <div className="flex items-center gap-2">
                         <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                       </div>
                     </div>
                   )}
@@ -2603,8 +2603,35 @@ export default function ExpressCheckoutPage() {
           if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours · $249", color: "#f97316" };
           return null;
         };
-        // Filter slots for today — hide times already past in AZ time
+        // Convert HH:MM (API format) to display string "9:00 AM"
+        const to12h = (t24: string): string => {
+          const [h, m] = t24.split(":").map(Number);
+          const period = h >= 12 ? "PM" : "AM";
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          return `${h12}:${String(m).padStart(2,"0")} ${period}`;
+        };
+        // Build slots for a given day:
+        // 1. If calApiSlots loaded from API — use those (already filtered by doctor availability + booked slots)
+        // 2. Otherwise fall back to static timeSlots with client-side AZ past-time filter
         const filterSlotsForDay = (day: Date): string[] => {
+          if (calApiSlots.length > 0) {
+            // API returns HH:MM — convert to display format, apply past-time filter for today
+            const displaySlots = calApiSlots.map(t24 => to12h(t24));
+            if (!isSameDay(day, today)) return displaySlots;
+            try {
+              const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
+              const parts = fmt.formatToParts(new Date());
+              const azH = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+              const azM = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+              const nowMins = azH * 60 + azM;
+              return displaySlots.filter(slot => {
+                const t24 = convertTo24(slot);
+                const [sh, sm] = t24.split(":").map(Number);
+                return (sh * 60 + sm) > nowMins;
+              });
+            } catch { return displaySlots; }
+          }
+          // Fallback: static slots with AZ past-time filter for today
           if (!isSameDay(day, today)) return timeSlots;
           try {
             const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
@@ -2652,7 +2679,7 @@ export default function ExpressCheckoutPage() {
                   const isToday = isSameDay(day, today);
                   const special = getSpecialLabel(day);
                   return (
-                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); }}
+                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(true); fetch(`/api/get-doctor-availability?date=${iso}`).then(r => r.json()).then(data => { if (data.availableSlots) setCalApiSlots(data.availableSlots); }).catch(() => {}).finally(() => setCalApiLoading(false)); }}
                       className="flex-1 flex flex-col items-center justify-center rounded-[14px] transition-all active:scale-95"
                       style={{
                         padding: "10px 4px 8px",
@@ -2693,6 +2720,13 @@ export default function ExpressCheckoutPage() {
               {calSelectedDay ? (
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
+                  {calApiLoading ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 12 }}>
+                      <div className="animate-spin" style={{ width: 24, height: 24, border: "2px solid rgba(45,212,160,0.2)", borderTop: "2px solid #2dd4a0", borderRadius: "50%" }} />
+                      <p style={{ color: "#64748b", fontSize: 12 }}>Loading available times...</p>
+                    </div>
+                  ) : (
+                  <>
                   <div id="cal-time-grid" className="rounded-xl transition-all" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                     {(() => {
                       const selectedDayDate = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : today;
@@ -2736,6 +2770,8 @@ export default function ExpressCheckoutPage() {
                     })()}
                   </div>
                   <p className="text-center mt-3" style={{ fontSize: 10, color: "#475569" }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                  </>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
