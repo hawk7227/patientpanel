@@ -767,7 +767,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{visitFeePrice.display}</strong>. By completing this booking you acknowledged that your <strong className="text-white">{visitFeePrice.display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee is non-refundable and reserves your provider&apos;s time slot. Your visit fee is held on your card and collected upon provider acceptance. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -1296,7 +1296,7 @@ export default function ExpressCheckoutPage() {
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
   // New patients: don't prefetch until all fields are complete — no point creating an intent
   // before we have a valid patient to attach it to.
-  const shouldPrefetch = visitTypeChosen && !clientSecret && newPatientFieldsComplete;
+  const shouldPrefetch = visitTypeChosen && !clientSecret && (isReturningPatient || npFieldsComplete);
 
   useEffect(() => {
     if (!shouldPrefetch) {
@@ -1534,7 +1534,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Fallback: if we reach step 5 without a clientSecret, force-fetch ──
   useEffect(() => {
-    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && newPatientFieldsComplete) {
+    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && (isReturningPatient || npFieldsComplete)) {
       console.log("[Fallback] Step 6 reached with no clientSecret — force-fetching");
       const controller = new AbortController();
       paymentFetchController.current = controller;
@@ -2496,7 +2496,7 @@ export default function ExpressCheckoutPage() {
 
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {/* GUARD: new patients must complete all fields before payment is shown */}
-                {!newPatientFieldsComplete ? (
+                {!npFieldsComplete ? (
                   <div className="flex flex-col items-center justify-center py-4 gap-1.5">
                     <p className="text-white/40 text-[11px] font-semibold text-center">Complete your info above to continue</p>
                   </div>
