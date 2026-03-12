@@ -387,7 +387,7 @@ function Step2PaymentForm({
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
           appointmentData: {
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
@@ -412,7 +412,7 @@ function Step2PaymentForm({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -458,7 +458,7 @@ function Step2PaymentForm({
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
           appointmentData: {
             email: patient.email || "test@medazon.com", firstName: patient.firstName || "Test", lastName: patient.lastName || "Patient",
             phone: patient.phone || "0000000000", dateOfBirth: convertDateToISO(patient.dateOfBirth) || "1990-01-01",
@@ -483,7 +483,7 @@ function Step2PaymentForm({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -589,7 +589,7 @@ function Step2PaymentForm({
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
           appointmentData: {
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
@@ -614,7 +614,7 @@ function Step2PaymentForm({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
