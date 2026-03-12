@@ -73,7 +73,7 @@ export async function POST(request: Request) {
         );
       }
       paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
-      if (paymentIntent.status !== "succeeded") {
+      if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "requires_capture") {
         return NextResponse.json(
           { error: "Payment not successful", status: paymentIntent.status },
           { status: 400 },
