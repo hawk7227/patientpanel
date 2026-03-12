@@ -104,17 +104,24 @@ function AppointmentContent() {
     return () => clearInterval(i);
   }, [appointment?.requested_date_time]);
 
-  // ---- Format date/time ----
+  // ---- Format date/time (Phoenix timezone — provider timezone) ----
   const formatDT = (s: string) => {
     if (!s) return "Pending";
     try {
       const d = new Date(s);
       if (isNaN(d.getTime())) return "Pending";
-      const dn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const mn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const h = d.getHours();
-      const hr = h % 12 || 12;
-      return `${dn[d.getDay()]}, ${mn[d.getMonth()]} ${d.getDate()} · ${hr}:${String(d.getMinutes()).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
+      const fmt = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Phoenix",
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      const parts = fmt.formatToParts(d);
+      const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+      return `${get("weekday")}, ${get("month")} ${get("day")} · ${get("hour")}:${get("minute")} ${get("dayPeriod")}`;
     } catch {
       return "Pending";
     }
@@ -164,7 +171,7 @@ function AppointmentContent() {
   const dTitle = appointment.doctor?.specialty || "Healthcare Provider";
   const isVid = appointment.visit_type === "video";
   const isPh = appointment.visit_type === "phone";
-  const isAs = appointment.visit_type === "instant" || appointment.visit_type === "refill";
+  const isAs = appointment.visit_type === "instant" || appointment.visit_type === "refill" || appointment.visit_type === "async";
 
   // ---- Video embed props — contract verified ----
   const videoAppointment = {
