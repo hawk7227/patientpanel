@@ -11,6 +11,7 @@ import {
 import Stripe from "stripe";
 import { log } from "console";
 import { dailyService } from "@/lib/daily";
+import { scheduleReminderChain } from "@/lib/reminders";
 
 // Dynamic import for waitUntil - works with or without @vercel/functions
 let waitUntilFn: ((promise: Promise<unknown>) => void) | null = null;
@@ -1649,6 +1650,25 @@ export async function POST(request: Request) {
       ).catch((err) =>
         console.error("[CDSS_PRE_GENERATE] Background task error:", err),
       );
+
+      // Schedule full reminder chain for this appointment
+      try {
+        await scheduleReminderChain({
+          appointmentId:     appointment.id,
+          visitType:         visitType as "video" | "phone" | "instant" | "async" | "refill",
+          patientFirstName:  patientFirstName   || null,
+          patientEmail:      patientEmail       || null,
+          patientPhone:      patientPhone       || null,
+          providerName:      doctorName         || null,
+          pharmacyName:      data.pharmacy      || null,
+          pharmacyAddress:   data.pharmacyAddress || null,
+          accessToken:       accessToken        || null,
+          requestedDateTime: requestedDateTime  || null,
+          medications:       data.medications   || null,
+        });
+      } catch (reminderErr) {
+        console.error("[REMINDERS] scheduleReminderChain failed:", reminderErr);
+      }
     })();
 
     if (waitUntilFn) {
