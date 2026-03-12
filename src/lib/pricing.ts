@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // PRICING UTILITY — Dynamic pricing based on time/day/holidays
 //
-// Business hours (Mon-Fri 9am-5pm patient local time):
+// Business hours (Mon-Fri 9am-9pm patient local time):
 //   Instant/Refill: $189, Video/Phone: $199
 // After-hours/weekends/holidays:
 //   All types: $249
@@ -111,7 +111,7 @@ export function getPrice(visitType: VisitType, timezone?: string): PriceInfo {
 
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
   const isHoliday = getUSHolidays(now.getFullYear()).has(dateStr);
-  const isBusinessHours = !isWeekend && !isHoliday && hour >= 9 && hour < 17;
+  const isBusinessHours = !isWeekend && !isHoliday && hour >= 9 && hour < 21; // 9am–9pm
   const isAfterHours = !isBusinessHours;
 
   let label = 'Business hours';

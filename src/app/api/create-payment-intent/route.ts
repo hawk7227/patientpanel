@@ -5,7 +5,10 @@
 //   1. Visit fee ($189/$199/$249) — capture_method: manual (pre-auth hold)
 //   2. Booking fee ($1.89) — capture_method: automatic (charges immediately)
 //
-// Correct order on pay tap:
+// Pricing:
+//   Business hours (Mon-Fri 9am-9pm patient local time):
+//     Instant/Refill: $189, Video/Phone: $199
+//   After-hours/weekends/holidays: $249
 //   Step 1: PaymentElement confirms visitIntent → requires_capture (hold cleared, funds verified)
 //   Step 2: /api/confirm-booking-fee confirms bookingIntent server-side → $1.89 charged
 //   Step 3: create-appointment
