@@ -663,21 +663,21 @@ function Step2PaymentForm({
                     <div className="flex gap-2">
                       <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.65)" }}
+                        onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                        onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.65)" }}
+                        onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                        onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
                         onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.65)" }}
+                        onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                        onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                       />
                     </div>
                   </div>
@@ -707,7 +707,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-2 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -1055,9 +1055,9 @@ export default function ExpressCheckoutPage() {
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
         ".Label": { color: "#ffffff", fontSize: "11px", fontWeight: "600" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
-        ".Input:focus": { border: "2px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
-        ".Input::placeholder": { color: "rgba(255,255,255,0.4)" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
+        ".Input:focus": { border: "3px solid #2dd4a0", boxShadow: "0 0 0 2px rgba(45,212,160,0.25)" },
+        ".Input::placeholder": { color: "rgba(255,255,255,0.75)", fontWeight: "600" },
         ".Block": { padding: "8px 0" },
       },
     },
@@ -1735,6 +1735,7 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
+                  <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
                   {/* Row 1: 3 async types — taller square cards */}
                   <div className="grid grid-cols-3 gap-2">
                     {([
@@ -1751,8 +1752,8 @@ export default function ExpressCheckoutPage() {
                         boxShadow: isActive ? `0 0 16px ${vt.color}30` : "none",
                       }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                        <Icon size={22} style={{ color: isActive ? vt.color : `${vt.color}99` }} />
-                        <span className="text-[10px] font-bold mt-2 text-center leading-tight" style={{ color: isActive ? "#fff" : `${vt.color}99` }}>{vt.label}</span>
+                        <Icon size={22} style={{ color: vt.color }} />
+                        <span className="text-[10px] font-bold mt-2 text-center leading-tight" style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
                       </button>);
                     })}
                   </div>
@@ -1764,19 +1765,14 @@ export default function ExpressCheckoutPage() {
                     ] as const).map((vt) => {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
-                      return (<button key={vt.key} onClick={() => {
-                        setVisitType(vt.key); setVisitTypePopup(null);
-                        setDateTimeDialogOpen(true); setCalWeekOffset(0);
-                        setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
-                        setCalSelectedTime("");
-                      }} className="flex flex-row items-center justify-center gap-2.5 py-3.5 px-3 rounded-xl transition-all" style={{
+                      return (<button key={vt.key} onClick={() => { setVisitTypePopup(vt.key); }} className="flex flex-row items-center justify-center gap-2.5 py-3.5 px-3 rounded-xl transition-all" style={{
                         minHeight: "56px",
                         border: isActive ? `3px solid ${vt.color}88` : `2px solid ${vt.color}38`,
                         background: isActive ? `${vt.color}1a` : `${vt.color}0d`,
                         boxShadow: isActive ? `0 0 16px ${vt.color}30` : "none",
                       }}>
-                        <Icon size={18} style={{ color: isActive ? vt.color : `${vt.color}99` }} />
-                        <span className="text-[11px] font-bold" style={{ color: isActive ? "#fff" : `${vt.color}99` }}>{vt.label}</span>
+                        <Icon size={18} style={{ color: vt.color }} />
+                        <span className="text-[11px] font-bold" style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
                       </button>);
                     })}
                   </div>
