@@ -2207,7 +2207,7 @@ export default function ExpressCheckoutPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const azInfo = getInstantAZInfo(); const apptDate = azInfo.isAfterCutoff ? azInfo.nextMorningDate : (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })(); const apptTime = azInfo.isAfterCutoff ? "09:00" : (() => { const now = new Date(); const h = now.getHours(); const m = now.getMinutes() < 30 ? 30 : 0; const finalH = m === 0 ? h + 1 : h; return `${String(finalH).padStart(2,"0")}:${String(m).padStart(2,"0")}`; })(); setVisitType("instant"); setAppointmentDate(apptDate); setAppointmentTime(apptTime); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: apptDate, appointmentTime: apptTime }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const d = new Date(); const apptDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; const h = d.getHours(); const m = d.getMinutes() < 30 ? 30 : 0; const finalH = m === 0 ? h + 1 : h; const apptTime = `${String(finalH).padStart(2,"0")}:${String(m).padStart(2,"0")}`; setVisitType("async"); setAppointmentDate(apptDate); setAppointmentTime(apptTime); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "async", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: apptDate, appointmentTime: apptTime }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "instant" && (<>
@@ -2297,7 +2297,7 @@ export default function ExpressCheckoutPage() {
           {/* END Step 4 wrapper */}
 
           {/* STEP 4.5: Confirm Summary (new patient) / Summary + Pay (returning patient) */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && !confirmReviewed && !isReturningPatient ? (
+          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !confirmReviewed && !isReturningPatient ? (
             /* ── NEW PATIENT: Confirm Summary with CONTINUE button ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
@@ -2319,7 +2319,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
-                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
                       <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
@@ -2360,13 +2360,19 @@ export default function ExpressCheckoutPage() {
                   </div>
                 </div>
                 {/* CONTINUE button */}
-                <button onClick={() => { setConfirmReviewed(true); saveAnswers({ confirmReviewed: true }); }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
+                <button onClick={() => {
+                  if (needsCalendar && (!appointmentDate || !appointmentTime)) {
+                    setDateTimeDialogOpen(true);
+                    return;
+                  }
+                  setConfirmReviewed(true); saveAnswers({ confirmReviewed: true });
+                }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
                   CONTINUE
                 </button>
               </div>
               <ConfirmBelowContent isReturn={false} />
             </div>
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && isReturningPatient ? (
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
             /* ── RETURNING PATIENT: Summary + Wallets + collapsed card form ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
@@ -2388,7 +2394,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
-                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
                       <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
