@@ -39,7 +39,7 @@ interface PharmacyInfo {
 // ═══════════════════════════════════════════════════════════════
 const VISIT_TYPES = [
   { key: "instant" as VisitType, label: "Instant", icon: Zap, desc: "Private & discreet", badge: "Fastest", needsCalendar: false },
-  { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: false },
+  { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: true },
   { key: "video" as VisitType, label: "Video", icon: Video, desc: "Secure 1-on-1", badge: null, needsCalendar: true },
   { key: "phone" as VisitType, label: "Phone", icon: Phone, desc: "Private line", badge: null, needsCalendar: true },
 ];
@@ -369,8 +369,8 @@ function Step2PaymentForm({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
-            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            visitType, appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
@@ -440,8 +440,8 @@ function Step2PaymentForm({
             email: patient.email || "test@medazon.com", firstName: patient.firstName || "Test", lastName: patient.lastName || "Patient",
             phone: patient.phone || "0000000000", dateOfBirth: convertDateToISO(patient.dateOfBirth) || "1990-01-01",
             streetAddress: patient.address || "Test Address", symptoms: reason || "Test", chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: isAsyncVisit ? new Date().toISOString().split("T")[0] : appointmentDate,
-            appointmentTime: isAsyncVisit ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            visitType, appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !!patient.id,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
@@ -571,8 +571,8 @@ function Step2PaymentForm({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
-            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            visitType, appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
             pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
@@ -764,6 +764,82 @@ function Step2PaymentForm({
         )}
       </div>
     </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FAQ Accordion Components — Instant & Refill popup education
+// ═══════════════════════════════════════════════════════════════
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" as const, gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#cbd5e1", lineHeight: 1.3, flex: 1 }}>{q}</span>
+        <span style={{ fontSize: 14, color: "#64748b", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ paddingBottom: 8, paddingRight: 4 }}>
+          <p style={{ fontSize: 10, color: "#94a3b8", lineHeight: 1.5, margin: 0 }}>{a}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InstantFAQ() {
+  const [expanded, setExpanded] = useState(false);
+  const faqs = [
+    { q: "How long will I wait?", a: "Most patients connect within minutes. You'll see your position in the queue. If you book after 8:30 PM Arizona time, your visit is locked in for 9:00 AM the next morning." },
+    { q: "What if no one is available right now?", a: "You hold your spot in queue and we notify you the moment a provider is ready. You don't have to stay on the screen." },
+    { q: "Is this a real doctor?", a: "Yes. Our provider is a licensed nurse practitioner with full prescribing authority. Your care is clinically supervised." },
+    { q: "Can I get a prescription?", a: "Yes. If clinically appropriate, your prescription is sent directly to your pharmacy the same day." },
+    { q: "What if I book after 8:30 PM?", a: "We lock in your first available slot at 9:00 AM Arizona time the next morning — no need to book again." },
+    { q: "Is my visit completely private?", a: "Completely. Your reason for visiting is encrypted and never shared outside your care team." },
+  ];
+  return (
+    <div style={{ marginTop: 4, marginBottom: 2 }}>
+      <button
+        onClick={() => setExpanded(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.04em" }}>Common Questions</span>
+        <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
+          {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RefillFAQ() {
+  const [expanded, setExpanded] = useState(false);
+  const faqs = [
+    { q: "Do I need an appointment?", a: "No. Submit your refill request and your provider reviews it same day. No video, no phone call required." },
+    { q: "How fast will my pharmacy get it?", a: "Most refills are sent within a few hours during business hours. You'll receive a confirmation when it's sent." },
+    { q: "What if I need a controlled substance?", a: "Controlled medications require a brief live consultation (video or phone). We'll upgrade your visit automatically — no extra charge." },
+    { q: "Can they refill any medication?", a: "Most non-controlled medications, yes. Your provider will only decline if it's clinically unsafe to refill without a visit." },
+    { q: "What if my prescription is expired?", a: "Your provider can issue a new prescription if your history supports it. Most routine medications are approved." },
+    { q: "Is there a limit on refills?", a: "No standing limit. Each request is reviewed individually and approved based on your clinical history." },
+  ];
+  return (
+    <div style={{ marginTop: 4, marginBottom: 2 }}>
+      <button
+        onClick={() => setExpanded(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.04em" }}>Common Questions</span>
+        <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
+          {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -978,6 +1054,8 @@ export default function ExpressCheckoutPage() {
   const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [calSelectedDay, setCalSelectedDay] = useState("");
   const [calSelectedTime, setCalSelectedTime] = useState("");
+  const [calApiSlots, setCalApiSlots] = useState<string[]>([]);   // HH:MM from API
+  const [calApiLoading, setCalApiLoading] = useState(false);
 
   // Guided Sequence State
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
@@ -1023,12 +1101,49 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
+  // Scheduled visits (video/phone): price from selected slot. Instant/refill: price from now.
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType, undefined, appointmentDate || undefined, appointmentTime || undefined),
+    [visitType, appointmentDate, appointmentTime]
+  );
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
   const isReturningPatient = !!patient?.id || (!!patient?.source && patient.source !== "new");
+
+  // ── Arizona time helpers for instant visit after-hours cutoff ──
+  const getArizonaHour = (): number => {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", hour12: false }).formatToParts(new Date());
+      return parseInt(parts.find(p => p.type === "hour")?.value || "12");
+    } catch { return new Date().getHours(); }
+  };
+  const getArizonaTomorrowISO = (): string => {
+    const now = new Date();
+    const azFormatter = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", year: "numeric", month: "2-digit", day: "2-digit" });
+    const parts = azFormatter.formatToParts(now);
+    const y = parseInt(parts.find(p => p.type === "year")?.value || "0");
+    const m = parseInt(parts.find(p => p.type === "month")?.value || "0");
+    const d = parseInt(parts.find(p => p.type === "day")?.value || "0");
+    const tomorrow = new Date(y, m - 1, d + 1);
+    return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`;
+  };
+  // After 8:30PM Arizona time, instant visits are locked to 9AM next morning
+  const instantIsAfterCutoff = visitType === "instant" && getArizonaHour() >= 21;
+  // (20:30 = 8:30PM; getArizonaHour returns 20 for 8:00-8:59PM, we use >=21 for after 9PM cutoff,
+  //  but business logic is 8:30PM so we check minutes too)
+  const getInstantAZInfo = (): { isAfterCutoff: boolean; nextMorningDate: string; nextMorningTime: string } => {
+    try {
+      const now = new Date();
+      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
+      const parts = fmt.formatToParts(now);
+      const azHour = parseInt(parts.find(p => p.type === "hour")?.value || "12");
+      const azMin = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+      const isAfterCutoff = azHour > 20 || (azHour === 20 && azMin >= 30); // after 8:30PM AZ
+      return { isAfterCutoff, nextMorningDate: getArizonaTomorrowISO(), nextMorningTime: "09:00" };
+    } catch { return { isAfterCutoff: false, nextMorningDate: getArizonaTomorrowISO(), nextMorningTime: "09:00" }; }
+  };
   useEffect(() => { console.log("[Patient] isReturning:", isReturningPatient, "id:", patient?.id, "source:", patient?.source); }, [patient, isReturningPatient]);
 
   // ── Load patient ───────────────────────────────────────
@@ -2071,43 +2186,48 @@ export default function ExpressCheckoutPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const azInfo = getInstantAZInfo(); const apptDate = azInfo.isAfterCutoff ? azInfo.nextMorningDate : (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })(); const apptTime = azInfo.isAfterCutoff ? "09:00" : (() => { const now = new Date(); const h = now.getHours(); const m = now.getMinutes() < 30 ? 30 : 0; const finalH = m === 0 ? h + 1 : h; return `${String(finalH).padStart(2,"0")}:${String(m).padStart(2,"0")}`; })(); setVisitType("instant"); setAppointmentDate(apptDate); setAppointmentTime(apptTime); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: apptDate, appointmentTime: apptTime }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "instant" && (<>
-                  <div className="px-1 mb-2" style={{ textAlign: "center" }}>
-                    <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)", textAlign: "center" }}>
-                      {visitContent.instant.title.split("\n").map((line, i) => {
-                        const words = line.split(" ");
-                        if (i === visitContent.instant.title.split("\n").length - 1 && words.length > 0) {
-                          const last = words.pop();
-                          return <span key={i}>{words.join(" ")} <span className="text-[#f59e0b]">{last}</span>{"\n"}</span>;
-                        }
-                        return <span key={i}>{line}{"\n"}</span>;
-                      })}
-                    </h2>
-                    <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{visitContent.instant.sub}</p>
+                  {/* Header */}
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(245,158,11,0.12)" }}><Zap size={16} className="text-[#f59e0b]" /></div>
+                    <div>
+                      <h3 className="text-white font-black text-[14px] leading-tight">⚡ Instant Visit</h3>
+                      <p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Connect with a provider right now</p>
+                    </div>
                   </div>
+                  {/* After-hours notice */}
+                  {(() => { const azInfo = getInstantAZInfo(); return azInfo.isAfterCutoff ? (
+                    <div className="rounded-xl px-3 py-2 mb-1" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
+                      <p className="text-[#f97316] text-[10px] font-bold">🌙 After Hours</p>
+                      <p className="text-gray-300 text-[10px] mt-0.5">The provider will connect with you tomorrow at <strong>9:00 AM Arizona time</strong>. Your spot is locked in now.</p>
+                    </div>
+                  ) : null; })()}
+                  {/* Steps */}
                   <div className="space-y-0">
-                    {visitContent.instant.steps.map((item, i) => (
+                    {[{ icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need — takes about 2 minutes.", time: "~2 min" }, { icon: "⏱", t: "Join the Queue", d: "You'll be notified the moment a provider is ready.", time: "Usually minutes" }, { icon: "📹", t: "Connect Live", d: "Meet by live video and get treated in real time.", time: "Starts when called" }].map((item, i) => (
                       <div key={i}>
                         {i > 0 && <div className="w-px h-1.5 bg-[#f59e0b]/15" style={{ margin: "0 auto" }}></div>}
-                        <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
-                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
-                          <div className="mt-1" style={{ textAlign: "center" }}>
-                            <div className="text-[11px] font-bold text-white">{item.t}</div>
-                            <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
-                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
+                        <div className="flex flex-col items-center py-1.5" style={{ textAlign: "center" }}>
+                          <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 flex items-center justify-center text-[13px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1">
+                            <div className="text-[10px] font-bold text-white">{item.t}</div>
+                            <div className="text-[10px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  {/* FAQ accordion */}
+                  <InstantFAQ />
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const azInfo = getInstantAZInfo(); const apptDate = azInfo.isAfterCutoff ? azInfo.nextMorningDate : (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })(); const apptTime = azInfo.isAfterCutoff ? "09:00" : (() => { const now = new Date(); const h = now.getHours(); const m = now.getMinutes() < 30 ? 30 : 0; const finalH = m === 0 ? h + 1 : h; return `${String(finalH).padStart(2,"0")}:${String(m).padStart(2,"0")}`; })(); setVisitType("instant"); setAppointmentDate(apptDate); setAppointmentTime(apptTime); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: apptDate, appointmentTime: apptTime }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
+                  <div className="flex items-center gap-2.5 mb-1"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">💊 Rx Refill</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Provider reviews &amp; sends to pharmacy same day</p></div></div>
                   <div className="rounded-xl bg-[#0d1218] border border-white/10 p-2.5 space-y-1.5">
                     <p className="text-white text-[10px] font-semibold">Select Medications to Refill</p>
                     {medsLoading ? (
@@ -2131,6 +2251,8 @@ export default function ExpressCheckoutPage() {
                     )}
                     <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-white/50" />
                   </div>
+                  {/* FAQ accordion */}
+                  <RefillFAQ />
                   <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("refill"); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "video" && (<>
@@ -2197,7 +2319,18 @@ export default function ExpressCheckoutPage() {
                   {appointmentDate && appointmentTime && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      </div>
+                    </div>
+                  )}
+                  {visitFeePrice.visitLabel && (
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5" style={{ background: "rgba(249,115,22,0.04)" }}>
+                      <span className="text-[#f97316] text-[12px] font-bold flex items-center gap-1">
+                        {visitFeePrice.isWeekend ? "🌙" : "⏰"} {visitFeePrice.visitLabel}
+                      </span>
+                      <span className="text-[#f97316] font-black text-[15px]">{visitFeePrice.display}</span>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
@@ -2255,7 +2388,18 @@ export default function ExpressCheckoutPage() {
                   {appointmentDate && appointmentTime && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      </div>
+                    </div>
+                  )}
+                  {visitFeePrice.visitLabel && (
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5" style={{ background: "rgba(249,115,22,0.04)" }}>
+                      <span className="text-[#f97316] text-[12px] font-bold flex items-center gap-1">
+                        {visitFeePrice.isWeekend ? "🌙" : "⏰"} {visitFeePrice.visitLabel}
+                      </span>
+                      <span className="text-[#f97316] font-black text-[15px]">{visitFeePrice.display}</span>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
@@ -2447,8 +2591,34 @@ export default function ExpressCheckoutPage() {
         const DAY_ABBR = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
         const SHORT_MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"];
+        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM"];
         const convertTo24 = (t: string) => { const [time, period] = t.split(" "); let [h, m] = time.split(":").map(Number); if (period === "PM" && h !== 12) h += 12; if (period === "AM" && h === 12) h = 0; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; };
+        const getSlotBadge = (slot: string, day: Date): { label: string; color: string } | null => {
+          const dow = day.getDay(); // 0=Sun, 6=Sat
+          const isWeekendDay = dow === 0 || dow === 6;
+          if (isWeekendDay) return { label: "Weekend · $249", color: "#f59e0b" };
+          // After hours: 5:30 PM onward on weekdays
+          const t24 = convertTo24(slot);
+          const [h] = t24.split(":").map(Number);
+          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours · $249", color: "#f97316" };
+          return null;
+        };
+        // Filter slots for today — hide times already past in AZ time
+        const filterSlotsForDay = (day: Date): string[] => {
+          if (!isSameDay(day, today)) return timeSlots;
+          try {
+            const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
+            const parts = fmt.formatToParts(new Date());
+            const azH = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+            const azM = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+            const nowMins = azH * 60 + azM;
+            return timeSlots.filter(slot => {
+              const t24 = convertTo24(slot);
+              const [sh, sm] = t24.split(":").map(Number);
+              return (sh * 60 + sm) > nowMins;
+            });
+          } catch { return timeSlots; }
+        };
         const getSpecialLabel = (d: Date) => { if (isSameDay(d, today)) return "Today"; if (isSameDay(d, tomorrow)) return "Tomorrow"; return null; };
         const monthLabel = `${MONTH_FULL[visibleDays[0].getMonth()]} ${visibleDays[0].getFullYear()}`;
         const selectedDateObj = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : null;
@@ -2524,30 +2694,46 @@ export default function ExpressCheckoutPage() {
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
                   <div id="cal-time-grid" className="rounded-xl transition-all" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    {timeSlots.map((slot, i) => {
-                      const t24 = convertTo24(slot);
-                      const isActive = calSelectedTime === t24;
-                      return (
-                        <button key={slot} onClick={() => setCalSelectedTime(t24)}
-                          className="active:scale-95 transition-all"
-                          style={{
-                            padding: "14px 16px",
-                            borderRadius: 12,
-                            border: isActive ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.1)",
-                            background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "rgba(255,255,255,0.03)",
-                            color: isActive ? "#ffffff" : "#e2e8f0",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            textAlign: "center" as const,
-                            boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
-                            animation: "slotFadeIn 0.3s ease both",
-                            animationDelay: `${i * 0.05}s`,
-                          }}>
-                          {slot}
-                        </button>
+                    {(() => {
+                      const selectedDayDate = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : today;
+                      const slots = filterSlotsForDay(selectedDayDate);
+                      if (slots.length === 0) return (
+                        <div style={{ gridColumn: "1/-1", padding: "24px 0", textAlign: "center" }}>
+                          <p style={{ color: "#64748b", fontSize: 13 }}>No more slots available today.</p>
+                          <p style={{ color: "#475569", fontSize: 11, marginTop: 4 }}>Please select a different day.</p>
+                        </div>
                       );
-                    })}
+                      return slots.map((slot, i) => {
+                        const t24 = convertTo24(slot);
+                        const isActive = calSelectedTime === t24;
+                        const badge = getSlotBadge(slot, selectedDayDate);
+                        return (
+                          <button key={slot} onClick={() => setCalSelectedTime(t24)}
+                            className="active:scale-95 transition-all"
+                            style={{
+                              padding: badge ? "10px 12px 8px" : "14px 16px",
+                              borderRadius: 12,
+                              border: isActive ? "2px solid rgba(45,212,160,0.5)" : badge ? "2px solid rgba(249,115,22,0.2)" : "2px solid rgba(255,255,255,0.1)",
+                              background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : badge ? "rgba(249,115,22,0.04)" : "rgba(255,255,255,0.03)",
+                              color: isActive ? "#ffffff" : "#e2e8f0",
+                              fontSize: 15,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              textAlign: "center" as const,
+                              boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                              animation: "slotFadeIn 0.3s ease both",
+                              animationDelay: `${i * 0.05}s`,
+                              display: "flex",
+                              flexDirection: "column" as const,
+                              alignItems: "center",
+                              gap: 3,
+                            }}>
+                            <span>{slot}</span>
+                            {badge && <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? "#fed7aa" : badge.color, letterSpacing: "0.02em", lineHeight: 1 }}>{badge.label}</span>}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
                   <p className="text-center mt-3" style={{ fontSize: 10, color: "#475569" }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
                 </div>

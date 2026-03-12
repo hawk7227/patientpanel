@@ -206,6 +206,10 @@ function Step2PaymentForm({
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
   const isNewPatient = !patient?.id;
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType as VisitType, undefined, appointmentDate || undefined, appointmentTime || undefined),
+    [visitType, appointmentDate, appointmentTime]
+  );
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
   const [newDobYear, setNewDobYear] = useState("");
@@ -707,7 +711,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-2 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{visitFeePrice.display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -813,7 +817,12 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
+  // For scheduled visits (video/phone), price from the selected appointment slot.
+  // For instant/refill (no calendar), price from booking time (now).
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType, undefined, appointmentDate || undefined, appointmentTime || undefined),
+    [visitType, appointmentDate, appointmentTime]
+  );
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
@@ -1884,6 +1893,14 @@ export default function ExpressCheckoutPage() {
                       <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
                     </div>
                   )}
+                  {visitFeePrice.visitLabel && (
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5" style={{ background: "rgba(249,115,22,0.04)" }}>
+                      <span className="text-[#f97316] text-[12px] font-bold flex items-center gap-1">
+                        {visitFeePrice.isWeekend ? "🌙" : "⏰"} {visitFeePrice.visitLabel}
+                      </span>
+                      <span className="text-[#f97316] font-black text-[15px]">{visitFeePrice.display}</span>
+                    </div>
+                  )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
                     <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
                     <span className="text-[#2dd4a0] font-black text-[18px]">{currentPrice.display}</span>
@@ -1939,6 +1956,14 @@ export default function ExpressCheckoutPage() {
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
                       <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                    </div>
+                  )}
+                  {visitFeePrice.visitLabel && (
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5" style={{ background: "rgba(249,115,22,0.04)" }}>
+                      <span className="text-[#f97316] text-[12px] font-bold flex items-center gap-1">
+                        {visitFeePrice.isWeekend ? "🌙" : "⏰"} {visitFeePrice.visitLabel}
+                      </span>
+                      <span className="text-[#f97316] font-black text-[15px]">{visitFeePrice.display}</span>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
