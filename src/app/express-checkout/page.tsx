@@ -1294,7 +1294,9 @@ export default function ExpressCheckoutPage() {
 
   // ── Pre-fetch payment intent — fires when user taps Confirm on step 4.5 ──
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
-  const shouldPrefetch = visitTypeChosen && !clientSecret;
+  // New patients: don't prefetch until all fields are complete — no point creating an intent
+  // before we have a valid patient to attach it to.
+  const shouldPrefetch = visitTypeChosen && !clientSecret && newPatientFieldsComplete;
 
   useEffect(() => {
     if (!shouldPrefetch) {
@@ -1532,7 +1534,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Fallback: if we reach step 5 without a clientSecret, force-fetch ──
   useEffect(() => {
-    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current) {
+    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && newPatientFieldsComplete) {
       console.log("[Fallback] Step 6 reached with no clientSecret — force-fetching");
       const controller = new AbortController();
       paymentFetchController.current = controller;
@@ -2437,7 +2439,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-fn-x7k2" data-lpignore="true" data-form-type="other"
                       placeholder="First name" value={npFirstName}
                       onChange={(e) => setNpFirstName(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2446,7 +2448,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-ln-m9p4" data-lpignore="true" data-form-type="other"
                       placeholder="Last name" value={npLastName}
                       onChange={(e) => setNpLastName(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2458,7 +2460,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-em-j3r8" data-lpignore="true" data-form-type="other"
                       placeholder="Email" value={npEmail}
                       onChange={(e) => setNpEmail(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2467,7 +2469,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-ph-q5w1" data-lpignore="true" data-form-type="other"
                       placeholder="Phone" value={npPhone}
                       onChange={(e) => setNpPhone(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2479,20 +2481,20 @@ export default function ExpressCheckoutPage() {
                       name="pt-ad-h6n0" data-lpignore="true" data-form-type="other"
                       placeholder="Street address" value={npAddress}
                       onChange={(e) => setNpAddress(e.target.value)}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
                     <input type="text" inputMode="numeric" autoComplete="new-password" autoCorrect="off" spellCheck={false}
                       name="pt-db-c2v9" data-lpignore="true" data-form-type="other"
-                      placeholder="MM/DD/YYYY"
+                      placeholder="DOB  MM/DD/YYYY"
                       value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
                       }}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
                       style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "3px solid rgba(45,212,160,0.65)" }}
                       onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
                       onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
@@ -2501,7 +2503,12 @@ export default function ExpressCheckoutPage() {
                 </div>
 
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
-                {clientSecret && stripeOptions ? (
+                {/* GUARD: new patients must complete all fields before payment is shown */}
+                {!newPatientFieldsComplete ? (
+                  <div className="flex flex-col items-center justify-center py-4 gap-1.5">
+                    <p className="text-white/40 text-[11px] font-semibold text-center">Complete your info above to continue</p>
+                  </div>
+                ) : clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
