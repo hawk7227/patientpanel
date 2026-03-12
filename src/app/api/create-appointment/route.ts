@@ -1451,7 +1451,7 @@ export async function POST(request: Request) {
         stripe_payment_intent_id: payment_intent_id,
         amount: paymentAmount,
         currency: paymentCurrency || "USD",
-        status: "captured",
+        status: "authorized", // Hold placed — doctor accept route will capture
       });
     }
 
