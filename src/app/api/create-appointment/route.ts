@@ -29,7 +29,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: Request) {
   try {
-    const { payment_intent_id, appointmentData } = await request.json();
+    const { payment_intent_id, visit_intent_id, appointmentData } = await request.json();
 
     console.log(
       "[CREATE_APPOINTMENT] Received request with appointment data.",
@@ -797,6 +797,7 @@ export async function POST(request: Request) {
       // Payment information
       payment_intent_id:
         payment_intent_id || (isTestMode ? `pi_test_${Date.now()}` : null),
+      visit_intent_id: visit_intent_id || null,
       payment_status: "captured", // Use "captured" for both test and production (test mode is handled via payment_intent_id prefix)
 
       // Appointment status - use "pending" for new appointments (will be changed to "confirmed" or "approved" by doctor)
