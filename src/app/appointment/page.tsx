@@ -216,6 +216,29 @@ function Step2PaymentForm({
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
 
+  // ── Payment speed: pre-fire patient creation as soon as DOB completes ──
+  // Removes check-create-patient from the hot pay path for new patients.
+  const [prefetchedPatientId, setPrefetchedPatientId] = useState<string | null>(null);
+  const prefetchPatientRef = useRef(false);
+  useEffect(() => {
+    if (!isNewPatient || !newDobComplete || prefetchPatientRef.current) return;
+    const pd = getPatientData();
+    if (!pd.email || !pd.firstName || !pd.lastName) return;
+    prefetchPatientRef.current = true;
+    fetch("/api/check-create-patient", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+        phone: pd.phone, dateOfBirth: newDobISO,
+        address: pd.address, pharmacy: pharmacy || "",
+        pharmacyAddress: pharmacyAddress || "",
+      }),
+    })
+      .then(r => r.json())
+      .then(result => { if (result.patientId) setPrefetchedPatientId(result.patientId); })
+      .catch(() => { prefetchPatientRef.current = false; }); // allow retry on pay tap if prefetch failed
+  }, [isNewPatient, newDobComplete, newDobISO]);
+
   const getPatientData = () => {
     if (!isNewPatient) {
       return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
@@ -242,7 +265,7 @@ function Step2PaymentForm({
     setPayInFlight(true);
     try {
       const pd = getPatientData();
-      let patientId = patient.id;
+      let patientId = patient.id || prefetchedPatientId;
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -423,6 +446,7 @@ function Step2PaymentForm({
 
       // NORMAL MODE — real patient creation + real payment
       const pd = getPatientData();
+      if (!patientId) patientId = prefetchedPatientId; // use pre-fired result if available
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -707,7 +731,7 @@ function Step2PaymentForm({
                 </div>
 
                 {/* Sticky terms + pay button */}
-                <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 8px), 8px)" }}>
+                <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
                   <div className={`flex items-start gap-1.5 mb-2 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
@@ -1407,7 +1431,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div className="text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "0" }}>
         <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="text-center pt-1 pb-1">
             <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span>
             <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS </span>
@@ -1489,7 +1513,7 @@ export default function ExpressCheckoutPage() {
           @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         `}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
 
           {/* Header — compact */}
           <div className="flex-shrink-0 text-center pt-1 pb-0.5">
@@ -1666,10 +1690,10 @@ export default function ExpressCheckoutPage() {
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)" }}>
           {/* Logo + Brand */}
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">

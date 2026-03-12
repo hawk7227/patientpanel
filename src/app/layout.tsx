@@ -19,6 +19,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="canonical" href="https://medazonhealth.com/urgent-care/florida" />
         <meta name="theme-color" content="#0B0F12" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
         {/* Medical Business (Primary Entity) */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: `
