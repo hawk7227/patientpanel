@@ -2145,7 +2145,7 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
-          {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup ? (
               <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
@@ -2292,7 +2292,7 @@ export default function ExpressCheckoutPage() {
               </div>
             </div>
           )}
-          {reason && symptomsDone && pharmacy && !visitTypeChosen && <BelowCardContent step={4} />}
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup && <BelowCardContent step={4} />}
           </div>
           {/* END Step 4 wrapper */}
 
