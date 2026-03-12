@@ -158,7 +158,6 @@ export function generateAppointmentEmailHTML({
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.8; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
         <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 0 0 20px 0; color: #333; font-size: 14px;">this is the SMS that the patent receive when booking</p>
           
           <div style="background-color: #f9f9f9; padding: 20px; border-left: 4px solid #00cba9; margin: 20px 0; border-radius: 4px;">
             <p style="margin: 0 0 15px 0; color: #333; font-size: 14px; white-space: pre-line;">"${smsContent}"</p>
