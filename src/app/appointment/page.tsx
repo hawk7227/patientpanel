@@ -7,7 +7,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { useStripe, useElements, PaymentElement, ExpressCheckoutElement } from "@stripe/react-stripe-js";
 import {
   Zap, Calendar, ChevronDown, X, Clock, Lock, Search,
-  Phone, Video, Pill, Camera, AlertTriangle, Shield, Check, Star, Upload,
+  Phone, Video, Pill, Camera, AlertTriangle, Shield, Check, Star, Upload, MessageSquare,
 } from "lucide-react";
 import symptomSuggestions from "@/data/symptom-suggestions.json";
 import AppointmentCalendar from "@/components/AppointmentCalendar";
@@ -89,6 +89,98 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Stripe decline handling
+// ═══════════════════════════════════════════════════════════════
+type DeclineCategory = "soft" | "funds" | "card_data" | "expired" | "permanent" | "processing" | "terms" | "generic";
+
+interface DeclineState {
+  category: DeclineCategory;
+  code: string;
+  headline: string;
+  body: string;
+  fieldHint: string | null;   // shown above PaymentElement
+  retryable: boolean;
+  showBnpl: boolean;
+}
+
+function getDeclineState(err: { type?: string; code?: string; decline_code?: string; message?: string }): DeclineState {
+  const code = err.decline_code || err.code || "";
+  const type = err.type || "";
+
+  // Card-data errors — patient typed something wrong
+  if (["incorrect_cvc", "invalid_cvc"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your security code doesn't match. No charge was made. Check the 3-digit number on the back of your card and try again.",
+      fieldHint: "Check your security code (3 digits on the back)" };
+  }
+  if (["incorrect_number", "invalid_number"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "One digit in your card number looks off. No charge was made. Give it a second look and try again.",
+      fieldHint: "Double-check your card number" };
+  }
+  if (["incorrect_zip"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your billing ZIP code doesn't match what your bank has on file. No charge was made.",
+      fieldHint: "Check your billing ZIP code" };
+  }
+  if (["invalid_expiry_month", "invalid_expiry_year"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "The expiration date doesn't look right. No charge was made. Check the month and year on your card.",
+      fieldHint: "Check your expiration date" };
+  }
+
+  // Expired card
+  if (code === "expired_card") {
+    return { category: "expired", code, retryable: false, showBnpl: true,
+      headline: "Looks like this card has expired.",
+      body: "Cards expire — easy to forget. No charge was made. Add a current card and we'll have you booked in under a minute.",
+      fieldHint: "This card is expired — please use a different card" };
+  }
+
+  // Insufficient funds / velocity
+  if (["insufficient_funds", "card_velocity_exceeded"].includes(code)) {
+    return { category: "funds", code, retryable: false, showBnpl: true,
+      headline: "Your health comes first — let's find another way.",
+      body: `Remember: you're only paying ${"\u0024"}1.89 today. The visit fee is only collected after your provider accepts. Try a different card, or use a saved card below.`,
+      fieldHint: null };
+  }
+
+  // Permanent / bank-blocked — no BNPL
+  if (["fraudulent", "lost_card", "stolen_card", "pickup_card", "do_not_try_again", "restricted_card", "transaction_not_allowed"].includes(code)) {
+    return { category: "permanent", code, retryable: false, showBnpl: false,
+      headline: "Your bank has put a hold on this card.",
+      body: "This sometimes happens after a card is replaced or flagged for security. There's nothing wrong on your end — your bank just needs you to use a different payment method. Your information is saved.",
+      fieldHint: null };
+  }
+
+  // Processing errors — not the patient's fault
+  if (["processing_error", "issuer_not_available", "try_again_later"].includes(code)) {
+    return { category: "processing", code, retryable: true, showBnpl: true,
+      headline: "That was us, not you.",
+      body: "There was a temporary issue reaching your bank — your card was not charged. Tap Try Again below.",
+      fieldHint: null };
+  }
+
+  // Generic / soft declines — do_not_honor, generic_decline, card_declined
+  if (type === "card_error" || ["card_declined", "do_not_honor", "no_action_taken", "generic_decline", "not_permitted"].includes(code)) {
+    return { category: "soft", code, retryable: true, showBnpl: true,
+      headline: "No worries — this happens more than you'd think.",
+      body: "Your bank flagged this as unusual, which is common for new or online purchases. Your card wasn't charged. Try once more or use a different card — your information is saved.",
+      fieldHint: null };
+  }
+
+  // Fallback
+  return { category: "generic", code, retryable: true, showBnpl: false,
+    headline: "Something went wrong with payment.",
+    body: err.message || "Your card was not charged. Please try again.",
+    fieldHint: null };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Step 2 Payment Form — single viewport, no scroll
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
@@ -106,6 +198,7 @@ function Step2PaymentForm({
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [declineState, setDeclineState] = useState<DeclineState | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [elementReady, setElementReady] = useState(false);
   const [payInFlight, setPayInFlight] = useState(false);
@@ -126,9 +219,22 @@ function Step2PaymentForm({
     return { email: patient.email || "", firstName: patient.firstName || "", lastName: patient.lastName || "", phone: patient.phone || "", dateOfBirth: newDobISO, address: patient.address || "" };
   };
 
+  const handleStripeError = (err: { type?: string; code?: string; decline_code?: string; message?: string }) => {
+    const ds = getDeclineState(err);
+    setDeclineState(ds);
+    setError(null);
+    setPayInFlight(false);
+    // Pulse the card section on card_data errors so patient knows what to fix
+    if (ds.category === "card_data" || ds.category === "expired" || ds.category === "soft" || ds.category === "funds") {
+      setPulseField("card");
+      setTimeout(() => setPulseField(null), 2000);
+    }
+  };
+
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
   const handleExpressConfirm = async () => {
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
     try {
       const pd = getPatientData();
@@ -151,7 +257,7 @@ function Step2PaymentForm({
       if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
 
       const { error: submitError } = await elements.submit();
-      if (submitError) { setError(submitError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (submitError) { handleStripeError(submitError); return; }
 
       const result = await stripe.confirmPayment({
         elements, redirect: "if_required",
@@ -161,7 +267,7 @@ function Step2PaymentForm({
         },
       });
 
-      if (result.error) { setError(result.error.message || "Payment failed."); setPayInFlight(false); return; }
+      if (result.error) { handleStripeError(result.error); return; }
 
       setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
 
@@ -219,6 +325,7 @@ function Step2PaymentForm({
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
 
     try {
@@ -305,8 +412,7 @@ function Step2PaymentForm({
         // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
         const submitResult = await elements.submit();
         if (submitResult.error) {
-          setError(submitResult.error.message || "Please complete the payment form.");
-          setPayInFlight(false);
+          handleStripeError(submitResult.error);
           return;
         }
 
@@ -320,7 +426,7 @@ function Step2PaymentForm({
         paymentError = result.error; paymentIntent = result.paymentIntent;
       }
 
-      if (paymentError) { setError(paymentError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (paymentError) { handleStripeError(paymentError); return; }
 
       // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
       setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
@@ -390,7 +496,63 @@ function Step2PaymentForm({
   return (
     <>
       <div className="w-full space-y-2">
+        {/* Non-payment errors (terms, form validation) — keep the simple red banner */}
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
+
+        {/* Decline state — warm, empathetic, actionable */}
+        {declineState && (
+          <div className="rounded-xl border border-[#2dd4a0]/25 px-3 py-3 space-y-2" style={{ background: "linear-gradient(135deg, rgba(13,18,24,0.95) 0%, rgba(20,28,36,0.95) 100%)" }}>
+            {/* Icon + headline */}
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ background: "rgba(45,212,160,0.12)" }}>
+                <span className="text-[14px]">💙</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-[12px] leading-[1.3]">{declineState.headline}</p>
+                <p className="text-gray-400 text-[11px] leading-[1.4] mt-0.5">{declineState.body}</p>
+              </div>
+              <button onClick={() => setDeclineState(null)} className="flex-shrink-0 text-gray-600 hover:text-gray-400 text-[14px] leading-none mt-0.5">×</button>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2 pt-0.5">
+              {declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setTimeout(() => handlePay(), 50); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Try Again
+                </button>
+              )}
+              {!declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setShowCardForm(true); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Use a Different Card
+                </button>
+              )}
+              {declineState.showBnpl && process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK && (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(patient.email || "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2dd4a0] border border-[#2dd4a0]/30 text-center transition-all active:scale-[0.98]"
+                  style={{ background: "rgba(45,212,160,0.06)" }}
+                >
+                  Book Now, Pay Later
+                </a>
+              )}
+            </div>
+
+            {/* Care-first note */}
+            <p className="text-gray-600 text-[10px] leading-[1.3] text-center pt-0.5">
+              Care first. Your information is saved — nothing to re-enter.
+            </p>
+          </div>
+        )}
 
         {isTestMode ? (
           <button onClick={() => {
@@ -455,8 +617,15 @@ function Step2PaymentForm({
                   </div>
                 )}
 
-                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
-                  <PaymentElement onReady={() => setElementReady(true)} options={{
+                {/* Field hint — shown when a specific field caused the decline */}
+                {declineState?.fieldHint && (
+                  <p className="text-[#f97316] text-[10px] font-medium px-1 -mb-1">
+                    ⚠ {declineState.fieldHint}
+                  </p>
+                )}
+
+                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#2dd4a0] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
+                  <PaymentElement onReady={() => setElementReady(true)} onChange={() => { if (declineState) setDeclineState(null); }} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
                     wallets: { applePay: "never", googlePay: "never" },
@@ -1495,29 +1664,48 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
               <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                  <div className="grid grid-cols-4 gap-2">
+                  {/* Row 1: 3 async types — taller square cards */}
+                  <div className="grid grid-cols-3 gap-2">
                     {([
-                      { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
-                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
-                      { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
-                      { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
+                      { key: "instant" as VisitType, label: "Treat Me Now", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
+                      { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
+                      { key: "async" as VisitType, label: "Send a Note", icon: MessageSquare, color: "#f43f5e", badge: "💬" },
                     ] as const).map((vt) => {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
-                      const hasPopupOpen = !!visitTypePopup;
-                      return (<button key={vt.key} onClick={() => {
-                        if (vt.key === "video" || vt.key === "phone") {
-                          setVisitType(vt.key); setVisitTypePopup(null);
-                          setDateTimeDialogOpen(true); setCalWeekOffset(0);
-                          setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
-                          setCalSelectedTime("");
-                        } else {
-                          setVisitTypePopup(vt.key);
-                        }
-                      }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
+                      return (<button key={vt.key} onClick={() => { setVisitTypePopup(vt.key); }} className="relative flex flex-col items-center justify-center py-4 px-2 rounded-xl transition-all" style={{
+                        minHeight: "88px",
+                        border: isActive ? `3px solid ${vt.color}88` : `2px solid ${vt.color}38`,
+                        background: isActive ? `${vt.color}1a` : `${vt.color}0d`,
+                        boxShadow: isActive ? `0 0 16px ${vt.color}30` : "none",
+                      }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                        <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
-                        {hasPopupOpen && !isActive && <span className="text-[7px] text-gray-500 mt-0.5">tap to select</span>}
+                        <Icon size={22} style={{ color: isActive ? vt.color : `${vt.color}99` }} />
+                        <span className="text-[10px] font-bold mt-2 text-center leading-tight" style={{ color: isActive ? "#fff" : `${vt.color}99` }}>{vt.label}</span>
+                      </button>);
+                    })}
+                  </div>
+                  {/* Row 2: 2 live types — wider landscape cards */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { key: "video" as VisitType, label: "Video Visit", icon: Video, color: "#3b82f6", badge: null },
+                      { key: "phone" as VisitType, label: "Phone / SMS", icon: Phone, color: "#a855f7", badge: null },
+                    ] as const).map((vt) => {
+                      const Icon = vt.icon;
+                      const isActive = visitTypePopup === vt.key;
+                      return (<button key={vt.key} onClick={() => {
+                        setVisitType(vt.key); setVisitTypePopup(null);
+                        setDateTimeDialogOpen(true); setCalWeekOffset(0);
+                        setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
+                        setCalSelectedTime("");
+                      }} className="flex flex-row items-center justify-center gap-2.5 py-3.5 px-3 rounded-xl transition-all" style={{
+                        minHeight: "56px",
+                        border: isActive ? `3px solid ${vt.color}88` : `2px solid ${vt.color}38`,
+                        background: isActive ? `${vt.color}1a` : `${vt.color}0d`,
+                        boxShadow: isActive ? `0 0 16px ${vt.color}30` : "none",
+                      }}>
+                        <Icon size={18} style={{ color: isActive ? vt.color : `${vt.color}99` }} />
+                        <span className="text-[11px] font-bold" style={{ color: isActive ? "#fff" : `${vt.color}99` }}>{vt.label}</span>
                       </button>);
                     })}
                   </div>
