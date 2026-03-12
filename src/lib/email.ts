@@ -176,6 +176,7 @@ function getNextSteps(visitType: string): string[] {
 
 /**
  * Generate patient appointment confirmation email HTML
+ * Dark design — matches the /appointment/[token] page aesthetic
  */
 export function generateAppointmentEmailHTML({
   doctorName,
@@ -189,153 +190,146 @@ export function generateAppointmentEmailHTML({
   appointmentTime: string;
   visitType: string;
   appointmentLink: string;
-  smsMessage?: string; // kept for backward compat, not used
+  smsMessage?: string;
 }): string {
-  const visitLabel   = getVisitLabel(visitType);
-  const visitIcon    = getVisitIcon(visitType);
-  const bodyCopy     = getVisitBodyCopy(visitType, doctorName, appointmentDate, appointmentTime);
-  const nextSteps    = getNextSteps(visitType);
-  const showJoinBtn  = visitType === "video" || visitType === "instant";
+  const visitLabel = getVisitLabel(visitType);
 
-  const nextStepsHtml = nextSteps
-    .map(step => `
-      <tr>
-        <td style="padding: 6px 0;">
-          <table cellpadding="0" cellspacing="0" border="0" width="100%">
-            <tr>
-              <td style="width: 22px; vertical-align: top; padding-top: 1px;">
-                <span style="display: inline-block; width: 8px; height: 8px; background: #00cba9; border-radius: 50%; margin-top: 5px;"></span>
-              </td>
-              <td style="color: #4b5563; font-size: 14px; line-height: 1.5;">${step}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>`)
-    .join("");
+  const visitTypeBadgeColor =
+    visitType === "video"   ? "#1d4ed8" :
+    visitType === "phone"   ? "#7c3aed" :
+    visitType === "instant" ? "#b45309" :
+    visitType === "refill"  ? "#065f46" : "#374151";
+
+  const ctaLabel =
+    visitType === "video"   ? "Click Here to Start Visit" :
+    visitType === "phone"   ? "View Appointment Details" :
+    visitType === "instant" ? "Track Your Visit Status" :
+    visitType === "refill"  ? "Track Your Rx Status" : "View Appointment";
+
+  const subheadline =
+    visitType === "video"   ? `Your video visit with ${doctorName} is confirmed.` :
+    visitType === "phone"   ? `Your phone visit with ${doctorName} is confirmed.` :
+    visitType === "instant" ? `Your instant visit request is in queue. ${doctorName} will review shortly.` :
+    visitType === "refill"  ? `Your Rx refill request is under review by ${doctorName}.` :
+                              `Your visit with ${doctorName} is confirmed.`;
+
+  const bodyNote =
+    visitType === "video"
+      ? `At your appointment time, click the button below to join your secure video session. Make sure you&#x2019;re in a private, well-lit space with a stable internet connection.`
+    : visitType === "phone"
+      ? `Your provider will call you at your registered number at the scheduled time. Keep your phone nearby and make sure it is charged. No link needed — just be available.`
+    : visitType === "instant"
+      ? `You will receive a notification when your provider responds. Typical response time is 15&#x2013;30 minutes during business hours. No need to stay on the page.`
+    : visitType === "refill"
+      ? `Most refills are processed same day during business hours. You will receive a text confirmation once your prescription has been sent to your pharmacy.`
+    : `We&#x2019;ll send you reminders before your appointment. Contact support if you have any questions.`;
+
+  const reminderPills =
+    visitType === "video" || visitType === "phone"
+      ? `<td style="padding: 0 4px;"><span style="display:inline-block;background:#1e3a2f;border:1px solid #166534;border-radius:999px;color:#86efac;font-size:11px;padding:3px 10px;">24 hr SMS</span></td>
+         <td style="padding: 0 4px;"><span style="display:inline-block;background:#1e3a2f;border:1px solid #166534;border-radius:999px;color:#86efac;font-size:11px;padding:3px 10px;">2 hr SMS</span></td>
+         <td style="padding: 0 4px;"><span style="display:inline-block;background:#1e3a2f;border:1px solid #166534;border-radius:999px;color:#86efac;font-size:11px;padding:3px 10px;">10 min SMS</span></td>`
+      : `<td style="padding: 0 4px;"><span style="display:inline-block;background:#1e3a2f;border:1px solid #166534;border-radius:999px;color:#86efac;font-size:11px;padding:3px 10px;">Status updates via SMS</span></td>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${visitLabel} Confirmation — Medazon Health</title>
+  <title>Appointment Confirmed — Medazon Health</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f3f4f6; padding: 32px 16px;">
+<body style="margin: 0; padding: 0; background-color: #0a0f1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #0a0f1a; padding: 32px 16px;">
     <tr>
       <td align="center">
         <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%;">
 
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #0a0f1a 0%, #0d1628 100%); border-radius: 16px 16px 0 0; padding: 32px 40px 28px;">
-              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                <tr>
-                  <td>
-                    <p style="margin: 0 0 4px 0; color: #00cba9; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;">Medazon Health</p>
-                    <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; line-height: 1.2;">${visitIcon} ${visitLabel}</h1>
-                    <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 14px;">Booking confirmed</p>
-                  </td>
-                  <td align="right" style="vertical-align: top;">
-                    <div style="background: rgba(0,203,169,0.12); border: 1px solid rgba(0,203,169,0.25); border-radius: 8px; padding: 8px 14px; display: inline-block;">
-                      <p style="margin: 0; color: #00cba9; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;">CONFIRMED ✓</p>
-                    </div>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding: 0 0 20px 0; text-align: center;">
+              <p style="margin: 0; color: #00cba9; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;">Medazon Health</p>
             </td>
           </tr>
 
-          <!-- Appointment details card -->
+          <!-- Main card -->
           <tr>
-            <td style="background: #ffffff; padding: 0 40px;">
-              <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border: 1px solid #e5e7eb; border-radius: 12px; margin: 24px 0 0 0; overflow: hidden;">
+            <td style="background: #0d1628; border: 1px solid #1e3a5f; border-radius: 16px; overflow: hidden;">
+
+              <!-- Card header — teal title -->
+              <table cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="background: #f9fafb; padding: 16px 20px; border-bottom: 1px solid #e5e7eb;">
-                    <p style="margin: 0; color: #6b7280; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">Appointment Details</p>
+                  <td style="padding: 36px 40px 24px; text-align: center; border-bottom: 1px solid #1e293b;">
+                    <h1 style="margin: 0 0 10px 0; color: #00cba9; font-size: 28px; font-weight: 800; letter-spacing: -0.01em;">Appointment Confirmed</h1>
+                    <p style="margin: 0; color: #cbd5e1; font-size: 15px; line-height: 1.5;">${subheadline}</p>
                   </td>
                 </tr>
+
+                <!-- Date & Time -->
                 <tr>
-                  <td style="padding: 0;">
+                  <td style="padding: 24px 40px; text-align: center; border-bottom: 1px solid #1e293b;">
+                    <p style="margin: 0 0 6px 0; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">Date &amp; Time</p>
+                    <p style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 700;">${appointmentDate} &nbsp;&bull;&nbsp; ${appointmentTime} AZ</p>
+                  </td>
+                </tr>
+
+                <!-- Provider info -->
+                <tr>
+                  <td style="padding: 24px 40px; border-bottom: 1px solid #1e293b;">
+                    <p style="margin: 0 0 14px 0; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; text-align: center;">Provider Information</p>
                     <table cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
-                        <td style="padding: 14px 20px; border-bottom: 1px solid #f3f4f6; width: 40%;">
-                          <p style="margin: 0; color: #9ca3af; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Provider</p>
-                          <p style="margin: 4px 0 0 0; color: #111827; font-size: 14px; font-weight: 600;">${doctorName}</p>
-                        </td>
-                        <td style="padding: 14px 20px; border-bottom: 1px solid #f3f4f6;">
-                          <p style="margin: 0; color: #9ca3af; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Visit Type</p>
-                          <p style="margin: 4px 0 0 0; color: #111827; font-size: 14px; font-weight: 600;">${visitLabel}</p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding: 14px 20px; border-bottom: 1px solid #f3f4f6;">
-                          <p style="margin: 0; color: #9ca3af; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Date</p>
-                          <p style="margin: 4px 0 0 0; color: #111827; font-size: 14px; font-weight: 600;">${appointmentDate}</p>
-                        </td>
-                        <td style="padding: 14px 20px; border-bottom: 1px solid #f3f4f6;">
-                          <p style="margin: 0; color: #9ca3af; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;">Time (AZ)</p>
-                          <p style="margin: 4px 0 0 0; color: #111827; font-size: 14px; font-weight: 600;">${appointmentTime}</p>
+                        <td style="text-align: center;">
+                          <div style="display: inline-block; background: #162032; border: 1px solid #1e3a5f; border-radius: 12px; padding: 16px 24px;">
+                            <p style="margin: 0 0 4px 0; color: #ffffff; font-size: 15px; font-weight: 700;">Medazon Health AZ &mdash; ${doctorName}</p>
+                            <p style="margin: 0; color: #94a3b8; font-size: 13px;">Board-Certified Family Nurse Practitioner</p>
+                            <div style="margin-top: 10px;">
+                              <span style="display: inline-block; background: ${visitTypeBadgeColor}22; border: 1px solid ${visitTypeBadgeColor}55; border-radius: 6px; color: #93c5fd; font-size: 12px; font-weight: 700; padding: 3px 12px; letter-spacing: 0.04em;">${visitLabel}</span>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     </table>
                   </td>
                 </tr>
+
+                <!-- Body note -->
+                <tr>
+                  <td style="padding: 20px 40px 24px; border-bottom: 1px solid #1e293b;">
+                    <p style="margin: 0; color: #94a3b8; font-size: 14px; line-height: 1.7; text-align: center;">${bodyNote}</p>
+                  </td>
+                </tr>
+
+                <!-- Reminder pills -->
+                <tr>
+                  <td style="padding: 16px 40px; border-bottom: 1px solid #1e293b; text-align: center;">
+                    <p style="margin: 0 0 10px 0; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;">Reminders scheduled</p>
+                    <table cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                      <tr>${reminderPills}</tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Orange CTA -->
+                <tr>
+                  <td style="padding: 28px 40px 32px; text-align: center;">
+                    <a href="${appointmentLink}" style="display: inline-block; background: #f97316; color: #ffffff; font-size: 16px; font-weight: 800; text-decoration: none; padding: 16px 48px; border-radius: 12px; letter-spacing: 0.01em; width: 80%; text-align: center; box-sizing: border-box;">${ctaLabel}</a>
+                    <p style="margin: 10px 0 0 0; color: #64748b; font-size: 12px;">We also sent it to you by SMS</p>
+                  </td>
+                </tr>
+
               </table>
             </td>
           </tr>
 
-          <!-- Body copy -->
+          <!-- Legal footer -->
           <tr>
-            <td style="background: #ffffff; padding: 24px 40px 8px;">
-              <p style="margin: 0; color: #374151; font-size: 15px; line-height: 1.7;">${bodyCopy}</p>
-            </td>
-          </tr>
-
-          <!-- Next steps -->
-          <tr>
-            <td style="background: #ffffff; padding: 20px 40px 8px;">
-              <p style="margin: 0 0 12px 0; color: #111827; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">What happens next</p>
-              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                ${nextStepsHtml}
-              </table>
-            </td>
-          </tr>
-
-          <!-- CTA button (video + instant only) -->
-          ${showJoinBtn ? `
-          <tr>
-            <td style="background: #ffffff; padding: 24px 40px 8px; text-align: center;">
-              <a href="${appointmentLink}" style="display: inline-block; background: linear-gradient(135deg, #00cba9 0%, #00b89a 100%); color: #000000; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 36px; border-radius: 10px; letter-spacing: 0.02em;">Join Your Visit →</a>
-              <p style="margin: 10px 0 0 0; color: #9ca3af; font-size: 11px;">Or copy this link: <a href="${appointmentLink}" style="color: #6b7280; word-break: break-all;">${appointmentLink}</a></p>
-            </td>
-          </tr>` : `
-          <tr>
-            <td style="background: #ffffff; padding: 24px 40px 8px;">
-              <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 20px;">
-                <p style="margin: 0; color: #6b7280; font-size: 13px;">Your appointment reference link: <a href="${appointmentLink}" style="color: #00cba9; font-weight: 600; word-break: break-all;">${appointmentLink}</a></p>
-              </div>
-            </td>
-          </tr>`}
-
-          <!-- Divider -->
-          <tr>
-            <td style="background: #ffffff; padding: 24px 40px 0;">
-              <hr style="border: none; border-top: 1px solid #f3f4f6; margin: 0;">
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="background: #ffffff; border-radius: 0 0 16px 16px; padding: 20px 40px 32px;">
-              <p style="margin: 0 0 6px 0; color: #6b7280; font-size: 12px; line-height: 1.6;">
-                Questions? Reply to this email or contact us at <a href="mailto:support@medazonhealth.com" style="color: #00cba9; text-decoration: none;">support@medazonhealth.com</a>.
+            <td style="padding: 20px 0 0 0; text-align: center;">
+              <p style="margin: 0 0 4px 0; color: #475569; font-size: 11px; line-height: 1.7;">
+                Your $1.89 booking fee is non-refundable and reserves your provider&#x2019;s time slot. Your visit fee is held on your card and collected upon provider acceptance. No-shows and cancellations within 30 minutes of your scheduled appointment are non-refundable.
               </p>
-              <p style="margin: 0 0 6px 0; color: #9ca3af; font-size: 11px; line-height: 1.6;">
-                This message was sent to you because you booked a visit on Medazon Health. Your visit information is protected under HIPAA and is never shared without your consent.
-              </p>
-              <p style="margin: 12px 0 0 0; color: #d1d5db; font-size: 10px;">
-                Medazon Health · Telehealth Services · Arizona, USA · <a href="https://medazonhealth.com" style="color: #d1d5db;">medazonhealth.com</a>
+              <p style="margin: 8px 0 0 0; color: #334155; font-size: 10px;">
+                Medazon Health &middot; Telehealth Services &middot; Arizona, USA &middot; HIPAA Compliant &middot;
+                <a href="mailto:support@medazonhealth.com" style="color: #475569;">support@medazonhealth.com</a>
               </p>
             </td>
           </tr>
