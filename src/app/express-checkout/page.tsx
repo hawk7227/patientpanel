@@ -767,7 +767,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee is non-refundable and reserves your provider&apos;s time slot. Your visit fee is held on your card and collected upon provider acceptance. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your <strong className="text-white">{getPrice(visitType as VisitType).display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -1127,18 +1127,10 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  const visitFeePrice = useMemo(() => {
-    // Price tier is determined by APPOINTMENT time, not booking time.
-    // Parse appointmentDate + appointmentTime into a Date if available.
-    // Instant/refill visits have no scheduled time (happen now) — fall back to current time.
-    let atDate: Date | undefined;
-    if (appointmentDate && appointmentTime) {
-      const [y, m, d] = appointmentDate.split("-").map(Number);
-      const [h, min] = appointmentTime.split(":").map(Number);
-      atDate = new Date(y, m - 1, d, h, min, 0);
-    }
-    return getPrice(visitType as VisitType, undefined, atDate);
-  }, [visitType, appointmentDate, appointmentTime]);
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType as VisitType),
+    [visitType]
+  );
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
@@ -1294,9 +1286,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Pre-fetch payment intent — fires when user taps Confirm on step 4.5 ──
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
-  // New patients: don't prefetch until all fields are complete — no point creating an intent
-  // before we have a valid patient to attach it to.
-  const shouldPrefetch = visitTypeChosen && !clientSecret && (isReturningPatient || npFieldsComplete);
+  const shouldPrefetch = visitTypeChosen && !clientSecret;
 
   useEffect(() => {
     if (!shouldPrefetch) {
@@ -1534,7 +1524,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Fallback: if we reach step 5 without a clientSecret, force-fetch ──
   useEffect(() => {
-    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current && (isReturningPatient || npFieldsComplete)) {
+    if (visitTypeChosen && !clientSecret && !paymentIntentError && !paymentFetchController.current) {
       console.log("[Fallback] Step 6 reached with no clientSecret — force-fetching");
       const controller = new AbortController();
       paymentFetchController.current = controller;
@@ -2138,13 +2128,7 @@ export default function ExpressCheckoutPage() {
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                   <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
                   <div className="grid grid-cols-5 gap-1.5">
-                    {([
-                      { key: "async" as VisitType, label: "Async", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
-                      { key: "instant" as VisitType, label: "Instant\nVisit", icon: Zap, color: "#f59e0b", badge: "⚡ FAST" },
-                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: null },
-                      { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
-                      { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
-                    ] as const).map((vt) => {
+                    {VISIT_TYPES.map((vt) => {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
                       const hasPopupOpen = !!visitTypePopup;
@@ -2153,7 +2137,6 @@ export default function ExpressCheckoutPage() {
                       }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
                         <Icon size={16} style={{ color: vt.color }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : ""}`} style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
-                        {hasPopupOpen && !isActive && <span className="text-[6px] text-gray-500 mt-0.5">tap to select</span>}
                       </button>);
                     })}
                   </div>
@@ -2214,7 +2197,24 @@ export default function ExpressCheckoutPage() {
                       <p className="text-gray-300 text-[10px] mt-0.5">The provider will connect with you tomorrow at <strong>9:00 AM Arizona time</strong>. Your spot is locked in now.</p>
                     </div>
                   ) : null; })()}
-
+                  {/* Steps */}
+                  <div className="space-y-0">
+                    {[{ icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need — takes about 2 minutes.", time: "~2 min" }, { icon: "⏱", t: "Join the Queue", d: "You'll be notified the moment a provider is ready.", time: "Usually minutes" }, { icon: "📹", t: "Connect Live", d: "Meet by live video and get treated in real time.", time: "Starts when called" }].map((item, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="w-px h-1.5 bg-[#f59e0b]/15" style={{ margin: "0 auto" }}></div>}
+                        <div className="flex flex-col items-center py-1.5" style={{ textAlign: "center" }}>
+                          <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 flex items-center justify-center text-[13px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1">
+                            <div className="text-[10px] font-bold text-white">{item.t}</div>
+                            <div className="text-[10px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* FAQ accordion */}
+                  <InstantFAQ />
                   <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
@@ -2332,8 +2332,6 @@ export default function ExpressCheckoutPage() {
                 }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
                   CONTINUE
                 </button>
-                {/* Back button */}
-                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-white/10" style={{ background: "rgba(255,255,255,0.04)" }}>← Back</button>
               </div>
               <ConfirmBelowContent isReturn={false} />
             </div>
@@ -2431,7 +2429,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-fn-x7k2" data-lpignore="true" data-form-type="other"
                       placeholder="First name" value={npFirstName}
                       onChange={(e) => setNpFirstName(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
                       style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2440,7 +2438,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-ln-m9p4" data-lpignore="true" data-form-type="other"
                       placeholder="Last name" value={npLastName}
                       onChange={(e) => setNpLastName(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
                       style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2452,7 +2450,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-em-j3r8" data-lpignore="true" data-form-type="other"
                       placeholder="Email" value={npEmail}
                       onChange={(e) => setNpEmail(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
                       style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2461,7 +2459,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-ph-q5w1" data-lpignore="true" data-form-type="other"
                       placeholder="Phone" value={npPhone}
                       onChange={(e) => setNpPhone(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
                       style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2473,20 +2471,20 @@ export default function ExpressCheckoutPage() {
                       name="pt-ad-h6n0" data-lpignore="true" data-form-type="other"
                       placeholder="Street address" value={npAddress}
                       onChange={(e) => setNpAddress(e.target.value)}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
                       style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
                     <input type="text" inputMode="numeric" autoComplete="new-password" autoCorrect="off" spellCheck={false}
                       name="pt-db-c2v9" data-lpignore="true" data-form-type="other"
-                      placeholder="DOB  MM/DD/YYYY"
+                      placeholder="MM/DD/YYYY"
                       value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
                       }}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
                       style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "3px solid rgba(45,212,160,0.65)" }}
                       onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
                       onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
@@ -2495,12 +2493,7 @@ export default function ExpressCheckoutPage() {
                 </div>
 
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
-                {/* GUARD: new patients must complete all fields before payment is shown */}
-                {!npFieldsComplete ? (
-                  <div className="flex flex-col items-center justify-center py-4 gap-1.5">
-                    <p className="text-white/40 text-[11px] font-semibold text-center">Complete your info above to continue</p>
-                  </div>
-                ) : clientSecret && stripeOptions ? (
+                {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
@@ -2831,6 +2824,552 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
