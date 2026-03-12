@@ -33,6 +33,47 @@ const getPillColorClass = (color: string) => {
   return map[color] || map['teal'];
 };
 
+function CareHandsLogo() {
+  return (
+    <div className="relative h-[42px] w-[58px] sm:h-[48px] sm:w-[66px] flex-shrink-0">
+      <svg viewBox="0 0 132 96" className="h-full w-full drop-shadow-[0_3px_6px_rgba(0,0,0,0.35)]">
+        <defs>
+          <linearGradient id="cf-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#1d4ed8" />
+            <stop offset="100%" stopColor="#0f3ea8" />
+          </linearGradient>
+          <linearGradient id="cf-green" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#22c55e" />
+            <stop offset="100%" stopColor="#15803d" />
+          </linearGradient>
+        </defs>
+        {/* blue circle / badge */}
+        <circle cx="46" cy="34" r="30" fill="url(#cf-blue)" />
+        <rect x="38" y="18" width="16" height="32" rx="3" fill="white" />
+        <rect x="30" y="26" width="32" height="16" rx="3" fill="white" />
+        {/* blue hand */}
+        <path
+          d="M8 68c9-12 20-20 36-20 9 0 17 2 27 6 5 2 7 8 3 12l-8 8c-5 5-12 8-19 8H21c-8 0-14-7-13-14Z"
+          fill="url(#cf-blue)"
+        />
+        {/* green pointing hand */}
+        <path
+          d="M55 61c10-10 18-19 29-29 7-6 14-10 22-10 9 0 12 11 5 17L86 65c-8 8-18 13-29 13H42c4-5 8-11 13-17Z"
+          fill="url(#cf-green)"
+        />
+        {/* white accent */}
+        <path
+          d="M40 61c8 1 16 3 23 6"
+          stroke="white"
+          strokeWidth="4"
+          strokeLinecap="round"
+          opacity="0.9"
+        />
+      </svg>
+    </div>
+  );
+}
+
 function PairedCTABlock() {
   const [returningEmail, setReturningEmail] = useState("");
   const [searching, setSearching] = useState(false);
@@ -113,8 +154,58 @@ function PairedCTABlock() {
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap">
-        Book My 1st Visit — $1.89 Reserve Fee <ArrowRight size={20} />
+      <Link
+        href="/express-checkout"
+        onClick={() => {
+          try {
+            localStorage.removeItem("medazon_express_answers");
+            sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo()));
+            sessionStorage.setItem("expressPatient", JSON.stringify({
+              id: null, firstName: "", lastName: "", email: "",
+              phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "",
+            }));
+          } catch {}
+        }}
+        className="group relative w-full max-w-[720px] mx-auto block rounded-[20px] bg-[#ff6a00] px-3 py-3 sm:px-5 sm:py-3.5 shadow-[0_10px_30px_rgba(255,106,0,0.32)] transition-all duration-200 hover:scale-[1.01] hover:bg-[#ff7614]"
+      >
+        <div className="relative flex items-center justify-between gap-2 sm:gap-3 min-h-[66px] sm:min-h-[74px]">
+          {/* left logo */}
+          <div className="flex items-center justify-center pl-1 sm:pl-2">
+            <CareHandsLogo />
+          </div>
+
+          {/* center text */}
+          <div className="flex-1 min-w-0 text-center leading-none">
+            <div className="text-white font-black tracking-tight text-[14px] sm:text-[18px] md:text-[20px] drop-shadow-[0_2px_0_rgba(0,0,0,0.18)]">
+              BOOK A
+            </div>
+            <div className="flex items-center justify-center gap-2 sm:gap-3 mt-0.5 sm:mt-1">
+              <span className="text-white font-black tracking-[-0.03em] text-[28px] sm:text-[40px] md:text-[48px] leading-none drop-shadow-[0_2px_0_rgba(0,0,0,0.18)]">
+                CARE
+              </span>
+              <span className="inline-flex items-center rounded-sm bg-[linear-gradient(180deg,#fff3d6_0%,#ffd98b_100%)] px-1.5 sm:px-2.5 py-0.5 sm:py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+                <span className="bg-[linear-gradient(180deg,#22c55e_0%,#166534_100%)] bg-clip-text text-transparent font-black tracking-[-0.04em] text-[28px] sm:text-[40px] md:text-[48px] leading-none">
+                  FIRST
+                </span>
+              </span>
+              <span className="text-white font-black tracking-tight text-[16px] sm:text-[28px] md:text-[34px] leading-none drop-shadow-[0_2px_0_rgba(0,0,0,0.18)]">
+                VISIT
+              </span>
+            </div>
+          </div>
+
+          {/* right arrow */}
+          <div className="pr-1 sm:pr-2 flex-shrink-0">
+            <ArrowRight size={28} className="text-white transition-transform duration-200 group-hover:translate-x-1 sm:w-9 sm:h-9" />
+          </div>
+
+          {/* pay later badge */}
+          <div className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2">
+            <div className="rounded-[12px] bg-[linear-gradient(180deg,#15803d_0%,#166534_100%)] px-4 py-1.5 sm:px-6 sm:py-2 text-white font-black tracking-tight text-[12px] sm:text-[15px] whitespace-nowrap shadow-[0_8px_18px_rgba(0,0,0,0.3)] border border-[#0f5c2d]">
+              BOOK NOW, PAY LATER
+            </div>
+          </div>
+        </div>
       </Link>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
