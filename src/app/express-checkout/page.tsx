@@ -140,17 +140,96 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Decline handling
+// ═══════════════════════════════════════════════════════════════
+type DeclineCategory = "soft" | "funds" | "card_data" | "expired" | "permanent" | "processing" | "generic";
+
+interface DeclineState {
+  category: DeclineCategory;
+  code: string;
+  headline: string;
+  body: string;
+  fieldHint: string | null;
+  retryable: boolean;
+  showBnpl: boolean;
+}
+
+function getDeclineState(err: { type?: string; code?: string; decline_code?: string; message?: string }): DeclineState {
+  const code = err.decline_code || err.code || "";
+  const type = err.type || "";
+
+  if (["incorrect_cvc", "invalid_cvc"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your security code doesn't match. No charge was made. Check the 3-digit number on the back of your card and try again.",
+      fieldHint: "Check your security code (3 digits on the back)" };
+  }
+  if (["incorrect_number", "invalid_number"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "One digit in your card number looks off. No charge was made. Give it a second look and try again.",
+      fieldHint: "Double-check your card number" };
+  }
+  if (["incorrect_zip"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your billing ZIP code doesn't match what your bank has on file. No charge was made.",
+      fieldHint: "Check your billing ZIP code" };
+  }
+  if (["invalid_expiry_month", "invalid_expiry_year"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "The expiration date doesn't look right. No charge was made. Check the month and year on your card.",
+      fieldHint: "Check your expiration date" };
+  }
+  if (code === "expired_card") {
+    return { category: "expired", code, retryable: false, showBnpl: true,
+      headline: "Looks like this card has expired.",
+      body: "Cards expire — easy to forget. No charge was made. Add a current card and we'll have you booked in under a minute.",
+      fieldHint: "This card is expired — please use a different card" };
+  }
+  if (["insufficient_funds", "card_velocity_exceeded"].includes(code)) {
+    return { category: "funds", code, retryable: false, showBnpl: true,
+      headline: "Your health comes first — let's find another way.",
+      body: `Remember: you're only paying ${"\u0024"}1.89 today. The visit fee is only collected after your provider accepts. Try a different card, or use a saved card below.`,
+      fieldHint: null };
+  }
+  if (["fraudulent", "lost_card", "stolen_card", "pickup_card", "do_not_try_again", "restricted_card", "transaction_not_allowed"].includes(code)) {
+    return { category: "permanent", code, retryable: false, showBnpl: false,
+      headline: "Your bank has put a hold on this card.",
+      body: "This sometimes happens after a card is replaced or flagged for security. There's nothing wrong on your end — your bank just needs you to use a different payment method. Your information is saved.",
+      fieldHint: null };
+  }
+  if (["processing_error", "issuer_not_available", "try_again_later"].includes(code)) {
+    return { category: "processing", code, retryable: true, showBnpl: true,
+      headline: "That was us, not you.",
+      body: "There was a temporary issue reaching your bank — your card was not charged. Tap Try Again below.",
+      fieldHint: null };
+  }
+  if (type === "card_error" || ["card_declined", "do_not_honor", "no_action_taken", "generic_decline", "not_permitted"].includes(code)) {
+    return { category: "soft", code, retryable: true, showBnpl: true,
+      headline: "No worries — this happens more than you'd think.",
+      body: "Your bank flagged this as unusual, which is common for new or online purchases. Your card wasn't charged. Try once more or use a different card — your information is saved.",
+      fieldHint: null };
+  }
+  return { category: "generic", code, retryable: true, showBnpl: false,
+    headline: "Something went wrong with payment.",
+    body: err.message || "Your card was not charged. Please try again.",
+    fieldHint: null };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Step 2 Payment Form — single viewport, no scroll
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand, isNewPatient,
+  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient,
   npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; pharmacyPhone: string; selectedMedications: string[];
-  symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
+  symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
   isNewPatient: boolean;
   npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
   npDobMonth?: string; npDobDay?: string; npDobYear?: string;
@@ -167,6 +246,18 @@ function Step2PaymentForm({
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
+  const [declineState, setDeclineState] = useState<DeclineState | null>(null);
+
+  const handleStripeError = (err: { type?: string; code?: string; decline_code?: string; message?: string }) => {
+    const ds = getDeclineState(err);
+    setDeclineState(ds);
+    setError(null);
+    setPayInFlight(false);
+    if (ds.category === "card_data" || ds.category === "expired" || ds.category === "soft" || ds.category === "funds") {
+      setPulseField("card");
+      setTimeout(() => setPulseField(null), 2000);
+    }
+  };
   // New patient — values lifted to page level, received as props
   const newFirstName = npFirstName ?? "";
   const newLastName  = npLastName  ?? "";
@@ -194,6 +285,7 @@ function Step2PaymentForm({
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
   const handleExpressConfirm = async () => {
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
     try {
       const pd = getPatientData();
@@ -217,8 +309,9 @@ function Step2PaymentForm({
       if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
 
       const { error: submitError } = await elements.submit();
-      if (submitError) { setError(submitError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (submitError) { handleStripeError(submitError); return; }
 
+      // Step 1: Confirm $189 visit hold — verifies funds exist before charging booking fee
       const result = await stripe.confirmPayment({
         elements, redirect: "if_required",
         confirmParams: {
@@ -227,11 +320,43 @@ function Step2PaymentForm({
         },
       });
 
-      if (result.error) { setError(result.error.message || "Payment failed."); setPayInFlight(false); return; }
+      if (result.error) { handleStripeError(result.error); return; }
 
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified
+      const holdCleared = result.paymentIntent?.status === "requires_capture" || result.paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (result.paymentIntent?.status === "succeeded" || result.paymentIntent?.status === "requires_capture") {
+      // Step 2: Charge $1.89 booking fee server-side using same payment method
+      const paymentMethodId = typeof result.paymentIntent?.payment_method === "string"
+        ? result.paymentIntent.payment_method
+        : result.paymentIntent?.payment_method?.id;
+
+      if (!paymentMethodId) {
+        setError("Could not retrieve payment method. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      const bookingRes = await fetch("/api/confirm-booking-fee", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+      });
+      const bookingResult = await bookingRes.json();
+      if (!bookingRes.ok) {
+        setIsProcessing(false);
+        handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+        return;
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -285,6 +410,7 @@ function Step2PaymentForm({
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
 
     try {
@@ -372,8 +498,7 @@ function Step2PaymentForm({
         // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
         const submitResult = await elements.submit();
         if (submitResult.error) {
-          setError(submitResult.error.message || "Please complete the payment form.");
-          setPayInFlight(false);
+          handleStripeError(submitResult.error);
           return;
         }
 
@@ -394,12 +519,46 @@ function Step2PaymentForm({
         paymentError = result.error; paymentIntent = result.paymentIntent;
       }
 
-      if (paymentError) { setError(paymentError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (paymentError) { handleStripeError(paymentError); return; }
 
-      // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified
+      const holdCleared = paymentIntent?.status === "requires_capture" || paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (paymentIntent?.status === "succeeded" || paymentIntent?.status === "requires_capture") {
+      // Step 2: Charge $1.89 booking fee server-side
+      const paymentMethodId = typeof paymentIntent?.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent?.payment_method?.id;
+
+      // Hold cleared — safe to show progress (PaymentElement no longer needed)
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      if (!isTestMode) {
+        if (!paymentMethodId) {
+          setIsProcessing(false);
+          setError("Could not retrieve payment method. Please try again.");
+          setPayInFlight(false);
+          return;
+        }
+        const bookingRes = await fetch("/api/confirm-booking-fee", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+        });
+        const bookingResult = await bookingRes.json();
+        if (!bookingRes.ok) {
+          setIsProcessing(false);
+          handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+          return;
+        }
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -466,6 +625,56 @@ function Step2PaymentForm({
       <div className="w-full space-y-2">
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
 
+        {/* Decline state — warm, empathetic, actionable */}
+        {declineState && (
+          <div className="rounded-xl border border-[#2dd4a0]/25 px-3 py-3 space-y-2" style={{ background: "linear-gradient(135deg, rgba(13,18,24,0.95) 0%, rgba(20,28,36,0.95) 100%)" }}>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ background: "rgba(45,212,160,0.12)" }}>
+                <span className="text-[14px]">💙</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-[12px] leading-[1.3]">{declineState.headline}</p>
+                <p className="text-gray-400 text-[11px] leading-[1.4] mt-0.5">{declineState.body}</p>
+              </div>
+              <button onClick={() => setDeclineState(null)} className="flex-shrink-0 text-gray-600 hover:text-gray-400 text-[14px] leading-none mt-0.5">×</button>
+            </div>
+            <div className="flex gap-2 pt-0.5">
+              {declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setTimeout(() => handlePay(), 50); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Try Again
+                </button>
+              )}
+              {!declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setShowCardForm(true); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Use a Different Card
+                </button>
+              )}
+              {declineState.showBnpl && process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK && (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(patient.email || "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2dd4a0] border border-[#2dd4a0]/30 text-center transition-all active:scale-[0.98]"
+                  style={{ background: "rgba(45,212,160,0.06)" }}
+                >
+                  Book Now, Pay Later
+                </a>
+              )}
+            </div>
+            <p className="text-gray-600 text-[10px] leading-[1.3] text-center pt-0.5">
+              Care first. Your information is saved — nothing to re-enter.
+            </p>
+          </div>
+        )}
+
         {isTestMode ? (
           <button onClick={() => {
             if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
@@ -503,9 +712,16 @@ function Step2PaymentForm({
             {/* Card form — always open for new patients, collapsed for returning */}
             {showCardForm || isNewPatient ? (
               <>
+                {/* Field hint — shown when a specific field caused the decline */}
+                {declineState?.fieldHint && (
+                  <p className="text-[#f97316] text-[10px] font-medium px-1 -mb-1">
+                    ⚠ {declineState.fieldHint}
+                  </p>
+                )}
+
                 {/* Stripe PaymentElement — name/email/phone collected above; address collected by Stripe */}
-                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
-                  <PaymentElement onReady={() => setElementReady(true)} options={{
+                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#2dd4a0] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
+                  <PaymentElement onReady={() => setElementReady(true)} onChange={() => { if (declineState) setDeclineState(null); }} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
                     wallets: { applePay: "never", googlePay: "never" },
@@ -534,8 +750,9 @@ function Step2PaymentForm({
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
                   }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
-                    <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
+                    <Lock size={13} /> {payInFlight ? "Processing..." : "BOOK NOW, PAY LATER"}
                   </button>
+                  <p className="text-center text-gray-600 text-[9px] tracking-wide mt-1">CARE FIRST program</p>
                 </div>
               </>
             ) : (
@@ -808,6 +1025,7 @@ export default function ExpressCheckoutPage() {
   const currentPrice = useMemo(() => getBookingFee(), []);
   const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
   const [visitIntentId, setVisitIntentId] = useState("");
+  const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
   const isReturningPatient = !!patient?.id || (!!patient?.source && patient.source !== "new");
@@ -978,6 +1196,7 @@ export default function ExpressCheckoutPage() {
         if (data.clientSecret) setClientSecret(data.clientSecret);
         else throw new Error("No clientSecret in response");
         if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+        if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
       })
       .catch((err) => {
         if (err.name === "AbortError") { console.log("[PaymentPrefetch] aborted (expected)"); return; }
@@ -1206,6 +1425,7 @@ export default function ExpressCheckoutPage() {
           if (data.clientSecret) { setClientSecret(data.clientSecret); console.log("[Fallback] clientSecret received"); }
           else throw new Error("No clientSecret in response");
           if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+          if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
@@ -2047,7 +2267,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card fallback */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -2149,7 +2369,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
                     />
                   </Elements>
