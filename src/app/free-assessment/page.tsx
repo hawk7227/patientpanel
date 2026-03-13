@@ -356,10 +356,20 @@ function InlineCTABlock({ onActivate }: { onActivate: () => void }) {
           {/* Laptop frame */}
           <div className="relative mb-4" style={{ borderRadius: 20, border: "1.5px solid rgba(45,212,191,0.35)", background: "#080e0c", boxShadow: "0 0 40px rgba(45,212,191,0.12), 0 0 80px rgba(45,212,191,0.06)" }}>
 
-            {/* I'M ONLINE bar */}
-            <div className="flex items-center justify-center gap-2 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-              <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
+            {/* I'M ONLINE bar — green bg, queue inline */}
+            <div className="flex items-center justify-between px-4 py-2" style={{ background: "#14532d", borderBottom: "1px solid rgba(255,255,255,0.06)", borderRadius: "18px 18px 0 0" }}>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+                <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <span className="text-sm font-black" style={{ color: "#4ade80" }}>{queuePosition}</span>
+                <span className="text-xs font-semibold text-white">in Queue</span>
+                <span className="text-xs font-bold ml-1" style={{ color: "#4ade80" }}>
+                  {queuePosition === 1 ? "🎉 You're Up Next!" : "· Spots filling fast"}
+                </span>
+              </div>
             </div>
 
             {/* Video area */}
@@ -407,40 +417,64 @@ function InlineCTABlock({ onActivate }: { onActivate: () => void }) {
             </div>
           </div>
 
-                    {/* Queue Bar */}
-          <div className="flex items-center justify-center gap-3 px-3 py-2 mb-3 mx-auto" style={{ background: "rgba(45,245,198,0.05)", border: "1px solid rgba(45,212,160,0.15)", borderRadius: "12px", maxWidth: "320px" }}>
-            <div className="flex items-center gap-1.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2df5c6" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              <span className="text-xl font-black" style={{ color: "#2df5c6" }}>{queuePosition}</span>
-              <span className="text-sm font-semibold text-white">in Queue</span>
-            </div>
-            <div className="w-px h-6" style={{ background: "rgba(45,245,198,0.3)" }} />
-            {queuePosition === 1
-              ? <span className="text-sm font-bold" style={{ color: "#2df5c6" }}>🎉 You&apos;re Up Next!</span>
-              : <span className="text-sm font-semibold" style={{ color: "#9ca3af" }}>Spots filling fast</span>
-            }
-          </div>
-
-                    {/* Hero: pills OR inline symptom step */}
+          {/* Hero: pills OR inline symptom step */}
           {!showInlineStep ? (
             <>
-              {/* Hero Condition Pills — wrapped grid */}
-              <div className="hero-condition-pills w-full mb-3">
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <button onClick={() => handleConditionClick('uti')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">UTIs</button>
-                  <button onClick={() => handleConditionClick('weight-loss')} className="bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Weight Loss</button>
-                  <button onClick={() => handleConditionClick('anxiety')} className="bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Anxiety</button>
-                  <button onClick={() => handleConditionClick('depression')} className="bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Depression</button>
-                  <button onClick={() => handleConditionClick('cold-flu')} className="bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Cold &amp; Flu</button>
-                  <button onClick={() => handleConditionClick('skin')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Skin Issues</button>
-                  <button onClick={() => handleConditionClick('std')} className="bg-pink-500/10 border border-pink-500/30 text-pink-300 hover:bg-pink-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">STD Testing</button>
-                  <button onClick={() => handleConditionClick('erectile-dysfunction')} className="bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Erectile Dysfunction</button>
-                  <button onClick={() => handleConditionClick('birth-control')} className="bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Birth Control</button>
-                  <button onClick={() => handleConditionClick('hair-loss')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Hair Loss</button>
-                  <button onClick={() => handleConditionClick('allergies')} className="bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Allergies</button>
-                  <button onClick={() => handleConditionClick('sinus')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Sinus Infections</button>
-                  <button onClick={() => handleConditionClick('other')} className="bg-white/5 border border-white/20 text-gray-300 hover:bg-white/10 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">+ 40 more</button>
+              {/* Visit Type Panels — 4 cards */}
+              <div className="grid grid-cols-2 gap-2 w-full mb-3">
+
+                {/* Panel 1 — No Call Visits */}
+                <div onClick={() => handleConditionClick('instant')} className="group relative bg-[#0a0f0d] border border-teal-500/30 hover:border-teal-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg">💬</span>
+                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider leading-tight">No Call Visits</span>
+                  </div>
+                  <ol className="space-y-1">
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">1.</span>Submit Your Info Here</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">2.</span>Provider Reviews</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">3.</span>Treatment Sent To Your Pharmacy</li>
+                  </ol>
                 </div>
+
+                {/* Panel 2 — Video Visits */}
+                <div onClick={() => handleConditionClick('video')} className="group relative bg-[#0a0f0d] border border-blue-500/30 hover:border-blue-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg">📹</span>
+                    <span className="text-xs font-black text-blue-400 uppercase tracking-wider leading-tight">Video Visits</span>
+                  </div>
+                  <ol className="space-y-1">
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">1.</span>Choose The Date &amp; Time</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">2.</span>Meet By Video</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">3.</span>Agree On A Treatment</li>
+                  </ol>
+                </div>
+
+                {/* Panel 3 — Phone or SMS */}
+                <div onClick={() => handleConditionClick('phone')} className="group relative bg-[#0a0f0d] border border-purple-500/30 hover:border-purple-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg">📞</span>
+                    <span className="text-xs font-black text-purple-400 uppercase tracking-wider leading-tight">Phone or SMS</span>
+                  </div>
+                  <ol className="space-y-1">
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">1.</span>You Set The Day &amp; Time</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">2.</span>Provider &amp; You Connect</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">3.</span>Treatment Begins</li>
+                  </ol>
+                </div>
+
+                {/* Panel 4 — Quick Rx Refill */}
+                <div onClick={() => handleConditionClick('rx-refill')} className="group relative bg-[#0a0f0d] border border-amber-500/30 hover:border-amber-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="text-lg">💊</span>
+                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider leading-tight">Quick Rx Refill</span>
+                  </div>
+                  <ol className="space-y-1">
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">1.</span>Select Your Medication</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">2.</span>Provider Approves</li>
+                    <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">3.</span>Sent To Your Pharmacy</li>
+                  </ol>
+                </div>
+
               </div>
 
               {/* CTA + Email + Return Patient */}
