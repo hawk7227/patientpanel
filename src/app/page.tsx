@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { CONDITIONS_LIST, EXPANDED_CONDITIONS } from "@/lib/assessment-data";
+import asyncCardImg from "./async-photo.png";
+import instantCardImg from "./instant-photo.png";
+import phoneCardImg from "./phone-photo.png";
+import videoCardImg from "./video-photo.png";
 
 const getPillColorClass = (color: string) => {
   const map: Record<string, string> = {
@@ -45,6 +49,7 @@ function PremiumVisitCard({
   icon,
   onClick,
   badge,
+  cardImage,
 }: {
   title: string;
   subtitle: string;
@@ -54,89 +59,145 @@ function PremiumVisitCard({
   icon: React.ReactNode;
   onClick: () => void;
   badge?: string;
+  cardImage: { src: string };
 }) {
   const styles = {
     teal: {
-      ring: 'from-teal-300/80 via-cyan-400/70 to-teal-500/80',
-      glow: 'shadow-[0_0_30px_rgba(45,245,198,0.16)]',
-      icon: 'text-teal-300',
-      button: 'from-teal-700 via-teal-600 to-emerald-600 hover:from-teal-600 hover:via-teal-500 hover:to-emerald-500',
-      badge: 'bg-teal-400/20 text-teal-200 border-teal-300/30',
-      dot: 'bg-teal-300',
+      ring: "rgba(45,245,198,0.9)",
+      glow: "0 0 32px rgba(45,245,198,0.22), inset 0 0 0 1px rgba(255,255,255,0.06)",
+      button: "linear-gradient(180deg, rgba(12,140,120,0.95) 0%, rgba(7,104,94,0.98) 100%)",
+      buttonBorder: "rgba(45,245,198,0.48)",
+      textGlow: "0 0 18px rgba(45,245,198,0.22)",
     },
     violet: {
-      ring: 'from-fuchsia-300/80 via-violet-400/75 to-purple-500/80',
-      glow: 'shadow-[0_0_34px_rgba(192,132,252,0.18)]',
-      icon: 'text-fuchsia-200',
-      button: 'from-fuchsia-700 via-pink-700 to-purple-700 hover:from-fuchsia-600 hover:via-pink-600 hover:to-purple-600',
-      badge: 'bg-fuchsia-400/20 text-fuchsia-100 border-fuchsia-300/30',
-      dot: 'bg-fuchsia-300',
+      ring: "rgba(228,102,255,0.92)",
+      glow: "0 0 32px rgba(228,102,255,0.24), inset 0 0 0 1px rgba(255,255,255,0.06)",
+      button: "linear-gradient(180deg, rgba(180,39,223,0.95) 0%, rgba(125,22,166,0.98) 100%)",
+      buttonBorder: "rgba(228,102,255,0.5)",
+      textGlow: "0 0 18px rgba(228,102,255,0.22)",
     },
     emerald: {
-      ring: 'from-emerald-300/80 via-green-400/75 to-teal-500/80',
-      glow: 'shadow-[0_0_30px_rgba(74,222,128,0.16)]',
-      icon: 'text-emerald-200',
-      button: 'from-emerald-700 via-green-700 to-teal-700 hover:from-emerald-600 hover:via-green-600 hover:to-teal-600',
-      badge: 'bg-emerald-400/20 text-emerald-100 border-emerald-300/30',
-      dot: 'bg-emerald-300',
+      ring: "rgba(59,240,161,0.9)",
+      glow: "0 0 32px rgba(59,240,161,0.22), inset 0 0 0 1px rgba(255,255,255,0.06)",
+      button: "linear-gradient(180deg, rgba(11,136,95,0.95) 0%, rgba(8,101,72,0.98) 100%)",
+      buttonBorder: "rgba(59,240,161,0.45)",
+      textGlow: "0 0 18px rgba(59,240,161,0.2)",
     },
     amber: {
-      ring: 'from-amber-300/80 via-orange-400/75 to-yellow-500/80',
-      glow: 'shadow-[0_0_30px_rgba(251,191,36,0.16)]',
-      icon: 'text-amber-200',
-      button: 'from-orange-700 via-amber-700 to-yellow-700 hover:from-orange-600 hover:via-amber-600 hover:to-yellow-600',
-      badge: 'bg-amber-400/20 text-amber-100 border-amber-300/30',
-      dot: 'bg-amber-300',
+      ring: "rgba(255,169,38,0.95)",
+      glow: "0 0 32px rgba(255,169,38,0.22), inset 0 0 0 1px rgba(255,255,255,0.06)",
+      button: "linear-gradient(180deg, rgba(198,95,9,0.96) 0%, rgba(153,67,3,0.98) 100%)",
+      buttonBorder: "rgba(255,169,38,0.5)",
+      textGlow: "0 0 18px rgba(255,169,38,0.2)",
     },
   }[accent];
 
   return (
-    <div className={`relative rounded-[22px] bg-gradient-to-br ${styles.ring} p-[1px] ${styles.glow} transition-transform duration-300 hover:-translate-y-1`}>
-      <div className="relative h-full rounded-[21px] overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),rgba(255,255,255,0.01)_38%,rgba(0,0,0,0.38)_100%)] backdrop-blur-xl">
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01)_26%,rgba(0,0,0,0.38)_100%)]" />
-        <div className="relative flex h-full flex-col p-4 sm:p-5">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 ${styles.icon}`}>
-              {icon}
-            </div>
-            {badge ? (
-              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${styles.badge}`}>
-                {badge}
-              </span>
-            ) : null}
-          </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative w-full overflow-hidden rounded-[28px] text-left transition duration-300 hover:-translate-y-1 active:scale-[0.99]"
+      style={{
+        minHeight: "clamp(250px, 49vw, 360px)",
+        border: `1.5px solid ${styles.ring}`,
+        boxShadow: styles.glow,
+        background: "rgba(3,10,12,0.88)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <img
+        src={cardImage.src}
+        alt=""
+        className="absolute inset-x-0 top-[52px] h-[31%] w-full object-cover opacity-88 transition-transform duration-500 group-hover:scale-[1.03]"
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(2,8,10,0.30) 0%, rgba(4,9,12,0.16) 18%, rgba(3,8,10,0.64) 45%, rgba(2,6,8,0.92) 68%, rgba(1,4,6,0.98) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-70"
+        style={{
+          background:
+            "radial-gradient(circle at top, rgba(255,255,255,0.08), transparent 34%), radial-gradient(circle at bottom, rgba(255,255,255,0.03), transparent 28%)",
+        }}
+      />
 
-          <div className="text-center">
-            <h3 className="text-[22px] leading-[1.05] font-black tracking-[-0.02em] text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.35)] sm:text-[24px]">
-              {title}
-            </h3>
-            <p className="mx-auto mt-3 max-w-[18rem] text-[15px] font-semibold leading-6 text-white/88 sm:text-base">
-              {subtitle}
-            </p>
+      <div className="relative flex h-full flex-col px-4 pb-4 pt-3 sm:px-5 sm:pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white/90 shadow-[0_0_14px_rgba(255,255,255,0.08)]">
+            {icon}
           </div>
+          {badge ? (
+            <span
+              className="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-black"
+              style={{ background: styles.ring }}
+            >
+              {badge}
+            </span>
+          ) : (
+            <span />
+          )}
+        </div>
 
-          <ul className="mt-5 space-y-3">
+        <div className="pt-1">
+          <h3
+            className="text-center font-black leading-none tracking-[-0.03em] text-white"
+            style={{
+              fontSize: "clamp(1.6rem, 4.5vw, 2.2rem)",
+              textShadow: "0 2px 20px rgba(0,0,0,0.45)",
+            }}
+          >
+            {title}
+          </h3>
+        </div>
+
+        <div className="mt-[7.3rem] sm:mt-[8.4rem]">
+          <p
+            className="mx-auto max-w-[14rem] text-center font-black text-white"
+            style={{
+              fontSize: "clamp(1.02rem, 2.8vw, 1.35rem)",
+              lineHeight: 1.18,
+              textShadow: "0 2px 14px rgba(0,0,0,0.52)",
+            }}
+          >
+            {subtitle}
+          </p>
+
+          <ul className="mt-4 space-y-2.5 sm:mt-5 sm:space-y-3">
             {bullets.map((bullet) => (
-              <li key={bullet} className="flex items-start gap-2.5 text-left text-[15px] font-bold leading-5 text-white/95 sm:text-base">
-                <span className={`mt-[6px] h-2.5 w-2.5 flex-shrink-0 rounded-full ${styles.dot} shadow-[0_0_12px_currentColor]`} />
+              <li
+                key={bullet}
+                className="flex items-start gap-2.5 font-bold text-white"
+                style={{ fontSize: "clamp(0.92rem, 2.4vw, 1.05rem)", lineHeight: 1.18 }}
+              >
+                <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8CFF93]" />
                 <span>{bullet}</span>
               </li>
             ))}
           </ul>
+        </div>
 
-          <button
-            type="button"
-            onClick={onClick}
-            className={`mt-6 w-full rounded-2xl border border-white/10 bg-gradient-to-r px-4 py-3.5 text-base font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.01] ${styles.button}`}
+        <div className="mt-auto pt-4">
+          <div
+            className="w-full rounded-[18px] px-3 py-3 text-center font-black text-white shadow-[0_10px_30px_rgba(0,0,0,0.30)]"
+            style={{
+              background: styles.button,
+              border: `1px solid ${styles.buttonBorder}`,
+              fontSize: "clamp(1rem, 2.5vw, 1.18rem)",
+              textShadow: "0 2px 14px rgba(0,0,0,0.35)",
+            }}
           >
             <span className="inline-flex items-center justify-center gap-2">
               {buttonLabel}
-              <ArrowRight size={18} />
+              <ArrowRight size={20} />
             </span>
-          </button>
+          </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -453,67 +514,71 @@ export default function AssessmentPageContent() {
               </div>
 
               {/* Premium visit cards — replaces old visit tiles */}
-              <div className="p-4 sm:p-5" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
-                <div className="mb-4 text-center">
-                  <h3 className="text-[clamp(24px,5vw,34px)] font-black tracking-[-0.03em] text-white drop-shadow-[0_1px_14px_rgba(0,0,0,0.45)]">
-                    Choose How You Want to <span className="text-teal-400">Be Treated</span>
+              <div className="px-3 pb-3 pt-4 sm:px-4 sm:pb-4 sm:pt-5" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
+                <div className="mb-3 text-center">
+                  <h3 className="text-[clamp(26px,5vw,36px)] font-black tracking-[-0.03em] text-white drop-shadow-[0_1px_14px_rgba(0,0,0,0.45)]">
+                    Choose How You Want to <span className="text-teal-300">Be Treated</span>
                   </h3>
                   <p className="mt-2 text-[13px] font-semibold text-white/70 sm:text-sm">Every visit type is handled by your provider. Same person. Every time.</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
                   <PremiumVisitCard
                     title="Async Visit"
-                    subtitle="Tell us about your symptoms. Your provider reviews it later in their queue."
+                    subtitle="Submit symptoms for provider review"
                     bullets={[
-                      'No appointment needed',
-                      'Complete intake online',
-                      'Reviewed in the provider queue',
+                      'Tell us about your symptoms',
+                      'Provider reviews in queue',
+                      'Rx sent if appropriate',
                     ]}
                     buttonLabel="Start Async Visit"
                     accent="teal"
                     icon={<RotateCcw className="h-6 w-6" />}
                     badge="No Call"
                     onClick={() => handleConditionClick('async-visit')}
+                    cardImage={asyncCardImg}
                   />
                   <PremiumVisitCard
                     title="Instant Visit"
-                    subtitle="Join the queue now when a provider is online and ready to pick up the next patient."
+                    subtitle="Join the provider queue instantly"
                     bullets={[
-                      'Wait in our online queue',
+                      'Wait in the online queue',
                       'Quick treatment — no call needed',
-                      'Join first available provider',
+                      'First available provider',
                     ]}
                     buttonLabel="Start Instant Visit"
                     accent="violet"
                     icon={<RefreshCw className="h-6 w-6" />}
                     badge="Fastest"
                     onClick={() => handleConditionClick('instant-visit')}
+                    cardImage={instantCardImg}
                   />
                   <PremiumVisitCard
                     title="Phone or SMS"
-                    subtitle="Talk with your provider without video when you want a simple phone or text-based visit."
+                    subtitle="Talk with a provider without video"
                     bullets={[
-                      'Text or call your provider',
-                      'Easy care without video',
+                      'Call or text your provider',
+                      'No busy schedule required',
                       '1–2 hour response',
                     ]}
                     buttonLabel="Start Messaging"
                     accent="emerald"
                     icon={<MessageCircle className="h-6 w-6" />}
                     onClick={() => handleConditionClick('phone')}
+                    cardImage={phoneCardImg}
                   />
                   <PremiumVisitCard
                     title="Video Visit"
-                    subtitle="Meet live with your provider for face-to-face care when you want to talk it through."
+                    subtitle="Meet your provider face-to-face"
                     bullets={[
                       'Best for more involved concerns',
                       'Live provider consultation',
-                      'Choose your visit time',
+                      'Choose appointment time',
                     ]}
                     buttonLabel="Start Video Visit"
                     accent="amber"
                     icon={<Video className="h-6 w-6" />}
                     onClick={() => handleConditionClick('video')}
+                    cardImage={videoCardImg}
                   />
                 </div>
               </div>
@@ -644,7 +709,7 @@ export default function AssessmentPageContent() {
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-4 font-serif text-center">
-            Choose How You Want to <span className="text-teal-400">Be Treated</span>
+            Choose How You Want to <span className="text-teal-300">Be Treated</span>
           </h2>
           <p className="text-center text-sm text-gray-500 mb-10">Every visit type is handled by your provider. Same person. Every time.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -905,6 +970,24 @@ export default function AssessmentPageContent() {
     </main>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
