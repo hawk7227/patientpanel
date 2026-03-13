@@ -3,13 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import StateGate, { StateBadge } from "@/components/free-assessment/StateGate";
 import ChatWidget from "@/components/free-assessment/ChatWidget";
-import { 
-  FAQFold, PrivacyFold, ProviderFold, CitiesFold, WhyUsFold, 
-  AvailabilityFold, CoverageFold, AboutClinicianFold, ZipCodesFold 
+import {
+  FAQFold, PrivacyFold, ProviderFold, CitiesFold, WhyUsFold,
+  AvailabilityFold, CoverageFold, AboutClinicianFold, ZipCodesFold
 } from "@/components/free-assessment/InfoFolds";
-import { 
-  ArrowRight, Clock, Video, UserCheck, Zap, Lightbulb, Heart, 
-  BarChart2, Shield, Image as ImageIcon, MessageCircle, Check, Lock, Users, RotateCcw, RefreshCw, Star, EyeOff, User
+import {
+  ArrowRight, Clock, Video, UserCheck, Zap, Lightbulb, Heart,
+  BarChart2, Shield, Image as ImageIcon, MessageCircle, Check, Lock, Users, RotateCcw, RefreshCw, Star, EyeOff, User, ChevronLeft
 } from "lucide-react";
 import Link from "next/link";
 import { CONDITIONS_LIST, EXPANDED_CONDITIONS } from "@/lib/assessment-data";
@@ -34,7 +34,13 @@ const getPillColorClass = (color: string) => {
 };
 
 
-function PairedCTABlock() {
+function PairedCTABlock({
+  showSteps,
+  onBookClick,
+}: {
+  showSteps: boolean;
+  onBookClick: () => void;
+}) {
   const [returningEmail, setReturningEmail] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -55,7 +61,9 @@ function PairedCTABlock() {
     if (!email) return;
     setSearching(true);
     setSearchError(null);
+
     try { sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); } catch {}
+
     try {
       const res = await fetch("/api/express-lookup", {
         method: "POST",
@@ -63,6 +71,7 @@ function PairedCTABlock() {
         body: JSON.stringify({ email, lookupOnly: true }),
       });
       const data = await res.json();
+
       if (res.ok && data.found && data.patient) {
         sessionStorage.setItem("expressPatient", JSON.stringify({
           id: data.patient.id || null,
@@ -77,10 +86,18 @@ function PairedCTABlock() {
         }));
       } else {
         sessionStorage.setItem("expressPatient", JSON.stringify({
-          id: null, firstName: "", lastName: "", email: email,
-          phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "",
+          id: null,
+          firstName: "",
+          lastName: "",
+          email: email,
+          phone: "",
+          dateOfBirth: "",
+          address: "",
+          source: "new",
+          pharmacy: "",
         }));
       }
+
       try { localStorage.removeItem("medazon_express_answers"); } catch {}
       window.location.href = "/express-checkout";
     } catch (err) {
@@ -94,20 +111,32 @@ function PairedCTABlock() {
     }
   };
 
+  // CTA click — first click shows steps, second click navigates
+  const handleCTAClick = (e: React.MouseEvent) => {
+    if (!showSteps) {
+      e.preventDefault();
+      onBookClick();
+      return;
+    }
+    // showSteps is true — navigate normally
+    try {
+      localStorage.removeItem("medazon_express_answers");
+      sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo()));
+      sessionStorage.setItem("expressPatient", JSON.stringify({
+        id: null, firstName: "", lastName: "", email: "", phone: "",
+        dateOfBirth: "", address: "", source: "new", pharmacy: "",
+      }));
+    } catch {}
+  };
+
   return (
     <div className="flex flex-col items-center gap-5 w-full">
       <Link
         href="/express-checkout"
-        onClick={() => {
-          try {
-            localStorage.removeItem("medazon_express_answers");
-            sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo()));
-            sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" }));
-          } catch {}
-        }}
+        onClick={handleCTAClick}
         className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap"
       >
-        Book My 1st Visit — $1.89 Reserve Fee <ArrowRight size={20} />
+        {showSteps ? "Book Now — $1.89 Reserve Fee" : "Book My 1st Visit — $1.89 Reserve Fee"} <ArrowRight size={20} />
       </Link>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
@@ -116,24 +145,8 @@ function PairedCTABlock() {
           </span>
         </div>
         <form onSubmit={(e) => { e.preventDefault(); handleExpressBook(); }} className="flex gap-2 sm:gap-3 w-full" autoComplete="on">
-          <input
-            type="email"
-            id="returning-email"
-            name="email"
-            autoComplete="email"
-            inputMode="email"
-            enterKeyHint="go"
-            value={returningEmail}
-            onChange={(e) => setReturningEmail(e.target.value)}
-            placeholder="Email"
-            disabled={searching}
-            className="flex-1 min-w-0 bg-white text-black border border-gray-300 rounded-xl px-4 sm:px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50"
-          />
-          <button
-            type="submit"
-            disabled={searching}
-            className="bg-[#0d3d2a] text-white font-bold px-4 sm:px-6 py-3.5 rounded-xl hover:bg-[#0f4d35] transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base flex-shrink-0 disabled:opacity-50"
-          >
+          <input type="email" id="returning-email" name="email" autoComplete="email" inputMode="email" enterKeyHint="go" value={returningEmail} onChange={(e) => setReturningEmail(e.target.value)} placeholder="Email" disabled={searching} className="flex-1 min-w-0 bg-white text-black border border-gray-300 rounded-xl px-4 sm:px-5 py-3.5 placeholder-gray-400 focus:outline-none focus:border-teal-400 transition-all text-base font-medium disabled:opacity-50" />
+          <button type="submit" disabled={searching} className="bg-[#0d3d2a] text-white font-bold px-4 sm:px-6 py-3.5 rounded-xl hover:bg-[#0f4d35] transition-all flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base flex-shrink-0 disabled:opacity-50">
             {searching ? (
               <><span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin flex-shrink-0" /> Searching...</>
             ) : (
@@ -150,6 +163,10 @@ function PairedCTABlock() {
 export default function AssessmentPageContent() {
   const [showMore, setShowMore] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
+  const pillsRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState<number | null>(null);
+
   const [queuePosition, setQueuePosition] = useState(() => {
     try {
       const stored = sessionStorage.getItem('landing_queue_pos');
@@ -160,6 +177,14 @@ export default function AssessmentPageContent() {
     } catch { return 3; }
   });
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Measure pills height after mount so container stays locked on transition
+  useEffect(() => {
+    if (pillsRef.current && !showSteps) {
+      const h = pillsRef.current.offsetHeight;
+      if (h > 0) setContainerHeight(h);
+    }
+  }, [showSteps]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -196,7 +221,7 @@ export default function AssessmentPageContent() {
   }, [queuePosition]);
 
   const handleConditionClick = (condition: string) => {
-    window.dispatchEvent(new CustomEvent('medazon-start-chat', { detail: condition }));
+    // Disconnected for now — inert
   };
 
   return (
@@ -204,7 +229,7 @@ export default function AssessmentPageContent() {
       <StateGate />
       <ChatWidget />
 
-      {/* HERO */}
+      {/* SECTION 3: HERO */}
       <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(12px, 3vw, 32px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.12),transparent_60%)]" />
         <div className="max-w-lg mx-auto relative z-10 text-center">
@@ -232,16 +257,7 @@ export default function AssessmentPageContent() {
                 <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">How It Works</a>
                 <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">About Your Provider</a>
                 <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">FAQ</a>
-                <Link
-                  href="/express-checkout"
-                  onClick={() => {
-                    try {
-                      localStorage.removeItem("medazon_express_answers");
-                      sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" }));
-                    } catch {}
-                  }}
-                  className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-1 w-full whitespace-nowrap"
-                >
+                <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-1 w-full whitespace-nowrap">
                   Book My 1st Visit — $1.89 Reserve Fee <ArrowRight size={16} />
                 </Link>
               </div>
@@ -279,8 +295,6 @@ export default function AssessmentPageContent() {
               <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
             </div>
             <div className="relative w-full overflow-hidden" style={{ height: "clamp(180px, 42vw, 240px)" }}>
-              {/* FIX: removed webkit-playsinline and x5-playsinline — invalid JSX attributes that break Turbopack */}
-              {/* These are set imperatively via setAttribute in useEffect above, which is correct */}
               <video
                 ref={videoRef}
                 autoPlay
@@ -290,6 +304,8 @@ export default function AssessmentPageContent() {
                 onCanPlay={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
                 onLoadedData={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
                 className="absolute inset-0 w-full h-full object-cover"
+                webkit-playsinline="true"
+                x5-playsinline="true"
                 preload="auto"
               >
                 <source src="/assets/doctor-instant-visit.mp4" type="video/mp4" />
@@ -330,31 +346,106 @@ export default function AssessmentPageContent() {
             }
           </div>
 
-          {/* Hero Condition Pills */}
-          <div className="hero-condition-pills w-full mb-3">
-            <div className="flex flex-wrap gap-2 justify-center">
-              <button onClick={() => handleConditionClick('uti')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">UTIs</button>
-              <button onClick={() => handleConditionClick('weight-loss')} className="bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Weight Loss</button>
-              <button onClick={() => handleConditionClick('anxiety')} className="bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Anxiety</button>
-              <button onClick={() => handleConditionClick('depression')} className="bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Depression</button>
-              <button onClick={() => handleConditionClick('cold-flu')} className="bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Cold &amp; Flu</button>
-              <button onClick={() => handleConditionClick('skin')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Skin Issues</button>
-              <button onClick={() => handleConditionClick('std')} className="bg-pink-500/10 border border-pink-500/30 text-pink-300 hover:bg-pink-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">STD Testing</button>
-              <button onClick={() => handleConditionClick('erectile-dysfunction')} className="bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Erectile Dysfunction</button>
-              <button onClick={() => handleConditionClick('birth-control')} className="bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Birth Control</button>
-              <button onClick={() => handleConditionClick('hair-loss')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Hair Loss</button>
-              <button onClick={() => handleConditionClick('allergies')} className="bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Allergies</button>
-              <button onClick={() => handleConditionClick('sinus')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Sinus Infections</button>
-              <button onClick={() => handleConditionClick('adhd')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">ADHD</button>
-              <button onClick={() => handleConditionClick('rx-refill')} className="bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Rx Refills</button>
-              <button onClick={() => handleConditionClick('other')} className="bg-white/5 border border-white/20 text-gray-300 hover:bg-white/10 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">+ 40 more</button>
+          {/* ── PILLS / STEPS CONTAINER — height locked after first measure ── */}
+          <div
+            className="w-full mb-3"
+            style={{
+              position: "relative",
+              height: containerHeight ? `${containerHeight}px` : "auto",
+              minHeight: containerHeight ? `${containerHeight}px` : undefined,
+            }}
+          >
+            {/* PILLS — visible when showSteps=false */}
+            <div
+              ref={pillsRef}
+              style={{
+                position: containerHeight ? "absolute" : "relative",
+                inset: 0,
+                transition: "opacity 180ms ease, transform 180ms ease",
+                opacity: showSteps ? 0 : 1,
+                transform: showSteps ? "translateY(-8px)" : "translateY(0)",
+                pointerEvents: showSteps ? "none" : "auto",
+              }}
+            >
+              <div className="flex flex-wrap gap-2 justify-center">
+                <button className="flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">UTIs</button>
+                <button className="flex-shrink-0 bg-teal-500/10 border border-teal-500/30 text-teal-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Weight Loss</button>
+                <button className="flex-shrink-0 bg-purple-500/10 border border-purple-500/30 text-purple-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Anxiety</button>
+                <button className="flex-shrink-0 bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Depression</button>
+                <button className="flex-shrink-0 bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Cold &amp; Flu</button>
+                <button className="flex-shrink-0 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Skin Issues</button>
+                <button className="flex-shrink-0 bg-pink-500/10 border border-pink-500/30 text-pink-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">STD Testing</button>
+                <button className="flex-shrink-0 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Erectile Dysfunction</button>
+                <button className="flex-shrink-0 bg-pink-500/10 border border-pink-500/30 text-pink-400 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Birth Control</button>
+                <button className="flex-shrink-0 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Hair Loss</button>
+                <button className="flex-shrink-0 bg-green-500/10 border border-green-500/30 text-green-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Allergies</button>
+                <button className="flex-shrink-0 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Sinus Infections</button>
+                <button className="flex-shrink-0 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">ADHD</button>
+                <button className="flex-shrink-0 bg-orange-500/10 border border-orange-500/30 text-orange-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Rx Refills</button>
+                <button className="flex-shrink-0 bg-white/5 border border-white/20 text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">+ 40 more</button>
+              </div>
+            </div>
+
+            {/* STEPS — visible when showSteps=true */}
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                transition: "opacity 220ms ease, transform 220ms ease",
+                opacity: showSteps ? 1 : 0,
+                transform: showSteps ? "translateY(0)" : "translateY(8px)",
+                pointerEvents: showSteps ? "auto" : "none",
+              }}
+            >
+              <div className="flex flex-col gap-3 h-full">
+
+                {/* STEP 2 */}
+                <div className="relative bg-[#0a0f0d] border-2 border-orange-500/70 rounded-2xl p-4 flex-1 flex flex-col">
+                  <button
+                    onClick={() => setShowSteps(false)}
+                    className="absolute top-3 left-3 flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+                    aria-label="Back to conditions"
+                  >
+                    <ChevronLeft size={14} />
+                    Back
+                  </button>
+                  <div className="flex flex-col items-center text-center pt-5 flex-1 justify-center">
+                    <div className="w-10 h-10 rounded-full bg-black border border-orange-500/40 flex items-center justify-center mb-2 shadow-[0_0_14px_rgba(249,115,22,0.3)]">
+                      <img src="/assets/download_(2).svg" alt="Step 2" width={18} height={18} />
+                    </div>
+                    <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mb-1">Step 2</p>
+                    <h3 className="text-white font-bold text-sm mb-1 leading-snug">Your Provider Personally Reviews Your Case</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed max-w-xs">
+                      A board-certified provider evaluates your history and symptoms — and decides if they&apos;re the right fit. Not every patient is accepted. Not every case qualifies.
+                    </p>
+                  </div>
+                </div>
+
+                {/* STEP 3 */}
+                <div className="relative bg-[#0a0f0d] border-2 border-orange-500/70 rounded-2xl p-4 flex-1 flex flex-col">
+                  <div className="flex flex-col items-center text-center flex-1 justify-center">
+                    <div className="w-10 h-10 rounded-full bg-black border border-orange-500/40 flex items-center justify-center mb-2 shadow-[0_0_14px_rgba(249,115,22,0.3)]">
+                      <img src="/assets/download_(1).svg" alt="Step 3" width={18} height={18} />
+                    </div>
+                    <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mb-1">Step 3</p>
+                    <h3 className="text-white font-bold text-sm mb-1 leading-snug">Accepted? You&apos;re Treated.</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed max-w-xs">
+                      Your provider treats your case and sends your prescription to your pharmacy. You&apos;re only billed after your visit is complete or your treatment has been delivered.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
             </div>
           </div>
+          {/* ── END PILLS / STEPS CONTAINER ── */}
 
+          {/* CTA + Email + Return Patient */}
           <div className="mb-4">
-            <PairedCTABlock />
+            <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
           </div>
 
+          {/* Trust bar */}
           <div className="flex items-center justify-center text-gray-400" style={{ fontSize: "clamp(11px,3vw,13px)" }}>
             <span className="flex items-center gap-1.5"><Users size={13} className="text-teal-400 flex-shrink-0" /> Same Provider Every Visit</span>
           </div>
@@ -362,109 +453,109 @@ export default function AssessmentPageContent() {
         </div>
       </section>
 
-      {/* STATS + CONDITIONS */}
+      {/* SECTION 4+: STATS + CONDITIONS + REST — unchanged from original */}
       <section className="relative px-4 pb-16 overflow-hidden">
         <div className="max-w-5xl mx-auto text-center">
 
-          <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-8">
-            <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
-              <p className="text-teal-400 font-black text-lg">2 min</p>
-              <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Avg. Intake</p>
-            </div>
-            <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
-              <p className="text-orange-400 font-black text-lg">1-2 hr</p>
-              <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Rx to Pharmacy</p>
-            </div>
-            <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
-              <p className="text-white font-black text-lg">$0</p>
-              <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Hidden Fees</p>
-            </div>
-          </div>
+           <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-8">
+             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
+               <p className="text-teal-400 font-black text-lg">2 min</p>
+               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Avg. Intake</p>
+             </div>
+             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
+               <p className="text-orange-400 font-black text-lg">1-2 hr</p>
+               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Rx to Pharmacy</p>
+             </div>
+             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
+               <p className="text-white font-black text-lg">$0</p>
+               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Hidden Fees</p>
+             </div>
+           </div>
 
-          <div className="relative max-w-4xl mx-auto">
-            <div className="absolute -inset-1 bg-gradient-to-b from-teal-500/20 to-teal-500/5 rounded-[35px] blur-lg opacity-60" />
-            <div className="relative bg-[#0a0f0d] border border-teal-500/40 rounded-[30px] p-6 md:p-10 shadow-2xl">
-              <h3 className="text-xl md:text-2xl font-bold mb-6 font-serif text-center">
-                What We Treat — <span className="text-teal-400">Privately and Discreetly</span>
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-                <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">UTI Symptoms</div><div className="text-[10px] text-gray-500 mt-1">Burning, frequent urination</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('anxiety')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Heart className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">Anxiety & Stress</div><div className="text-[10px] text-gray-500 mt-1">Racing thoughts, worry</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('cold-flu')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <BarChart2 className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform rotate-90" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">Cold & Flu</div><div className="text-[10px] text-gray-500 mt-1">Fever, cough, congestion</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
-                </button>
+           <div className="relative max-w-4xl mx-auto">
+              <div className="absolute -inset-1 bg-gradient-to-b from-teal-500/20 to-teal-500/5 rounded-[35px] blur-lg opacity-60" />
+              <div className="relative bg-[#0a0f0d] border border-teal-500/40 rounded-[30px] p-6 md:p-10 shadow-2xl">
+                 <h3 className="text-xl md:text-2xl font-bold mb-6 font-serif text-center">
+                   What We Treat — <span className="text-teal-400">Privately and Discreetly</span>
+                 </h3>
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+                    <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                      <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
+                      <div className="text-center"><div className="text-white font-semibold text-sm">UTI Symptoms</div><div className="text-[10px] text-gray-500 mt-1">Burning, frequent urination</div></div>
+                    </button>
+                    <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                      <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
+                      <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
+                    </button>
+                    <button onClick={() => handleConditionClick('anxiety')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                      <Heart className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                      <div className="text-center"><div className="text-white font-semibold text-sm">Anxiety & Stress</div><div className="text-[10px] text-gray-500 mt-1">Racing thoughts, worry</div></div>
+                    </button>
+                    <button onClick={() => handleConditionClick('cold-flu')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                      <BarChart2 className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform rotate-90" />
+                      <div className="text-center"><div className="text-white font-semibold text-sm">Cold & Flu</div><div className="text-[10px] text-gray-500 mt-1">Fever, cough, congestion</div></div>
+                    </button>
+                    <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                      <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
+                      <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
+                    </button>
+                    <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                      <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
+                      <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
+                    </button>
+                 </div>
+
+                 <h4 className="text-xl font-bold font-serif text-center mb-4">Something Else?</h4>
+                 <div className="relative">
+                   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+                     <button onClick={() => handleConditionClick('skin')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Skin Issues</button>
+                     <button onClick={() => handleConditionClick('erectile-dysfunction')} className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Erectile Dysfunction</button>
+                     <button onClick={() => handleConditionClick('depression')} className="bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Depression</button>
+                     <button onClick={() => handleConditionClick('birth-control')} className="bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Birth Control</button>
+                     <button onClick={() => handleConditionClick('hair-loss')} className="bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Hair Loss</button>
+                     <button onClick={() => handleConditionClick('allergies')} className="bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Allergies</button>
+                     <button onClick={() => handleConditionClick('sinus')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Sinus Infections</button>
+                     <button onClick={() => handleConditionClick('rx-refill')} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Rx Refills</button>
+                     <button onClick={() => handleConditionClick('insomnia')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Insomnia</button>
+                     <button onClick={() => handleConditionClick('yeast-infection')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Yeast Infection</button>
+                     <button onClick={() => handleConditionClick('bv')} className="bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">BV Treatment</button>
+                     <button onClick={() => handleConditionClick('acid-reflux')} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Acid Reflux</button>
+                     <button onClick={() => handleConditionClick('high-blood-pressure')} className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">High Blood Pressure</button>
+                     <button onClick={() => handleConditionClick('thyroid')} className="bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Thyroid Issues</button>
+                     <button onClick={() => handleConditionClick('diabetes')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Diabetes Management</button>
+                     <button onClick={() => handleConditionClick('migraine')} className="bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Migraines</button>
+                     <button onClick={() => handleConditionClick('eczema')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Eczema</button>
+                     <button onClick={() => handleConditionClick('asthma')} className="bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Asthma</button>
+                     <button onClick={() => handleConditionClick('ear-infection')} className="bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Ear Infections</button>
+                     <button onClick={() => handleConditionClick('pink-eye')} className="bg-pink-500/10 border border-pink-500/30 text-pink-300 hover:bg-pink-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Pink Eye</button>
+                     <button onClick={() => handleConditionClick('bronchitis')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Bronchitis</button>
+                     <button onClick={() => handleConditionClick('gout')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Gout</button>
+                     <button onClick={() => handleConditionClick('strep-throat')} className="bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Strep Throat</button>
+                     <button onClick={() => handleConditionClick('smoking-cessation')} className="bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Smoking Cessation</button>
+                     <button onClick={() => handleConditionClick('herpes')} className="bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Herpes Treatment</button>
+                     <button onClick={() => handleConditionClick('trichomoniasis')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Trichomoniasis</button>
+                     <button onClick={() => handleConditionClick('perimenopause')} className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Perimenopause</button>
+                     <button onClick={() => handleConditionClick('hpv')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">HPV</button>
+                     <button onClick={() => handleConditionClick('cholesterol')} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">High Cholesterol</button>
+                     <button onClick={() => handleConditionClick('nausea')} className="bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Nausea & Vomiting</button>
+                     <button onClick={() => handleConditionClick('other')} className="bg-gray-500/10 border border-gray-500/30 text-gray-300 hover:bg-gray-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Other</button>
+                     <div className="flex items-center shrink-0 pl-1">
+                       <ArrowRight size={18} className="text-gray-500" />
+                     </div>
+                   </div>
+                 </div>
+                 <p className="text-center text-sm text-gray-500 mb-6">Treated from home. Prescription to your pharmacy. No one has to know.</p>
+                 <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
               </div>
+           </div>
 
-              <h4 className="text-xl font-bold font-serif text-center mb-4">Something Else?</h4>
-              <div className="relative">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
-                  <button onClick={() => handleConditionClick('skin')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Skin Issues</button>
-                  <button onClick={() => handleConditionClick('erectile-dysfunction')} className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Erectile Dysfunction</button>
-                  <button onClick={() => handleConditionClick('depression')} className="bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Depression</button>
-                  <button onClick={() => handleConditionClick('birth-control')} className="bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Birth Control</button>
-                  <button onClick={() => handleConditionClick('hair-loss')} className="bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Hair Loss</button>
-                  <button onClick={() => handleConditionClick('allergies')} className="bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Allergies</button>
-                  <button onClick={() => handleConditionClick('sinus')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Sinus Infections</button>
-                  <button onClick={() => handleConditionClick('rx-refill')} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Rx Refills</button>
-                  <button onClick={() => handleConditionClick('insomnia')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Insomnia</button>
-                  <button onClick={() => handleConditionClick('yeast-infection')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Yeast Infection</button>
-                  <button onClick={() => handleConditionClick('bv')} className="bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">BV Treatment</button>
-                  <button onClick={() => handleConditionClick('acid-reflux')} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Acid Reflux</button>
-                  <button onClick={() => handleConditionClick('high-blood-pressure')} className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">High Blood Pressure</button>
-                  <button onClick={() => handleConditionClick('thyroid')} className="bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Thyroid Issues</button>
-                  <button onClick={() => handleConditionClick('diabetes')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Diabetes Management</button>
-                  <button onClick={() => handleConditionClick('migraine')} className="bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Migraines</button>
-                  <button onClick={() => handleConditionClick('eczema')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Eczema</button>
-                  <button onClick={() => handleConditionClick('asthma')} className="bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Asthma</button>
-                  <button onClick={() => handleConditionClick('ear-infection')} className="bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Ear Infections</button>
-                  <button onClick={() => handleConditionClick('pink-eye')} className="bg-pink-500/10 border border-pink-500/30 text-pink-300 hover:bg-pink-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Pink Eye</button>
-                  <button onClick={() => handleConditionClick('bronchitis')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Bronchitis</button>
-                  <button onClick={() => handleConditionClick('gout')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Gout</button>
-                  <button onClick={() => handleConditionClick('strep-throat')} className="bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Strep Throat</button>
-                  <button onClick={() => handleConditionClick('smoking-cessation')} className="bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Smoking Cessation</button>
-                  <button onClick={() => handleConditionClick('herpes')} className="bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Herpes Treatment</button>
-                  <button onClick={() => handleConditionClick('trichomoniasis')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Trichomoniasis</button>
-                  <button onClick={() => handleConditionClick('perimenopause')} className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Perimenopause</button>
-                  <button onClick={() => handleConditionClick('hpv')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">HPV</button>
-                  <button onClick={() => handleConditionClick('cholesterol')} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">High Cholesterol</button>
-                  <button onClick={() => handleConditionClick('nausea')} className="bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Nausea & Vomiting</button>
-                  <button onClick={() => handleConditionClick('other')} className="bg-gray-500/10 border border-gray-500/30 text-gray-300 hover:bg-gray-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Other</button>
-                  <div className="flex items-center shrink-0 pl-1">
-                    <ArrowRight size={18} className="text-gray-500" />
-                  </div>
-                </div>
-              </div>
-              <p className="text-center text-sm text-gray-500 mb-6">Treated from home. Prescription to your pharmacy. No one has to know.</p>
-              <PairedCTABlock />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-6 mt-8 text-xs text-gray-400">
-            <span className="flex items-center gap-2"><Shield size={14} className="text-teal-400"/> HIPAA Compliant</span>
-            <span className="flex items-center gap-2"><Lock size={14} className="text-blue-400"/> 256-bit Encryption</span>
-            <span className="flex items-center gap-2"><Users size={14} className="text-purple-400"/> 12,398 Patients</span>
-            <span className="flex items-center gap-2"><Check size={14} className="text-green-400"/> Board-Certified</span>
-            <span className="flex items-center gap-2"><RefreshCw size={14} className="text-teal-400"/> Same Provider Every Visit</span>
-          </div>
+           <div className="flex flex-wrap justify-center gap-6 mt-8 text-xs text-gray-400">
+              <span className="flex items-center gap-2"><Shield size={14} className="text-teal-400"/> HIPAA Compliant</span>
+              <span className="flex items-center gap-2"><Lock size={14} className="text-blue-400"/> 256-bit Encryption</span>
+              <span className="flex items-center gap-2"><Users size={14} className="text-purple-400"/> 12,398 Patients</span>
+              <span className="flex items-center gap-2"><Check size={14} className="text-green-400"/> Board-Certified</span>
+              <span className="flex items-center gap-2"><RefreshCw size={14} className="text-teal-400"/> Same Provider Every Visit</span>
+           </div>
         </div>
       </section>
 
@@ -479,9 +570,7 @@ export default function AssessmentPageContent() {
             <div onClick={() => handleConditionClick('instant')} className="relative h-48 md:h-56 rounded-2xl overflow-hidden border border-teal-500/30 group cursor-pointer">
               <img src="/assets/service_uti.jpg" alt="Instant Visit" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-              <div className="absolute top-3 left-3">
-                <span className="bg-teal-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Fastest</span>
-              </div>
+              <div className="absolute top-3 left-3"><span className="bg-teal-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Fastest</span></div>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
                 <p className="text-2xl mb-1">💬</p>
                 <h3 className="text-white font-bold text-sm mb-1 drop-shadow-md">Get Seen <span className="text-teal-400">Without Being Seen</span></h3>
@@ -491,9 +580,7 @@ export default function AssessmentPageContent() {
             <div onClick={() => handleConditionClick('rx-refill')} className="relative h-48 md:h-56 rounded-2xl overflow-hidden border border-amber-500/30 group cursor-pointer">
               <img src="/assets/service_general.jpg" alt="Rx Refill" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-              <div className="absolute top-3 left-3">
-                <span className="bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Fast</span>
-              </div>
+              <div className="absolute top-3 left-3"><span className="bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Fast</span></div>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
                 <p className="text-2xl mb-1">💊</p>
                 <h3 className="text-white font-bold text-sm mb-1 drop-shadow-md">Quick Rx Refill — <span className="text-amber-400">Skip the Wait</span></h3>
@@ -549,44 +636,44 @@ export default function AssessmentPageContent() {
               <p className="text-gray-400 text-sm">Your provider treats your case and sends your prescription to your pharmacy. You&apos;re only billed after your visit is complete or your treatment has been delivered.</p>
             </div>
           </div>
-          <div className="flex justify-center"><PairedCTABlock /></div>
+          <div className="flex justify-center"><PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} /></div>
         </div>
       </section>
 
       {/* WHAT'S BOTHERING YOU */}
       <section className="py-16 px-4">
-        <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-8 font-serif">What&apos;s <span className="text-teal-400">Bothering You?</span></h2>
-          <div className="flex flex-wrap justify-center gap-3">
-            {CONDITIONS_LIST.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => handleConditionClick(c.id)}
-                className={`${getPillColorClass(c.color)} border rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer hover:scale-105`}
-              >
-                {c.label}
-              </button>
-            ))}
-            {showMore && EXPANDED_CONDITIONS.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => handleConditionClick(c.id)}
-                className={`${getPillColorClass(c.color)} border rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer animate-in fade-in zoom-in-95 duration-300 hover:scale-105`}
-              >
-                {c.label}
-              </button>
-            ))}
-            <button
-              onClick={() => setShowMore(!showMore)}
-              className="bg-white/10 border border-white/30 rounded-full px-4 py-2 text-sm text-white font-medium hover:bg-white/20 transition-all flex items-center gap-1"
-            >
-              {showMore ? 'Show Less' : '+ 40 more'}
-            </button>
-          </div>
-        </div>
+         <div className="max-w-5xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-8 font-serif">What&apos;s <span className="text-teal-400">Bothering You?</span></h2>
+            <div className="flex flex-wrap justify-center gap-3">
+               {CONDITIONS_LIST.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleConditionClick(c.id)}
+                    className={`${getPillColorClass(c.color)} border rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer hover:scale-105`}
+                  >
+                    {c.label}
+                  </button>
+               ))}
+               {showMore && EXPANDED_CONDITIONS.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleConditionClick(c.id)}
+                    className={`${getPillColorClass(c.color)} border rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer animate-in fade-in zoom-in-95 duration-300 hover:scale-105`}
+                  >
+                    {c.label}
+                  </button>
+               ))}
+               <button
+                 onClick={() => setShowMore(!showMore)}
+                 className="bg-white/10 border border-white/30 rounded-full px-4 py-2 text-sm text-white font-medium hover:bg-white/20 transition-all flex items-center gap-1"
+               >
+                 {showMore ? 'Show Less' : '+ 40 more'}
+               </button>
+            </div>
+         </div>
       </section>
 
-      {/* PRIVACY & DISCRETION */}
+      {/* PRIVACY */}
       <section className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="relative">
@@ -608,7 +695,7 @@ export default function AssessmentPageContent() {
         </div>
       </section>
 
-      {/* COMPARISON TABLE */}
+      {/* COMPARISON */}
       <section className="py-16 px-4 bg-[#050a08]">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-10 font-serif text-center">
@@ -678,28 +765,28 @@ export default function AssessmentPageContent() {
 
       {/* FINAL CTA */}
       <section className="pb-16 px-4 bg-[#050a08]">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-[#0a0f0d] border border-teal-500/20 rounded-3xl p-8 md:p-12 shadow-[0_0_40px_rgba(20,184,166,0.1)] text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent" />
-            <h2 className="text-3xl font-bold mb-4 font-serif text-white">
-              Medazon puts <span className="text-teal-400">care first.</span>
-            </h2>
-            <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-              Private practice providers who put your privacy and discretion before everything else. Only charged if your provider accepts and treats your case.
-            </p>
-            <div className="mb-8"><PairedCTABlock /></div>
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
-              <span className="flex items-center gap-2"><Lock size={16} className="text-teal-400" /> HIPAA Compliant</span>
-              <span className="flex items-center gap-2"><Shield size={16} className="text-teal-400" /> 256-bit Encrypted</span>
-              <span className="flex items-center gap-2"><Check size={16} className="text-green-400" /> Board-Certified</span>
-              <span className="flex items-center gap-2"><Users size={16} className="text-teal-400" /> Private Practice</span>
-              <span className="flex items-center gap-2"><RefreshCw size={16} className="text-teal-400" /> Same Provider Every Visit</span>
+         <div className="max-w-4xl mx-auto">
+            <div className="bg-[#0a0f0d] border border-teal-500/20 rounded-3xl p-8 md:p-12 shadow-[0_0_40px_rgba(20,184,166,0.1)] text-center relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-teal-500/50 to-transparent" />
+               <h2 className="text-3xl font-bold mb-4 font-serif text-white">
+                 Medazon puts <span className="text-teal-400">care first.</span>
+               </h2>
+               <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
+                 Private practice providers who put your privacy and discretion before everything else. Only charged if your provider accepts and treats your case.
+               </p>
+               <div className="mb-8"><PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} /></div>
+               <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
+                  <span className="flex items-center gap-2"><Lock size={16} className="text-teal-400" /> HIPAA Compliant</span>
+                  <span className="flex items-center gap-2"><Shield size={16} className="text-teal-400" /> 256-bit Encrypted</span>
+                  <span className="flex items-center gap-2"><Check size={16} className="text-green-400" /> Board-Certified</span>
+                  <span className="flex items-center gap-2"><Users size={16} className="text-teal-400" /> Private Practice</span>
+                  <span className="flex items-center gap-2"><RefreshCw size={16} className="text-teal-400" /> Same Provider Every Visit</span>
+               </div>
             </div>
-          </div>
-        </div>
+         </div>
       </section>
 
-      {/* FAQ + INFO FOLDS */}
+      {/* FOLDS */}
       <div id="faq"></div>
       <FAQFold />
       <div id="provider"></div>
@@ -714,29 +801,30 @@ export default function AssessmentPageContent() {
 
       {/* FOOTER */}
       <footer className="py-12 px-4 border-t border-teal-500/10 bg-[#040807]">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-          <div className="text-center md:text-left">
-            <p className="font-bold text-white text-lg">Medazon Health</p>
-            <p className="text-xs text-gray-500 mt-1">Private Practice Telehealth</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-400">
-            <Link href="#" className="hover:text-teal-400 transition-colors">Home</Link>
-            <Link href="#how-it-works" className="hover:text-teal-400 transition-colors">How It Works</Link>
-            <Link href="#provider" className="hover:text-teal-400 transition-colors">About Your Provider</Link>
-            <Link href="#faq" className="hover:text-teal-400 transition-colors">FAQ</Link>
-            <Link href="#" className="hover:text-teal-400 transition-colors">Terms of Service</Link>
-            <Link href="#" className="hover:text-teal-400 transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-teal-400 transition-colors">Cancellation Policy</Link>
-          </div>
-        </div>
-        <div className="max-w-5xl mx-auto text-center border-t border-white/5 pt-8">
-          <p className="text-xs text-gray-500 mb-4">Medazon puts care first. Only charged if your provider accepts and treats your case.</p>
-          <p className="text-[10px] text-gray-600">© 2026 Medazon Health. All rights reserved. HIPAA Compliant · Board-Certified Providers · Florida</p>
-        </div>
+         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+            <div className="text-center md:text-left">
+               <p className="font-bold text-white text-lg">Medazon Health</p>
+               <p className="text-xs text-gray-500 mt-1">Private Practice Telehealth</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-6 text-xs text-gray-400">
+               <Link href="#" className="hover:text-teal-400 transition-colors">Home</Link>
+               <Link href="#how-it-works" className="hover:text-teal-400 transition-colors">How It Works</Link>
+               <Link href="#provider" className="hover:text-teal-400 transition-colors">About Your Provider</Link>
+               <Link href="#faq" className="hover:text-teal-400 transition-colors">FAQ</Link>
+               <Link href="#" className="hover:text-teal-400 transition-colors">Terms of Service</Link>
+               <Link href="#" className="hover:text-teal-400 transition-colors">Privacy Policy</Link>
+               <Link href="#" className="hover:text-teal-400 transition-colors">Cancellation Policy</Link>
+            </div>
+         </div>
+         <div className="max-w-5xl mx-auto text-center border-t border-white/5 pt-8">
+            <p className="text-xs text-gray-500 mb-4">Medazon puts care first. Only charged if your provider accepts and treats your case.</p>
+            <p className="text-[10px] text-gray-600">© 2026 Medazon Health. All rights reserved. HIPAA Compliant · Board-Certified Providers · Florida</p>
+         </div>
       </footer>
     </main>
   );
 }
+
 
 
 
