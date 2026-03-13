@@ -343,61 +343,32 @@ export default function AssessmentPageContent() {
             </div>
           </div>
 
-          {/* Visit Type Panels — 4 cards */}
-          <div className="grid grid-cols-2 gap-2 w-full mb-3">
-
-            {/* Panel 1 — No Call Visits */}
-            <div className="group relative bg-[#0a0f0d] border border-teal-500/30 hover:border-teal-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-lg">💬</span>
-                <span className="text-xs font-black text-teal-400 uppercase tracking-wider leading-tight">No Call Visits</span>
-              </div>
-              <ol className="space-y-1">
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">1.</span>Submit Your Info Here</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">2.</span>Provider Reviews</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">3.</span>Treatment Sent To Your Pharmacy</li>
-              </ol>
-            </div>
-
-            {/* Panel 2 — Video Visits */}
-            <div className="group relative bg-[#0a0f0d] border border-blue-500/30 hover:border-blue-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-lg">📹</span>
-                <span className="text-xs font-black text-blue-400 uppercase tracking-wider leading-tight">Video Visits</span>
-              </div>
-              <ol className="space-y-1">
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">1.</span>Choose The Date &amp; Time</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">2.</span>Meet By Video</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">3.</span>Agree On A Treatment</li>
-              </ol>
-            </div>
-
-            {/* Panel 3 — Phone or SMS */}
-            <div className="group relative bg-[#0a0f0d] border border-purple-500/30 hover:border-purple-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-lg">📞</span>
-                <span className="text-xs font-black text-purple-400 uppercase tracking-wider leading-tight">Phone or SMS</span>
-              </div>
-              <ol className="space-y-1">
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">1.</span>You Set The Day &amp; Time</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">2.</span>Provider &amp; You Connect</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">3.</span>Treatment Begins</li>
-              </ol>
-            </div>
-
-            {/* Panel 4 — Quick Rx Refill */}
-            <div className="group relative bg-[#0a0f0d] border border-amber-500/30 hover:border-amber-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-lg">💊</span>
-                <span className="text-xs font-black text-amber-400 uppercase tracking-wider leading-tight">Quick Rx Refill</span>
-              </div>
-              <ol className="space-y-1">
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">1.</span>Select Your Medication</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">2.</span>Provider Approves</li>
-                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">3.</span>Sent To Your Pharmacy</li>
-              </ol>
-            </div>
-
+          {/* Hero — 6-grid condition cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full mb-3">
+            <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+              <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
+              <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">1. Submit Info &nbsp;2. Provider Reviews &nbsp;3. Rx Sent</div></div>
+            </button>
+            <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+              <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
+              <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">1. Choose Date &amp; Time &nbsp;2. Meet By Video &nbsp;3. Agree Treatment</div></div>
+            </button>
+            <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+              <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+              <div className="text-center"><div className="text-white font-semibold text-sm">Connect by Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">1. Set Day &amp; Time &nbsp;2. Connect &nbsp;3. Treatment Begins</div></div>
+            </button>
+            <button onClick={() => handleConditionClick('anxiety')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+              <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
+              <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
+            </button>
+            <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+              <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
+              <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
+            </button>
+            <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+              <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
+              <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
+            </button>
           </div>
 
           {/* CTA + Email + Return Patient */}
