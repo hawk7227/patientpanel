@@ -34,6 +34,112 @@ const getPillColorClass = (color: string) => {
 };
 
 
+
+
+function PremiumVisitCard({
+  title,
+  subtitle,
+  bullets,
+  buttonLabel,
+  accent,
+  icon,
+  onClick,
+  badge,
+}: {
+  title: string;
+  subtitle: string;
+  bullets: string[];
+  buttonLabel: string;
+  accent: "teal" | "violet" | "emerald" | "amber";
+  icon: React.ReactNode;
+  onClick: () => void;
+  badge?: string;
+}) {
+  const styles = {
+    teal: {
+      ring: 'from-teal-300/80 via-cyan-400/70 to-teal-500/80',
+      glow: 'shadow-[0_0_30px_rgba(45,245,198,0.16)]',
+      icon: 'text-teal-300',
+      button: 'from-teal-700 via-teal-600 to-emerald-600 hover:from-teal-600 hover:via-teal-500 hover:to-emerald-500',
+      badge: 'bg-teal-400/20 text-teal-200 border-teal-300/30',
+      dot: 'bg-teal-300',
+    },
+    violet: {
+      ring: 'from-fuchsia-300/80 via-violet-400/75 to-purple-500/80',
+      glow: 'shadow-[0_0_34px_rgba(192,132,252,0.18)]',
+      icon: 'text-fuchsia-200',
+      button: 'from-fuchsia-700 via-pink-700 to-purple-700 hover:from-fuchsia-600 hover:via-pink-600 hover:to-purple-600',
+      badge: 'bg-fuchsia-400/20 text-fuchsia-100 border-fuchsia-300/30',
+      dot: 'bg-fuchsia-300',
+    },
+    emerald: {
+      ring: 'from-emerald-300/80 via-green-400/75 to-teal-500/80',
+      glow: 'shadow-[0_0_30px_rgba(74,222,128,0.16)]',
+      icon: 'text-emerald-200',
+      button: 'from-emerald-700 via-green-700 to-teal-700 hover:from-emerald-600 hover:via-green-600 hover:to-teal-600',
+      badge: 'bg-emerald-400/20 text-emerald-100 border-emerald-300/30',
+      dot: 'bg-emerald-300',
+    },
+    amber: {
+      ring: 'from-amber-300/80 via-orange-400/75 to-yellow-500/80',
+      glow: 'shadow-[0_0_30px_rgba(251,191,36,0.16)]',
+      icon: 'text-amber-200',
+      button: 'from-orange-700 via-amber-700 to-yellow-700 hover:from-orange-600 hover:via-amber-600 hover:to-yellow-600',
+      badge: 'bg-amber-400/20 text-amber-100 border-amber-300/30',
+      dot: 'bg-amber-300',
+    },
+  }[accent];
+
+  return (
+    <div className={`relative rounded-[22px] bg-gradient-to-br ${styles.ring} p-[1px] ${styles.glow} transition-transform duration-300 hover:-translate-y-1`}>
+      <div className="relative h-full rounded-[21px] overflow-hidden border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),rgba(255,255,255,0.01)_38%,rgba(0,0,0,0.38)_100%)] backdrop-blur-xl">
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.01)_26%,rgba(0,0,0,0.38)_100%)]" />
+        <div className="relative flex h-full flex-col p-4 sm:p-5">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 ${styles.icon}`}>
+              {icon}
+            </div>
+            {badge ? (
+              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${styles.badge}`}>
+                {badge}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="text-center">
+            <h3 className="text-[22px] leading-[1.05] font-black tracking-[-0.02em] text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.35)] sm:text-[24px]">
+              {title}
+            </h3>
+            <p className="mx-auto mt-3 max-w-[18rem] text-[15px] font-semibold leading-6 text-white/88 sm:text-base">
+              {subtitle}
+            </p>
+          </div>
+
+          <ul className="mt-5 space-y-3">
+            {bullets.map((bullet) => (
+              <li key={bullet} className="flex items-start gap-2.5 text-left text-[15px] font-bold leading-5 text-white/95 sm:text-base">
+                <span className={`mt-[6px] h-2.5 w-2.5 flex-shrink-0 rounded-full ${styles.dot} shadow-[0_0_12px_currentColor]`} />
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            onClick={onClick}
+            className={`mt-6 w-full rounded-2xl border border-white/10 bg-gradient-to-r px-4 py-3.5 text-base font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.01] ${styles.button}`}
+          >
+            <span className="inline-flex items-center justify-center gap-2">
+              {buttonLabel}
+              <ArrowRight size={18} />
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PairedCTABlock({
   showSteps,
   onBookClick,
@@ -346,33 +452,69 @@ export default function AssessmentPageContent() {
                 </div>
               </div>
 
-              {/* 6-grid condition cards — inside the same frame */}
-              <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">Submit · Review · Rx Sent</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">Choose Date · Meet · Agree Treatment</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">Set Time · Connect · Treatment Begins</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
-                  </button>
+              {/* Premium visit cards — replaces old visit tiles */}
+              <div className="p-4 sm:p-5" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
+                <div className="mb-4 text-center">
+                  <h3 className="text-[clamp(24px,5vw,34px)] font-black tracking-[-0.03em] text-white drop-shadow-[0_1px_14px_rgba(0,0,0,0.45)]">
+                    Choose How You Want to <span className="text-teal-400">Be Treated</span>
+                  </h3>
+                  <p className="mt-2 text-[13px] font-semibold text-white/70 sm:text-sm">Every visit type is handled by your provider. Same person. Every time.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <PremiumVisitCard
+                    title="Async Visit"
+                    subtitle="Tell us about your symptoms. Your provider reviews it later in their queue."
+                    bullets={[
+                      'No appointment needed',
+                      'Complete intake online',
+                      'Reviewed in the provider queue',
+                    ]}
+                    buttonLabel="Start Async Visit"
+                    accent="teal"
+                    icon={<RotateCcw className="h-6 w-6" />}
+                    badge="No Call"
+                    onClick={() => handleConditionClick('async-visit')}
+                  />
+                  <PremiumVisitCard
+                    title="Instant Visit"
+                    subtitle="Join the queue now when a provider is online and ready to pick up the next patient."
+                    bullets={[
+                      'Wait in our online queue',
+                      'Quick treatment — no call needed',
+                      'Join first available provider',
+                    ]}
+                    buttonLabel="Start Instant Visit"
+                    accent="violet"
+                    icon={<RefreshCw className="h-6 w-6" />}
+                    badge="Fastest"
+                    onClick={() => handleConditionClick('instant-visit')}
+                  />
+                  <PremiumVisitCard
+                    title="Phone or SMS"
+                    subtitle="Talk with your provider without video when you want a simple phone or text-based visit."
+                    bullets={[
+                      'Text or call your provider',
+                      'Easy care without video',
+                      '1–2 hour response',
+                    ]}
+                    buttonLabel="Start Messaging"
+                    accent="emerald"
+                    icon={<MessageCircle className="h-6 w-6" />}
+                    onClick={() => handleConditionClick('phone')}
+                  />
+                  <PremiumVisitCard
+                    title="Video Visit"
+                    subtitle="Meet live with your provider for face-to-face care when you want to talk it through."
+                    bullets={[
+                      'Best for more involved concerns',
+                      'Live provider consultation',
+                      'Choose your visit time',
+                    ]}
+                    buttonLabel="Start Video Visit"
+                    accent="amber"
+                    icon={<Video className="h-6 w-6" />}
+                    onClick={() => handleConditionClick('video')}
+                  />
                 </div>
               </div>
 
@@ -763,6 +905,25 @@ export default function AssessmentPageContent() {
     </main>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
