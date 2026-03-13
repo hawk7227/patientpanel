@@ -290,9 +290,20 @@ export default function AssessmentPageContent() {
 
           {/* Laptop frame */}
           <div className="relative mb-4" style={{ borderRadius: 20, border: "1.5px solid rgba(45,212,191,0.35)", background: "#080e0c", boxShadow: "0 0 40px rgba(45,212,191,0.12), 0 0 80px rgba(45,212,191,0.06)" }}>
-            <div className="flex items-center justify-center gap-2 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-              <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
+            {/* I'M ONLINE bar — green bg, queue inline */}
+            <div className="flex items-center justify-between px-4 py-2" style={{ background: "#14532d", borderBottom: "1px solid rgba(255,255,255,0.06)", borderRadius: "18px 18px 0 0" }}>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+                <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                <span className="text-sm font-black" style={{ color: "#4ade80" }}>{queuePosition}</span>
+                <span className="text-xs font-semibold text-white">in Queue</span>
+                <span className="text-xs font-bold ml-1" style={{ color: "#4ade80" }}>
+                  {queuePosition === 1 ? "🎉 You're Up Next!" : "· Spots filling fast"}
+                </span>
+              </div>
             </div>
             <div className="relative w-full overflow-hidden" style={{ height: "clamp(180px, 42vw, 240px)" }}>
               <video
@@ -332,113 +343,62 @@ export default function AssessmentPageContent() {
             </div>
           </div>
 
-          {/* Queue Bar */}
-          <div className="flex items-center justify-center gap-3 px-3 py-2 mb-3 mx-auto" style={{ background: "rgba(45,245,198,0.05)", border: "1px solid rgba(45,212,160,0.15)", borderRadius: "12px", maxWidth: "320px" }}>
-            <div className="flex items-center gap-1.5">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2df5c6" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              <span className="text-xl font-black" style={{ color: "#2df5c6" }}>{queuePosition}</span>
-              <span className="text-sm font-semibold text-white">in Queue</span>
-            </div>
-            <div className="w-px h-6" style={{ background: "rgba(45,245,198,0.3)" }} />
-            {queuePosition === 1
-              ? <span className="text-sm font-bold" style={{ color: "#2df5c6" }}>🎉 You&apos;re Up Next!</span>
-              : <span className="text-sm font-semibold" style={{ color: "#9ca3af" }}>Spots filling fast</span>
-            }
-          </div>
+          {/* Visit Type Panels — 4 cards */}
+          <div className="grid grid-cols-2 gap-2 w-full mb-3">
 
-          {/* ── PILLS / STEPS CONTAINER — height locked after first measure ── */}
-          <div
-            className="w-full mb-3"
-            style={{
-              position: "relative",
-              height: containerHeight ? `${containerHeight}px` : "auto",
-              minHeight: containerHeight ? `${containerHeight}px` : undefined,
-            }}
-          >
-            {/* PILLS — visible when showSteps=false */}
-            <div
-              ref={pillsRef}
-              style={{
-                position: containerHeight ? "absolute" : "relative",
-                inset: 0,
-                transition: "opacity 180ms ease, transform 180ms ease",
-                opacity: showSteps ? 0 : 1,
-                transform: showSteps ? "translateY(-8px)" : "translateY(0)",
-                pointerEvents: showSteps ? "none" : "auto",
-              }}
-            >
-              <div className="flex flex-wrap gap-2 justify-center">
-                <button className="flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">UTIs</button>
-                <button className="flex-shrink-0 bg-teal-500/10 border border-teal-500/30 text-teal-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Weight Loss</button>
-                <button className="flex-shrink-0 bg-purple-500/10 border border-purple-500/30 text-purple-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Anxiety</button>
-                <button className="flex-shrink-0 bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Depression</button>
-                <button className="flex-shrink-0 bg-blue-500/10 border border-blue-500/30 text-blue-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Cold &amp; Flu</button>
-                <button className="flex-shrink-0 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Skin Issues</button>
-                <button className="flex-shrink-0 bg-pink-500/10 border border-pink-500/30 text-pink-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">STD Testing</button>
-                <button className="flex-shrink-0 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Erectile Dysfunction</button>
-                <button className="flex-shrink-0 bg-pink-500/10 border border-pink-500/30 text-pink-400 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Birth Control</button>
-                <button className="flex-shrink-0 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Hair Loss</button>
-                <button className="flex-shrink-0 bg-green-500/10 border border-green-500/30 text-green-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Allergies</button>
-                <button className="flex-shrink-0 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Sinus Infections</button>
-                <button className="flex-shrink-0 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">ADHD</button>
-                <button className="flex-shrink-0 bg-orange-500/10 border border-orange-500/30 text-orange-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">Rx Refills</button>
-                <button className="flex-shrink-0 bg-white/5 border border-white/20 text-gray-300 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap">+ 40 more</button>
+            {/* Panel 1 — No Call Visits */}
+            <div className="group relative bg-[#0a0f0d] border border-teal-500/30 hover:border-teal-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-lg">💬</span>
+                <span className="text-xs font-black text-teal-400 uppercase tracking-wider leading-tight">No Call Visits</span>
               </div>
+              <ol className="space-y-1">
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">1.</span>Submit Your Info Here</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">2.</span>Provider Reviews</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-teal-400 font-bold shrink-0">3.</span>Treatment Sent To Your Pharmacy</li>
+              </ol>
             </div>
 
-            {/* STEPS — visible when showSteps=true */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                transition: "opacity 220ms ease, transform 220ms ease",
-                opacity: showSteps ? 1 : 0,
-                transform: showSteps ? "translateY(0)" : "translateY(8px)",
-                pointerEvents: showSteps ? "auto" : "none",
-              }}
-            >
-              <div className="flex flex-col gap-3 h-full">
-
-                {/* STEP 2 */}
-                <div className="relative bg-[#0a0f0d] border-2 border-orange-500/70 rounded-2xl p-4 flex-1 flex flex-col">
-                  <button
-                    onClick={() => setShowSteps(false)}
-                    className="absolute top-3 left-3 flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
-                    aria-label="Back to conditions"
-                  >
-                    <ChevronLeft size={14} />
-                    Back
-                  </button>
-                  <div className="flex flex-col items-center text-center pt-5 flex-1 justify-center">
-                    <div className="w-10 h-10 rounded-full bg-black border border-orange-500/40 flex items-center justify-center mb-2 shadow-[0_0_14px_rgba(249,115,22,0.3)]">
-                      <img src="/assets/download_(2).svg" alt="Step 2" width={18} height={18} />
-                    </div>
-                    <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mb-1">Step 2</p>
-                    <h3 className="text-white font-bold text-sm mb-1 leading-snug">Your Provider Personally Reviews Your Case</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed max-w-xs">
-                      A board-certified provider evaluates your history and symptoms — and decides if they&apos;re the right fit. Not every patient is accepted. Not every case qualifies.
-                    </p>
-                  </div>
-                </div>
-
-                {/* STEP 3 */}
-                <div className="relative bg-[#0a0f0d] border-2 border-orange-500/70 rounded-2xl p-4 flex-1 flex flex-col">
-                  <div className="flex flex-col items-center text-center flex-1 justify-center">
-                    <div className="w-10 h-10 rounded-full bg-black border border-orange-500/40 flex items-center justify-center mb-2 shadow-[0_0_14px_rgba(249,115,22,0.3)]">
-                      <img src="/assets/download_(1).svg" alt="Step 3" width={18} height={18} />
-                    </div>
-                    <p className="text-orange-400 text-[10px] font-bold uppercase tracking-widest mb-1">Step 3</p>
-                    <h3 className="text-white font-bold text-sm mb-1 leading-snug">Accepted? You&apos;re Treated.</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed max-w-xs">
-                      Your provider treats your case and sends your prescription to your pharmacy. You&apos;re only billed after your visit is complete or your treatment has been delivered.
-                    </p>
-                  </div>
-                </div>
-
+            {/* Panel 2 — Video Visits */}
+            <div className="group relative bg-[#0a0f0d] border border-blue-500/30 hover:border-blue-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-lg">📹</span>
+                <span className="text-xs font-black text-blue-400 uppercase tracking-wider leading-tight">Video Visits</span>
               </div>
+              <ol className="space-y-1">
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">1.</span>Choose The Date &amp; Time</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">2.</span>Meet By Video</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-blue-400 font-bold shrink-0">3.</span>Agree On A Treatment</li>
+              </ol>
             </div>
+
+            {/* Panel 3 — Phone or SMS */}
+            <div className="group relative bg-[#0a0f0d] border border-purple-500/30 hover:border-purple-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-lg">📞</span>
+                <span className="text-xs font-black text-purple-400 uppercase tracking-wider leading-tight">Phone or SMS</span>
+              </div>
+              <ol className="space-y-1">
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">1.</span>You Set The Day &amp; Time</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">2.</span>Provider &amp; You Connect</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-purple-400 font-bold shrink-0">3.</span>Treatment Begins</li>
+              </ol>
+            </div>
+
+            {/* Panel 4 — Quick Rx Refill */}
+            <div className="group relative bg-[#0a0f0d] border border-amber-500/30 hover:border-amber-400/60 rounded-2xl p-4 cursor-pointer transition-all text-left">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-lg">💊</span>
+                <span className="text-xs font-black text-amber-400 uppercase tracking-wider leading-tight">Quick Rx Refill</span>
+              </div>
+              <ol className="space-y-1">
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">1.</span>Select Your Medication</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">2.</span>Provider Approves</li>
+                <li className="flex items-start gap-1.5 text-[11px] text-gray-300"><span className="text-amber-400 font-bold shrink-0">3.</span>Sent To Your Pharmacy</li>
+              </ol>
+            </div>
+
           </div>
-          {/* ── END PILLS / STEPS CONTAINER ── */}
 
           {/* CTA + Email + Return Patient */}
           <div className="mb-4">
