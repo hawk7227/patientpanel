@@ -288,91 +288,94 @@ export default function AssessmentPageContent() {
             <span style={{ display: "block" }}>No appointments. No waiting rooms.</span>
           </p>
 
-          {/* Laptop frame */}
-          <div className="relative mb-4" style={{ borderRadius: 20, border: "1.5px solid rgba(45,212,191,0.35)", background: "#080e0c", boxShadow: "0 0 40px rgba(45,212,191,0.12), 0 0 80px rgba(45,212,191,0.06)" }}>
-            {/* I'M ONLINE bar — green bg, queue inline */}
-            <div className="flex items-center justify-between px-4 py-2" style={{ background: "#14532d", borderBottom: "1px solid rgba(255,255,255,0.06)", borderRadius: "18px 18px 0 0" }}>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-                <span className="text-xs font-bold tracking-widest" style={{ color: "#4ade80" }}>I&apos;M ONLINE</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                <span className="text-sm font-black" style={{ color: "#4ade80" }}>{queuePosition}</span>
-                <span className="text-xs font-semibold text-white">in Queue</span>
-                <span className="text-xs font-bold ml-1" style={{ color: "#4ade80" }}>
-                  {queuePosition === 1 ? "🎉 You're Up Next!" : "· Spots filling fast"}
-                </span>
-              </div>
-            </div>
-            <div className="relative w-full overflow-hidden" style={{ height: "clamp(180px, 42vw, 240px)" }}>
-              <video
-                ref={videoRef}
-                autoPlay
-                loop
-                muted
-                playsInline
-                onCanPlay={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
-                onLoadedData={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
-                className="absolute inset-0 w-full h-full object-cover"
-                webkit-playsinline="true"
-                x5-playsinline="true"
-                preload="auto"
-              >
-                <source src="/assets/doctor-instant-visit.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.28)" }} />
-              <div className="absolute left-0 right-0 top-0 flex flex-col items-center justify-center gap-1 z-10" style={{ height: "80%" }}>
-                <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: "clamp(13px,3.5vw,18px)" }}>LaMonica A. Hodges, MSN, APRN, FNP-C</h3>
-                <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(10px,2.5vw,13px)" }}>Board-Certified Family Nurse Practitioner</p>
-                <div className="flex items-center gap-1">
-                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                  <Star size={11} className="text-yellow-400 fill-yellow-400" />
-                  <span className="text-gray-300 drop-shadow-lg" style={{ fontSize: "clamp(9px,2.5vw,11px)" }}>4.9 / 12,398 reviews</span>
-                </div>
-              </div>
-              <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center z-10" style={{ height: "20%" }}>
-                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}>
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
-                  <span className="text-white font-semibold whitespace-nowrap" style={{ fontSize: "clamp(11px,3vw,14px)" }}>Currently with a patient</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Hero — 6-grid condition cards, instant-visit frame */}
+          {/* SINGLE OUTER WRAPPER — red/teal glow frame matching instant-visit */}
           <div className="relative w-full mb-3" style={{ isolation: 'isolate' }}>
-            <div className="absolute pointer-events-none" style={{ inset: '-8px', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(20,184,166,0.15) 100%)', filter: 'blur(20px)', borderRadius: '24px', zIndex: -1 }}></div>
-            <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: 'linear-gradient(180deg, rgba(5,11,20,0.95) 0%, rgba(13,18,24,0.98) 100%)', border: '1px solid rgba(45,245,198,0.2)', boxShadow: '0 0 40px rgba(45,245,198,0.15), 0 0 80px rgba(45,245,198,0.08)' }}>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">Submit · Review · Rx Sent</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">Choose Date · Meet · Agree Treatment</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">Set Time · Connect · Treatment Begins</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
-                </button>
-                <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                  <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
-                </button>
+            {/* Outer glow blur — behind everything */}
+            <div className="absolute pointer-events-none" style={{ inset: '-8px', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(20,184,166,0.15) 100%)', filter: 'blur(20px)', borderRadius: '28px', zIndex: -1 }} />
+            {/* Inner card — video + cards together */}
+            <div className="relative overflow-hidden" style={{ borderRadius: '20px', background: 'linear-gradient(180deg, rgba(5,11,20,0.95) 0%, rgba(13,18,24,0.98) 100%)', border: '1px solid rgba(45,245,198,0.2)', boxShadow: '0 0 40px rgba(45,245,198,0.15), 0 0 80px rgba(45,245,198,0.08)' }}>
+
+              {/* I'M ONLINE bar */}
+              <div className="flex items-center justify-between px-4 py-2" style={{ background: 'rgba(45,245,198,0.08)', borderBottom: '1px solid rgba(45,245,198,0.15)' }}>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full" style={{ background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                  <span className="text-xs font-bold tracking-widest" style={{ color: '#4ade80' }}>I&apos;M ONLINE</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  <span className="text-sm font-black" style={{ color: '#4ade80' }}>{queuePosition}</span>
+                  <span className="text-xs font-semibold text-white">in Queue</span>
+                  <span className="text-xs font-bold ml-1" style={{ color: '#4ade80' }}>
+                    {queuePosition === 1 ? "🎉 You're Up Next!" : "· Spots filling fast"}
+                  </span>
+                </div>
               </div>
+
+              {/* Video */}
+              <div className="relative w-full overflow-hidden" style={{ height: 'clamp(180px,42vw,240px)' }}>
+                <video
+                  ref={videoRef}
+                  autoPlay loop muted playsInline
+                  onCanPlay={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
+                  onLoadedData={(e) => { const v = e.currentTarget; v.muted = true; v.play().catch(() => {}); }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  webkit-playsinline="true"
+                  x5-playsinline="true"
+                  preload="auto"
+                >
+                  <source src="/assets/doctor-instant-visit.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.28)' }} />
+                <div className="absolute left-0 right-0 top-0 flex flex-col items-center justify-center gap-1 z-10" style={{ height: '80%' }}>
+                  <h3 className="text-white font-black drop-shadow-lg" style={{ fontSize: 'clamp(13px,3.5vw,18px)' }}>LaMonica A. Hodges, MSN, APRN, FNP-C</h3>
+                  <p className="text-gray-300 drop-shadow-lg" style={{ fontSize: 'clamp(10px,2.5vw,13px)' }}>Board-Certified Family Nurse Practitioner</p>
+                  <div className="flex items-center gap-1">
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <Star size={11} className="text-yellow-400 fill-yellow-400" />
+                    <span className="text-gray-300 drop-shadow-lg" style={{ fontSize: 'clamp(9px,2.5vw,11px)' }}>4.9 / 12,398 reviews</span>
+                  </div>
+                </div>
+                <div className="absolute left-0 right-0 bottom-0 flex items-center justify-center z-10" style={{ height: '20%' }}>
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}>
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                    <span className="text-white font-semibold whitespace-nowrap" style={{ fontSize: 'clamp(11px,3vw,14px)' }}>Currently with a patient</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6-grid condition cards — inside the same frame */}
+              <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                    <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
+                    <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">Submit · Review · Rx Sent</div></div>
+                  </button>
+                  <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                    <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
+                    <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">Choose Date · Meet · Agree Treatment</div></div>
+                  </button>
+                  <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                    <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                    <div className="text-center"><div className="text-white font-semibold text-sm">Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">Set Time · Connect · Treatment Begins</div></div>
+                  </button>
+                  <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                    <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
+                    <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
+                  </button>
+                  <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                    <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
+                    <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
+                  </button>
+                  <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                    <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
+                    <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
 
