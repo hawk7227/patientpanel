@@ -2,11 +2,21 @@
 // DUAL PAYMENT INTENT API
 //
 // Creates TWO Stripe PaymentIntents:
-//   1. Booking fee ($1.89) — capture_method: automatic (charges immediately)
-//   2. Visit fee ($189/$199/$249) — capture_method: manual (pre-auth hold only)
+//   1. Visit fee ($189/$199/$249) — capture_method: manual (pre-auth hold)
+//   2. Booking fee ($1.89) — capture_method: automatic (charges immediately)
 //
-// Visit fee hold verifies funds but does NOT charge the patient.
-// Capture triggers (30s threshold):
+// Pricing:
+//   Business hours (Mon-Fri 9am-9pm patient local time):
+//     Instant/Refill: $189, Video/Phone: $199
+//   After-hours/weekends/holidays: $249
+//   Step 1: PaymentElement confirms visitIntent → requires_capture (hold cleared, funds verified)
+//   Step 2: /api/confirm-booking-fee confirms bookingIntent server-side → $1.89 charged
+//   Step 3: create-appointment
+//
+// If the $189 hold fails → decline message shown, $1.89 never charged.
+// Patient always knows their card works before any money moves.
+//
+// Capture triggers (post-visit):
 //   - Video/Phone: both parties connected 30s+
 //   - Instant/Refill (no controlled): provider marks completed/rx_sent
 //   - Controlled substances: live eval connected 30s+
@@ -130,12 +140,11 @@ export async function POST(request: Request) {
     console.log(`[Payment] Booking fee: ${bookingIntent.id} for $1.89 (split: $${(bookingSplit / 100).toFixed(2)})`);
 
     return NextResponse.json({
-      // Client uses bookingSecret for the PaymentElement ($1.89 they pay now)
-      clientSecret: bookingIntent.client_secret,
-      bookingIntentId: bookingIntent.id,
-      // Visit intent info — stored for later capture
+      // visitIntent clientSecret — PaymentElement confirms the $189 hold first
+      clientSecret: visitIntent.client_secret,
       visitIntentId: visitIntent.id,
-      visitClientSecret: visitIntent.client_secret,
+      // bookingIntent — confirmed server-side after hold clears
+      bookingIntentId: bookingIntent.id,
       transferGroup: transferGroup,
     });
   } catch (err: any) {

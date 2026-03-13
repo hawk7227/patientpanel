@@ -11,6 +11,7 @@ import {
 import Stripe from "stripe";
 import { log } from "console";
 import { dailyService } from "@/lib/daily";
+import { scheduleReminderChain } from "@/lib/reminders";
 
 // Dynamic import for waitUntil - works with or without @vercel/functions
 let waitUntilFn: ((promise: Promise<unknown>) => void) | null = null;
@@ -29,7 +30,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: Request) {
   try {
-    const { payment_intent_id, appointmentData } = await request.json();
+    const { payment_intent_id, visit_intent_id, appointmentData, payment_intent_status } = await request.json();
 
     console.log(
       "[CREATE_APPOINTMENT] Received request with appointment data.",
@@ -72,12 +73,22 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
-      if (paymentIntent.status !== "succeeded") {
-        return NextResponse.json(
-          { error: "Payment not successful", status: paymentIntent.status },
-          { status: 400 },
-        );
+      // PERF: Client already has paymentIntent status from confirmPayment result.
+      // If client passes requires_capture or succeeded, skip the Stripe retrieve round-trip (~300–600ms).
+      // Fall back to Stripe retrieve only when status is missing/unexpected.
+      const VALID_STATUSES = ["requires_capture", "succeeded"];
+      if (payment_intent_status && VALID_STATUSES.includes(payment_intent_status)) {
+        console.log(`[CREATE_APPOINTMENT] Skipping Stripe retrieve — client confirmed status: ${payment_intent_status}`);
+        paymentIntent = { id: payment_intent_id, status: payment_intent_status };
+      } else {
+        console.log("[CREATE_APPOINTMENT] Fetching paymentIntent from Stripe (status not provided by client)");
+        paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
+        if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "requires_capture") {
+          return NextResponse.json(
+            { error: "Payment not successful", status: paymentIntent.status },
+            { status: 400 },
+          );
+        }
       }
     }
 
@@ -321,10 +332,10 @@ export async function POST(request: Request) {
     // Doctor ID (hardcoded as specified)
     const DOCTOR_ID = "1fd1af57-5529-4d00-a301-e653b4829efc";
 
-    // Verify doctor exists, create if doesn't exist, and get full doctor info
+    // PERF: Single query for all doctor fields (was two sequential queries — one for contact info, one for timezone)
     const { data: existingDoctor, error: doctorError } = await supabase
       .from("doctors")
-      .select("id, email, phone, first_name, last_name")
+      .select("id, email, phone, first_name, last_name, timezone")
       .eq("id", DOCTOR_ID)
       .single();
 
@@ -349,18 +360,11 @@ export async function POST(request: Request) {
 
     // Combine date and time for requested_date_time
     // Patient selected time is in their LOCAL timezone, convert to Phoenix time for storage
-    let requestedDateTime = null;
-
-    // Get provider timezone (Phoenix) - CRITICAL: Must be America/Phoenix per requirements
-    const { data: doctorInfo } = await supabase
-      .from("doctors")
-      .select("timezone")
-      .eq("id", DOCTOR_ID)
-      .single();
 
     // Always use America/Phoenix as the authoritative provider timezone (industry standard)
-    // If doctor record has different timezone, log it but still use Phoenix
     const providerTimezone = "America/Phoenix";
+    // doctorInfo.timezone now available from existingDoctor above — no second query needed
+    const doctorInfo = existingDoctor;
 
     // #region agent log
     if (doctorInfo?.timezone && doctorInfo.timezone !== "America/Phoenix") {
@@ -385,6 +389,8 @@ export async function POST(request: Request) {
       ).catch(() => {});
     }
     // #endregion
+
+    let requestedDateTime = null;
 
     if (data.appointmentDate && data.appointmentTime) {
       // Parse date and time components (these are in patient's local timezone)
@@ -797,6 +803,7 @@ export async function POST(request: Request) {
       // Payment information
       payment_intent_id:
         payment_intent_id || (isTestMode ? `pi_test_${Date.now()}` : null),
+      visit_intent_id: visit_intent_id || null,
       payment_status: "captured", // Use "captured" for both test and production (test mode is handled via payment_intent_id prefix)
 
       // Appointment status - use "pending" for new appointments (will be changed to "confirmed" or "approved" by doctor)
@@ -832,7 +839,7 @@ export async function POST(request: Request) {
       pharmacy_address: data.pharmacyAddress || null,
 
       // Browser/device info
-      browser_info: data.browserInfo || null,
+      // browser_info: data.browserInfo || null, // column not yet migrated — run add-browser-info-column.sql first
 
       // Consent (will be set during consent flow)
       consent_accepted: false,
@@ -841,12 +848,9 @@ export async function POST(request: Request) {
       access_token: accessToken,
     };
 
-    // Get doctor details including timezone
-    const { data: doctor, error: doctorFetchError } = await supabase
-      .from("doctors")
-      .select("first_name, last_name, timezone")
-      .eq("id", DOCTOR_ID)
-      .single();
+    // PERF: doctor details already fetched above in existingDoctor — no additional query needed
+    const doctor = existingDoctor;
+    const doctorFetchError = doctorError;
 
     if (doctorFetchError || !doctor) {
       console.error("❌ Doctor not found:", doctorError);
@@ -958,8 +962,21 @@ export async function POST(request: Request) {
         );
       }
 
+      console.error("[CREATE_APPOINTMENT] ❌ appointments.insert failed:", {
+        code: error.code, message: error.message, hint: (error as any).hint, details: (error as any).details,
+        snapshot: {
+          patient_id: appointmentInsert.patient_id,
+          doctor_id: appointmentInsert.doctor_id,
+          visit_type: appointmentInsert.visit_type,
+          status: appointmentInsert.status,
+          payment_status: appointmentInsert.payment_status,
+          patient_first_name: appointmentInsert.patient_first_name,
+          patient_email: appointmentInsert.patient_email,
+          patient_dob: appointmentInsert.patient_dob,
+        },
+      });
       return NextResponse.json(
-        { error: "Failed to create appointment", details: error.message },
+        { error: "Failed to create appointment", details: error.message, hint: (error as any).hint, code: error.code },
         { status: 500 },
       );
     }
@@ -1437,7 +1454,7 @@ export async function POST(request: Request) {
         stripe_payment_intent_id: payment_intent_id,
         amount: paymentAmount,
         currency: paymentCurrency || "USD",
-        status: "captured",
+        status: "authorized", // Hold placed — doctor accept route will capture
       });
     }
 
@@ -1548,106 +1565,120 @@ export async function POST(request: Request) {
       }
     }
 
-    // Send email notification to patient
-    if (patientEmail) {
-      try {
-        const emailHTML = generateAppointmentEmailHTML({
-          doctorName,
-          appointmentDate: formattedDate,
-          appointmentTime: formattedTime,
-          visitType,
-          appointmentLink,
-          smsMessage: patientSMSMessage,
-        });
-
-        await sendEmail({
-          to: patientEmail,
-          subject: `Your telemedicine appointment with ${doctorName}`,
-          html: emailHTML,
-        });
-      } catch (emailError) {
-        // Don't fail the request if email fails
-      }
-    }
-
-    // Send SMS notification to patient
-    if (patientPhone) {
-      try {
-        await sendSMS({
-          to: patientPhone,
-          message: patientSMSMessage,
-        });
-      } catch (smsError) {
-        // Don't fail the request if SMS fails
-      }
-    }
-
-    // Send email notification to doctor
-    if (doctorEmail) {
-      try {
-        await sendEmail({
-          to: doctorEmail,
-          subject: `New Appointment Scheduled - ${patientName} - ${formattedDate}`,
-          html: generateDoctorAppointmentEmailHTML({
-            patientName,
+    // ============================================================
+    // BACKGROUND: Notifications + CDSS — runs after response is sent
+    // PERF: All outbound calls (email ×2, SMS ×2, CDSS) moved to background.
+    // Patient receives 200 immediately after appointment is inserted.
+    // On Vercel: waitUntil keeps function alive to complete all background work.
+    // Locally: fire-and-forget (may not complete if server stops early).
+    // ============================================================
+    const backgroundWork = (async () => {
+      // Send email notification to patient
+      if (patientEmail) {
+        try {
+          const emailHTML = generateAppointmentEmailHTML({
+            doctorName,
             appointmentDate: formattedDate,
             appointmentTime: formattedTime,
             visitType,
-            doctorPanelLink,
-            dailyMeetingUrl: dailyMeeting?.url || null,
-            patientEmail: patientEmail || null,
-            patientPhone: patientPhone || null,
-          }),
-        });
-      } catch (doctorEmailError) {
-        // Don't fail the request if email fails
-      }
-    }
+            appointmentLink,
+            smsMessage: patientSMSMessage,
+          });
 
-    // Send SMS notification to doctor
-    if (doctorPhone) {
+          await sendEmail({
+            to: patientEmail,
+            subject: `Your telemedicine appointment with ${doctorName}`,
+            html: emailHTML,
+          });
+        } catch (emailError) {
+          console.error("[NOTIFY] Patient email failed:", emailError);
+        }
+      }
+
+      // Send SMS notification to patient
+      if (patientPhone) {
+        try {
+          await sendSMS({
+            to: patientPhone,
+            message: patientSMSMessage,
+          });
+        } catch (smsError) {
+          console.error("[NOTIFY] Patient SMS failed:", smsError);
+        }
+      }
+
+      // Send email notification to doctor
+      if (doctorEmail) {
+        try {
+          await sendEmail({
+            to: doctorEmail,
+            subject: `New Appointment Scheduled - ${patientName} - ${formattedDate}`,
+            html: generateDoctorAppointmentEmailHTML({
+              patientName,
+              appointmentDate: formattedDate,
+              appointmentTime: formattedTime,
+              visitType,
+              doctorPanelLink,
+              dailyMeetingUrl: dailyMeeting?.url || null,
+              patientEmail: patientEmail || null,
+              patientPhone: patientPhone || null,
+            }),
+          });
+        } catch (doctorEmailError) {
+          console.error("[NOTIFY] Doctor email failed:", doctorEmailError);
+        }
+      }
+
+      // Send SMS notification to doctor
+      if (doctorPhone) {
+        try {
+          await sendSMS({
+            to: doctorPhone,
+            message: `New appointment scheduled: ${patientName} on ${formattedDate} at ${formattedTime}. ${visitTypeDisplay}. View: ${doctorPanelLink}${dailyMeeting?.url ? `\n\n⚠️ WARNING: START meeting link (host only, do NOT share with patients) and this will start meeting instantly: ${dailyMeeting?.url}` : ""}`,
+          });
+        } catch (doctorSMSError) {
+          console.error("[NOTIFY] Doctor SMS failed:", doctorSMSError);
+        }
+      }
+
+      // Pre-generate CDSS for instant doctor access
+      await generateCDSSInBackground(
+        supabase,
+        appointment,
+        data,
+        chiefComplaintText,
+      ).catch((err) =>
+        console.error("[CDSS_PRE_GENERATE] Background task error:", err),
+      );
+
+      // Schedule full reminder chain for this appointment
       try {
-        await sendSMS({
-          to: doctorPhone,
-          message: `New appointment scheduled: ${patientName} on ${formattedDate} at ${formattedTime}. ${visitTypeDisplay}. View: ${doctorPanelLink}${dailyMeeting?.url ? `\n\n⚠️ WARNING: START meeting link (host only, do NOT share with patients) and this will start meeting instantly: ${dailyMeeting?.url}` : ""}`,
+        await scheduleReminderChain({
+          appointmentId:     appointment.id,
+          visitType:         visitType as "video" | "phone" | "instant" | "async" | "refill",
+          patientFirstName:  patientFirstName   || null,
+          patientEmail:      patientEmail       || null,
+          patientPhone:      patientPhone       || null,
+          providerName:      doctorName         || null,
+          pharmacyName:      data.pharmacy      || null,
+          pharmacyAddress:   data.pharmacyAddress || null,
+          accessToken:       accessToken        || null,
+          requestedDateTime: requestedDateTime  || null,
+          medications:       data.medications   || null,
         });
-      } catch (doctorSMSError) {
-        // Don't fail the request if SMS fails
+      } catch (reminderErr) {
+        console.error("[REMINDERS] scheduleReminderChain failed:", reminderErr);
       }
-    }
-
-    // ============================================================
-    // BACKGROUND: Pre-generate CDSS for instant doctor access
-    // Patient sees success immediately, CDSS generates in background
-    //
-    // How it works:
-    // - On Vercel: waitUntil() keeps function alive until CDSS completes
-    // - Locally/other hosts: fire-and-forget (may not complete if server stops)
-    // - Either way, patient gets instant response
-    // ============================================================
-    const cdssPromise = generateCDSSInBackground(
-      supabase,
-      appointment,
-      data,
-      chiefComplaintText,
-    ).catch((err) =>
-      console.error("[CDSS_PRE_GENERATE] Background task error:", err),
-    );
+    })();
 
     if (waitUntilFn) {
-      // On Vercel: waitUntil keeps the serverless function alive
-      // Even if patient closes browser, server continues generating CDSS
-      console.log(
-        "[CDSS_PRE_GENERATE] Using waitUntil for reliable background processing",
-      );
-      waitUntilFn(cdssPromise);
+      console.log("[BACKGROUND] Using waitUntil for notifications + CDSS");
+      waitUntilFn(backgroundWork);
     } else {
-      // Local dev or other hosts: promise runs but may not complete
-      console.log(
-        "[CDSS_PRE_GENERATE] waitUntil not available, using fire-and-forget",
-      );
+      console.log("[BACKGROUND] waitUntil not available, using fire-and-forget");
     }
-   // Return immediately - patient sees success right away!
+
+    // Return immediately — patient sees success right away, notifications send in background
     return NextResponse.json({
       success: true,
       appointmentId: appointment.id,
@@ -2099,6 +2130,12 @@ async function generateCDSSInBackground(
     console.error("[CDSS_PRE_GENERATE] ❌ Error:", error.message);
   }
 }
+
+
+
+
+
+
 
 
 

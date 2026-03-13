@@ -4,57 +4,40 @@ import { createServerClient } from "@/lib/supabase";
 const DOCTOR_ID = "1fd1af57-5529-4d00-a301-e653b4829efc";
 const APPOINTMENT_DURATION_MINUTES = 30;
 
-// Helper function to get current date/time in a specific timezone
-const getNowInTimezone = (timezone: string): Date => {
+// Helper function to get current date/time in a specific timezone.
+// Returns the actual UTC Date that corresponds to "now" in that timezone.
+// getNowInTimezone is only used as a comparison baseline — returning `now` directly is correct
+// because Date objects are always UTC internally. The timezone only matters for display/string
+// comparisons. This function simply returns `now` (the UTC instant).
+const getNowInTimezone = (_timezone: string): Date => {
+  // Date is always UTC internally. When we compare slot times (createDateInTimezone results)
+  // against "now", both sides are UTC instants — no offset math needed here.
+  return new Date();
+};
+
+// Get today's date string (YYYY-MM-DD) in a specific timezone — safe, no toISOString()
+const getTodayStringInTimezone = (timezone: string): string => {
   const now = new Date();
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
   });
   const parts = formatter.formatToParts(now);
-  const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-  const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
-  const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-  const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
-  const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
-  const second = parseInt(parts.find(p => p.type === 'second')?.value || '0');
-  
-  // Create a UTC date that represents this time in the timezone
-  const approximateUTC = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-  let bestUTC: Date | null = null;
-  
-  for (let offsetHours = -12; offsetHours <= 12; offsetHours++) {
-    const testUTC = new Date(approximateUTC.getTime() + offsetHours * 60 * 60 * 1000);
-    const testParts = formatter.formatToParts(testUTC);
-    const testYear = parseInt(testParts.find(p => p.type === 'year')?.value || '0');
-    const testMonth = parseInt(testParts.find(p => p.type === 'month')?.value || '0');
-    const testDay = parseInt(testParts.find(p => p.type === 'day')?.value || '0');
-    const testHour = parseInt(testParts.find(p => p.type === 'hour')?.value || '0');
-    const testMinute = parseInt(testParts.find(p => p.type === 'minute')?.value || '0');
-    
-    if (testYear === year && testMonth === month && testDay === day && 
-        testHour === hour && testMinute === minute) {
-      bestUTC = testUTC;
-      break;
-    }
-  }
-  
-  return bestUTC || now;
+  const year = parts.find(p => p.type === 'year')?.value || '0';
+  const month = parts.find(p => p.type === 'month')?.value || '0';
+  const day = parts.find(p => p.type === 'day')?.value || '0';
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 };
 
-// Helper function to create a date in a specific timezone from date string and time string
+// Helper function to create a date in a specific timezone from date string and time string.
+// Steps by 30 minutes (not 1 hour) to correctly resolve half-hour offsets AND :30 minute slots.
+// Previously stepped by 1 hour, causing :30 slots to never find a match on "today" checks.
 const createDateInTimezone = (dateStr: string, timeStr: string, timezone: string): Date => {
   const [year, month, day] = dateStr.split("-").map(Number);
   const [hours, minutes] = timeStr.split(":").map(Number);
-  
-  // Create a UTC date that represents this time in the timezone
-  const approximateUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -62,27 +45,31 @@ const createDateInTimezone = (dateStr: string, timeStr: string, timezone: string
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
   });
-  
-  let bestUTC: Date | null = null;
-  for (let offsetHours = -12; offsetHours <= 12; offsetHours++) {
-    const testUTC = new Date(approximateUTC.getTime() + offsetHours * 60 * 60 * 1000);
-    const testParts = formatter.formatToParts(testUTC);
-    const testYear = parseInt(testParts.find(p => p.type === 'year')?.value || '0');
-    const testMonth = parseInt(testParts.find(p => p.type === 'month')?.value || '0');
-    const testDay = parseInt(testParts.find(p => p.type === 'day')?.value || '0');
-    const testHour = parseInt(testParts.find(p => p.type === 'hour')?.value || '0');
-    const testMinute = parseInt(testParts.find(p => p.type === 'minute')?.value || '0');
-    
-    if (testYear === year && testMonth === month && testDay === day && 
-        testHour === hours && testMinute === minutes) {
-      bestUTC = testUTC;
-      break;
+
+  // Seed: UTC approximation assuming no offset (will be corrected by the search)
+  const seed = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+
+  // Search ±14 hours in 30-minute steps — covers all real-world UTC offsets
+  // including half-hour zones (India +5:30, Iran +3:30, etc.) and fixes :30 slot matching
+  for (let offsetMinutes = -14 * 60; offsetMinutes <= 14 * 60; offsetMinutes += 30) {
+    const candidate = new Date(seed.getTime() + offsetMinutes * 60 * 1000);
+    const parts = formatter.formatToParts(candidate);
+    const tYear  = parseInt(parts.find(p => p.type === 'year')?.value  || '0');
+    const tMonth = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+    const tDay   = parseInt(parts.find(p => p.type === 'day')?.value   || '0');
+    const tHour  = parseInt(parts.find(p => p.type === 'hour')?.value  || '0');
+    const tMin   = parseInt(parts.find(p => p.type === 'minute')?.value|| '0');
+
+    if (tYear === year && tMonth === month && tDay === day &&
+        tHour === hours && tMin === minutes) {
+      return candidate;
     }
   }
-  
-  return bestUTC || approximateUTC;
+
+  // Fallback: should never reach here for valid timezone+time combos
+  return seed;
 };
 
 export async function GET(request: Request) {
@@ -256,11 +243,11 @@ export async function GET(request: Request) {
 
     // Get current date/time in doctor's timezone (Phoenix)
     const nowInDoctorTZ = getNowInTimezone(doctorTimezone);
-    const todayInDoctorTZ = nowInDoctorTZ.toISOString().split('T')[0];
+    const todayInDoctorTZ = getTodayStringInTimezone(doctorTimezone); // safe: no toISOString
     const isToday = date === todayInDoctorTZ;
     
-    // Calculate minimum allowed time (3 hours from now in doctor's timezone if today)
-    const minAllowedTime = isToday ? new Date(nowInDoctorTZ.getTime() + 3 * 60 * 60 * 1000) : null;
+    // Minimum allowed time = now (no buffer) — show all future slots including imminent
+    const minAllowedTime = isToday ? nowInDoctorTZ : null;
 
     // Generate available time slots from availability events
     const availableSlots: string[] = [];
@@ -290,7 +277,7 @@ export async function GET(request: Request) {
             }
             
             if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
-              // For today, check if slot is at least 3 hours from now in doctor's timezone
+              // For today, hide slots that have already passed
               if (minAllowedTime) {
                 const slotDateTime = createDateInTimezone(date, timeStr, doctorTimezone);
                 if (slotDateTime >= minAllowedTime) {
@@ -321,8 +308,12 @@ export async function GET(request: Request) {
         .eq("is_available", true)
         .order("start_time", { ascending: true });
 
-      if (recurringAvailability && recurringAvailability.length > 0) {
-        recurringAvailability.forEach((availability) => {
+      // Use recurring availability rows; if none exist, default to 09:00-21:00 every day
+      const effectiveSingleSlots = (recurringAvailability && recurringAvailability.length > 0)
+        ? recurringAvailability
+        : [{ start_time: "09:00", end_time: "21:00" }];
+      if (effectiveSingleSlots.length > 0) {
+        effectiveSingleSlots.forEach((availability) => {
           // Times in availability are in doctor's timezone (Phoenix)
           const [startHour, startMin] = availability.start_time.split(":").map(Number);
           const [endHour, endMin] = availability.end_time.split(":").map(Number);
@@ -510,11 +501,11 @@ async function handleBatchRequest(
   // Process each date
   const availabilityByDate: Record<string, { availableSlots: string[]; bookedSlots: string[] }> = {};
   const nowInDoctorTZ = getNowInTimezone(doctorTimezone);
-  const todayInDoctorTZ = nowInDoctorTZ.toISOString().split('T')[0];
+  const todayInDoctorTZ = getTodayStringInTimezone(doctorTimezone); // safe: no toISOString
 
   dates.forEach((dateStr) => {
     const isToday = dateStr === todayInDoctorTZ;
-    const minAllowedTime = isToday ? new Date(nowInDoctorTZ.getTime() + 3 * 60 * 60 * 1000) : null;
+    const minAllowedTime = isToday ? nowInDoctorTZ : null;
     
     const bookedTimes = appointmentsByDate[dateStr] || new Set<string>();
     const availableSlots: string[] = [];
@@ -571,7 +562,7 @@ async function handleBatchRequest(
             }
             
             if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
-              // For today, check if slot is at least 3 hours from now in doctor's timezone
+              // For today, hide slots that have already passed
               if (minAllowedTime) {
                 const slotDateTime = createDateInTimezone(dateStr, timeStr, doctorTimezone);
                 if (slotDateTime >= minAllowedTime) {
@@ -592,10 +583,13 @@ async function handleBatchRequest(
         }
       });
     } else if (recurringAvailability) {
-      // Use recurring availability
+      // Use recurring availability — fallback to 09:00-21:00 Mon-Sun if table is empty
       const dayRecurring = recurringAvailability.filter(r => r.day_of_week === dayOfWeek);
+      const effectiveSlots = dayRecurring.length > 0
+        ? dayRecurring
+        : [{ start_time: "09:00", end_time: "21:00" }]; // default: 9am-9pm every day
       
-      dayRecurring.forEach((availability) => {
+      effectiveSlots.forEach((availability) => {
         // Times in availability are in doctor's timezone (Phoenix)
         const [startHour, startMin] = availability.start_time.split(":").map(Number);
         const [endHour, endMin] = availability.end_time.split(":").map(Number);
@@ -618,7 +612,7 @@ async function handleBatchRequest(
             }
             
             if (slotEndHour < endHour || (slotEndHour === endHour && slotEndMin <= endMin)) {
-              // For today, check if slot is at least 3 hours from now in doctor's timezone
+              // For today, hide slots that have already passed
               if (minAllowedTime) {
                 const slotDateTime = createDateInTimezone(dateStr, timeStr, doctorTimezone);
                 if (slotDateTime >= minAllowedTime) {

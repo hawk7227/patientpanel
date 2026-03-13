@@ -145,9 +145,8 @@ export default function AppointmentCalendar({
             }
           });
           
-          // IMPORTANT: Always include today's date so patients can see today's availability
-          // This ensures the calendar doesn't appear completely empty on the current day
-          filteredDates.add(todayStr);
+          // Only add today if the API returned it with available slots
+          // (removed forced add — avoids showing today when all slots are past)
           
           setAvailableDates(filteredDates);
           
@@ -368,11 +367,13 @@ export default function AppointmentCalendar({
       });
       
       // Find the UTC time that, when displayed in provider timezone, equals our target
+      // Step in 30-min increments (not 1-hour) — same fix as server-side.
+      // 1-hour steps caused :30 slots to never match → skipped entirely → missing from calendar.
       const approximateUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
       
       let bestUTC: Date | null = null;
-      for (let offsetHours = -12; offsetHours <= 12; offsetHours++) {
-        const testUTC = new Date(approximateUTC.getTime() + offsetHours * 60 * 60 * 1000);
+      for (let offsetMinutes = -14 * 60; offsetMinutes <= 14 * 60; offsetMinutes += 30) {
+        const testUTC = new Date(approximateUTC.getTime() + offsetMinutes * 60 * 1000);
         const providerParts = providerFormatter.formatToParts(testUTC);
         
         const testYear = parseInt(providerParts.find(p => p.type === 'year')?.value || '0');
@@ -665,10 +666,8 @@ export default function AppointmentCalendar({
                             // Convert both to minutes for easy comparison
                             const timeSlotMinutes = hours * 60 + minutes;
                             const nowMinutes = todayHour * 60 + todayMinute;
-                            const threeHoursFromNowMinutes = nowMinutes + (3 * 60); // 3 hours = 180 minutes
-                            
-                            // Disable if time slot is less than 3 hours from now
-                            return timeSlotMinutes < threeHoursFromNowMinutes;
+                            // Disable if time slot has already passed
+                            return timeSlotMinutes < nowMinutes;
                           }
                           return false;
                         })();

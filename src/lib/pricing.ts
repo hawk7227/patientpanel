@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
 // PRICING UTILITY — Dynamic pricing based on time/day/holidays
 //
-// Business hours (Mon-Fri 9am-5pm patient local time):
+// Business hours (Mon-Fri 9am-9pm patient local time):
 //   Instant/Refill: $189, Video/Phone: $199
 // After-hours/weekends/holidays:
 //   All types: $249
@@ -78,10 +78,13 @@ export interface PriceInfo {
   label: string;        // "Business hours" or "After-hours" or "Weekend" or "Holiday"
 }
 
-export type VisitType = 'instant' | 'refill' | 'video' | 'phone';
+export type VisitType = 'instant' | 'async' | 'refill' | 'video' | 'phone';
 
-export function getPrice(visitType: VisitType, timezone?: string): PriceInfo {
-  const now = new Date();
+export function getPrice(visitType: VisitType, timezone?: string, atDate?: Date): PriceInfo {
+  // Price is based on the APPOINTMENT time, not the booking time.
+  // Pass atDate = the scheduled appointment datetime to get the correct tier.
+  // Falls back to now() when atDate is not provided (e.g. instant/refill with no calendar).
+  const now = atDate ?? new Date();
 
   // Get current time in patient's timezone
   let hour: number, dayOfWeek: number, dateStr: string;
@@ -111,7 +114,7 @@ export function getPrice(visitType: VisitType, timezone?: string): PriceInfo {
 
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
   const isHoliday = getUSHolidays(now.getFullYear()).has(dateStr);
-  const isBusinessHours = !isWeekend && !isHoliday && hour >= 9 && hour < 17;
+  const isBusinessHours = !isWeekend && !isHoliday && hour >= 9 && hour < 21; // 9am–9pm
   const isAfterHours = !isBusinessHours;
 
   let label = 'Business hours';

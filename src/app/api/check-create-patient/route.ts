@@ -3,7 +3,7 @@ import { createServerClient } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   try {
-    const { email, firstName, lastName, phone, dateOfBirth, address, pharmacy, pharmacyAddress } = await request.json();
+    const { email, firstName, lastName, phone, dateOfBirth, address, pharmacy, pharmacyAddress, pharmacyPhone } = await request.json();
 
     if (!email || !firstName || !lastName || !phone) {
       return NextResponse.json(
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     // Step 2: Check if patient exists in patients table by user_id
     const { data: existingPatient, error: patientSearchError } = await supabase
       .from("patients")
-      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, timezone, preferred_pharmacy")
+      .select("id, user_id, first_name, last_name, email, phone, date_of_birth, location, timezone, preferred_pharmacy, preferred_pharmacy_address, preferred_pharmacy_phone")
       .eq("user_id", userId)
       .single();
 
@@ -130,6 +130,12 @@ export async function POST(request: Request) {
       if (pharmacy && existingPatient.preferred_pharmacy !== pharmacy) {
         patientUpdateData.preferred_pharmacy = pharmacy;
       }
+      if (pharmacyAddress && existingPatient.preferred_pharmacy_address !== pharmacyAddress) {
+        patientUpdateData.preferred_pharmacy_address = pharmacyAddress;
+      }
+      if (pharmacyPhone && existingPatient.preferred_pharmacy_phone !== pharmacyPhone) {
+        patientUpdateData.preferred_pharmacy_phone = pharmacyPhone;
+      }
 
       if (Object.keys(patientUpdateData).length > 0) {
         patientUpdateData.updated_at = new Date().toISOString();
@@ -168,6 +174,8 @@ export async function POST(request: Request) {
           date_of_birth: dateOfBirth || null,
           location: address || null,
           preferred_pharmacy: pharmacy || null,
+          preferred_pharmacy_address: pharmacyAddress || null,
+          preferred_pharmacy_phone: pharmacyPhone || null,
           timezone: 'America/New_York', // Default timezone
         })
         .select()

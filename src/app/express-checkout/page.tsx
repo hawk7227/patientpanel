@@ -31,18 +31,70 @@ interface MedicationItem {
 
 interface PharmacyInfo {
   name: string; address: string; photo?: string; rating?: number;
-  reviewCount?: number; isOpen?: boolean;
+  reviewCount?: number; isOpen?: boolean; phone?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // Visit Type Config
 // ═══════════════════════════════════════════════════════════════
 const VISIT_TYPES = [
-  { key: "instant" as VisitType, label: "Instant", icon: Zap, desc: "Private & discreet", badge: "Fastest", needsCalendar: false },
-  { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: false },
-  { key: "video" as VisitType, label: "Video", icon: Video, desc: "Secure 1-on-1", badge: null, needsCalendar: true },
-  { key: "phone" as VisitType, label: "Phone", icon: Phone, desc: "Private line", badge: null, needsCalendar: true },
+  { key: "async" as VisitType, label: "Async", icon: Zap, desc: "No live visit", badge: "✨ NEW", needsCalendar: false, color: "#2dd4a0" },
+  { key: "instant" as VisitType, label: "Instant\nVisit", icon: Zap, desc: "Private & discreet", badge: "⚡ FAST", needsCalendar: false, color: "#f59e0b" },
+  { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: false, color: "#f59e0b" },
+  { key: "video" as VisitType, label: "Video\nVisit", icon: Video, desc: "Secure 1-on-1", badge: null, needsCalendar: true, color: "#3b82f6" },
+  { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, desc: "Private line", badge: null, needsCalendar: true, color: "#a855f7" },
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// Visit Content — step-by-step timeline for each visit type
+// ═══════════════════════════════════════════════════════════════
+const visitContent = {
+  async: {
+    title: "Async Visit,\nHow It Works",
+    sub: "Your provider reviews your case privately without a live call.",
+    steps: [
+      { icon: "📝", t: "Describe Your Symptoms", d: "Answer a few quick questions and share what's going on.", time: "~2 min" },
+      { icon: "👩‍⚕️", t: "Provider Reviews Your Case", d: "A licensed provider reviews everything privately.", time: "~1–2 hrs" },
+      { icon: "💊", t: "Treatment Sent Directly", d: "Treatment or prescriptions are sent to your pharmacy if appropriate.", time: "Same day" },
+    ],
+  },
+  instant: {
+    title: "Instant Visit,\nHow It Works",
+    sub: "Join the queue and connect live with a provider as soon as one is available.",
+    steps: [
+      { icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need help with before joining the queue.", time: "~2 min" },
+      { icon: "⏱", t: "Wait For Your Turn", d: "You'll be notified when the provider is ready to see you.", time: "Usually minutes" },
+      { icon: "📹", t: "Connect Live", d: "Meet with a provider by live video and get treated in real time.", time: "Starts when called" },
+    ],
+  },
+  refill: {
+    title: "Refill Request,\nHow It Works",
+    sub: "Request your refill online and your provider will review it privately.",
+    steps: [
+      { icon: "💊", t: "Select Your Medication", d: "Choose the medication you want reviewed for refill.", time: "~1 min" },
+      { icon: "👩‍⚕️", t: "Provider Reviews Request", d: "Your provider checks your history and refill eligibility.", time: "Same day" },
+      { icon: "🏥", t: "Sent To Pharmacy", d: "Approved refills are sent directly to your pharmacy.", time: "Same day" },
+    ],
+  },
+  video: {
+    title: "Video Visit,\nHow It Works",
+    sub: "Schedule a time and meet with your provider face-to-face by secure video.",
+    steps: [
+      { icon: "📅", t: "Pick A Time", d: "Choose the date and time that works best for you.", time: "~1 min" },
+      { icon: "📹", t: "Meet By Video", d: "Join your secure video visit from your phone or computer.", time: "At appointment time" },
+      { icon: "💊", t: "Get Your Treatment Plan", d: "Your provider reviews your needs and sends treatment if appropriate.", time: "Same day" },
+    ],
+  },
+  phone: {
+    title: "Phone Visit,\nHow It Works",
+    sub: "Choose a time to speak with your provider privately by phone or text.",
+    steps: [
+      { icon: "📅", t: "Schedule Your Visit", d: "Pick the time that works best for your private consult.", time: "~1 min" },
+      { icon: "📞", t: "Talk With Your Provider", d: "Connect by phone or SMS without needing video.", time: "At appointment time" },
+      { icon: "💊", t: "Treatment Sent Directly", d: "Your provider sends treatment or prescriptions if appropriate.", time: "Same day" },
+    ],
+  },
+};
 
 // ═══════════════════════════════════════════════════════════════
 // LocalStorage helpers for answer persistence
@@ -89,17 +141,99 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Decline handling
+// ═══════════════════════════════════════════════════════════════
+type DeclineCategory = "soft" | "funds" | "card_data" | "expired" | "permanent" | "processing" | "generic";
+
+interface DeclineState {
+  category: DeclineCategory;
+  code: string;
+  headline: string;
+  body: string;
+  fieldHint: string | null;
+  retryable: boolean;
+  showBnpl: boolean;
+}
+
+function getDeclineState(err: { type?: string; code?: string; decline_code?: string; message?: string }): DeclineState {
+  const code = err.decline_code || err.code || "";
+  const type = err.type || "";
+
+  if (["incorrect_cvc", "invalid_cvc"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your security code doesn't match. No charge was made. Check the 3-digit number on the back of your card and try again.",
+      fieldHint: "Check your security code (3 digits on the back)" };
+  }
+  if (["incorrect_number", "invalid_number"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "One digit in your card number looks off. No charge was made. Give it a second look and try again.",
+      fieldHint: "Double-check your card number" };
+  }
+  if (["incorrect_zip"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your billing ZIP code doesn't match what your bank has on file. No charge was made.",
+      fieldHint: "Check your billing ZIP code" };
+  }
+  if (["invalid_expiry_month", "invalid_expiry_year"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "The expiration date doesn't look right. No charge was made. Check the month and year on your card.",
+      fieldHint: "Check your expiration date" };
+  }
+  if (code === "expired_card") {
+    return { category: "expired", code, retryable: false, showBnpl: true,
+      headline: "Looks like this card has expired.",
+      body: "Cards expire — easy to forget. No charge was made. Add a current card and we'll have you booked in under a minute.",
+      fieldHint: "This card is expired — please use a different card" };
+  }
+  if (["insufficient_funds", "card_velocity_exceeded"].includes(code)) {
+    return { category: "funds", code, retryable: false, showBnpl: true,
+      headline: "Your health comes first — let's find another way.",
+      body: `Remember: you're only paying ${"\u0024"}1.89 today. The visit fee is only collected after your provider accepts. Try a different card, or use a saved card below.`,
+      fieldHint: null };
+  }
+  if (["fraudulent", "lost_card", "stolen_card", "pickup_card", "do_not_try_again", "restricted_card", "transaction_not_allowed"].includes(code)) {
+    return { category: "permanent", code, retryable: false, showBnpl: false,
+      headline: "Your bank has put a hold on this card.",
+      body: "This sometimes happens after a card is replaced or flagged for security. There's nothing wrong on your end — your bank just needs you to use a different payment method. Your information is saved.",
+      fieldHint: null };
+  }
+  if (["processing_error", "issuer_not_available", "try_again_later"].includes(code)) {
+    return { category: "processing", code, retryable: true, showBnpl: true,
+      headline: "That was us, not you.",
+      body: "There was a temporary issue reaching your bank — your card was not charged. Tap Try Again below.",
+      fieldHint: null };
+  }
+  if (type === "card_error" || ["card_declined", "do_not_honor", "no_action_taken", "generic_decline", "not_permitted"].includes(code)) {
+    return { category: "soft", code, retryable: true, showBnpl: true,
+      headline: "No worries — this happens more than you'd think.",
+      body: "Your bank flagged this as unusual, which is common for new or online purchases. Your card wasn't charged. Try once more or use a different card — your information is saved.",
+      fieldHint: null };
+  }
+  return { category: "generic", code, retryable: true, showBnpl: false,
+    headline: "Something went wrong with payment.",
+    body: err.message || "Your card was not charged. Please try again.",
+    fieldHint: null };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Step 2 Payment Form — single viewport, no scroll
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand, isNewPatient,
+  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient,
+  npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
-  pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
-  symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
+  pharmacy: string; pharmacyAddress: string; pharmacyPhone: string; selectedMedications: string[];
+  symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
   isNewPatient: boolean;
+  npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
+  npDobMonth?: string; npDobDay?: string; npDobYear?: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -113,46 +247,83 @@ function Step2PaymentForm({
   const [expressVisible, setExpressVisible] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
-  const [newDobMonth, setNewDobMonth] = useState("");
-  const [newDobDay, setNewDobDay] = useState("");
-  const [newDobYear, setNewDobYear] = useState("");
+  const [declineState, setDeclineState] = useState<DeclineState | null>(null);
+
+  const handleStripeError = (err: { type?: string; code?: string; decline_code?: string; message?: string }) => {
+    const ds = getDeclineState(err);
+    setDeclineState(ds);
+    setError(null);
+    setPayInFlight(false);
+    if (ds.category === "card_data" || ds.category === "expired" || ds.category === "soft" || ds.category === "funds") {
+      setPulseField("card");
+      setTimeout(() => setPulseField(null), 2000);
+    }
+  };
+  // New patient — values lifted to page level, received as props
+  const newFirstName = npFirstName ?? "";
+  const newLastName  = npLastName  ?? "";
+  const newEmail     = npEmail     ?? "";
+  const newPhone     = npPhone     ?? "";
+  const newAddress   = npAddress   ?? "";
+  const newDobMonth  = npDobMonth  ?? "";
+  const newDobDay    = npDobDay    ?? "";
+  const newDobYear   = npDobYear   ?? "";
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
+  const newPatientFieldsComplete = !isNewPatient || (
+    newFirstName.trim().length > 0 && newLastName.trim().length > 0 &&
+    newEmail.includes("@") && newPhone.replace(/\D/g, "").length >= 10 &&
+    newDobComplete
+  );
+
+  // ── Payment speed: pre-fire patient creation when all new patient fields complete ──
+  const [prefetchedPatientId, setPrefetchedPatientId] = useState<string | null>(null);
+  const prefetchPatientRef = useRef(false);
+  useEffect(() => {
+    if (!isNewPatient || !newPatientFieldsComplete || prefetchPatientRef.current) return;
+    const pd = getPatientData();
+    if (!pd.email || !pd.firstName || !pd.lastName) return;
+    prefetchPatientRef.current = true;
+    fetch("/api/check-create-patient", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+        phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+        address: pd.address, pharmacy: pharmacy || "",
+        pharmacyAddress: pharmacyAddress || "",
+      }),
+    })
+      .then(r => r.json())
+      .then(result => { if (result.patientId) setPrefetchedPatientId(result.patientId); })
+      .catch(() => { prefetchPatientRef.current = false; });
+  }, [isNewPatient, newPatientFieldsComplete]);
 
   const getPatientData = () => {
     if (!isNewPatient) {
       return { email: patient.email, firstName: patient.firstName, lastName: patient.lastName, phone: patient.phone, dateOfBirth: convertDateToISO(patient.dateOfBirth), address: patient.address };
     }
-    return { email: patient.email || "", firstName: patient.firstName || "", lastName: patient.lastName || "", phone: patient.phone || "", dateOfBirth: newDobISO, address: patient.address || "" };
+    return { email: newEmail.trim(), firstName: newFirstName.trim(), lastName: newLastName.trim(), phone: newPhone.replace(/\D/g, ""), dateOfBirth: newDobISO, address: newAddress.trim() };
   };
 
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
   const handleExpressConfirm = async () => {
+    if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
     try {
       const pd = getPatientData();
-      let patientId = patient.id;
-      if (!patientId) {
-        const createRes = await fetch("/api/check-create-patient", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
-            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
-            address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
-            pharmacyAddress: pharmacyAddress || "",
-          }),
-        });
-        const createResult = await createRes.json();
-        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
-        patientId = createResult.patientId;
-      }
 
+      // PERF: elements.submit() + stripe.confirmPayment() moved BEFORE check-create-patient.
+      // Native wallet sheet (Apple Pay / Google Pay) opens IMMEDIATELY on tap — no DB waterfall
+      // before the biometric prompt. patientId is only needed for /api/create-appointment,
+      // which runs after the hold is confirmed. Prefetch result still used when available.
       if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
 
       const { error: submitError } = await elements.submit();
-      if (submitError) { setError(submitError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (submitError) { handleStripeError(submitError); return; }
 
+      // Step 1: Confirm $189 visit hold — verifies funds exist before charging booking fee
       const result = await stripe.confirmPayment({
         elements, redirect: "if_required",
         confirmParams: {
@@ -161,27 +332,77 @@ function Step2PaymentForm({
         },
       });
 
-      if (result.error) { setError(result.error.message || "Payment failed."); setPayInFlight(false); return; }
+      if (result.error) { handleStripeError(result.error); return; }
 
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified
+      const holdCleared = result.paymentIntent?.status === "requires_capture" || result.paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (result.paymentIntent?.status === "succeeded") {
+      // check-create-patient runs AFTER hold is confirmed — user has already completed
+      // biometric scan. DB round-trips no longer block the wallet sheet from opening.
+      let patientId = patient.id || prefetchedPatientId;
+      if (!patientId) {
+        const createRes = await fetch("/api/check-create-patient", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+            address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
+            pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
+          }),
+        });
+        const createResult = await createRes.json();
+        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
+        patientId = createResult.patientId;
+      }
+
+      // Step 2: Charge $1.89 booking fee server-side using same payment method
+      const paymentMethodId = typeof result.paymentIntent?.payment_method === "string"
+        ? result.paymentIntent.payment_method
+        : result.paymentIntent?.payment_method?.id;
+
+      if (!paymentMethodId) {
+        setError("Could not retrieve payment method. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      const bookingRes = await fetch("/api/confirm-booking-fee", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+      });
+      const bookingResult = await bookingRes.json();
+      if (!bookingRes.ok) {
+        setIsProcessing(false);
+        handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+        return;
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const isAsync = visitType === "instant" || visitType === "refill";
+        const isAsync = visitType === "async";
         let fullChiefComplaint = chiefComplaint || reason;
         if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
           appointmentData: {
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
-            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            visitType, appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
-            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
+            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
         };
@@ -191,14 +412,14 @@ function Step2PaymentForm({
           body: JSON.stringify(appointmentPayload),
         });
         const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
         setProgress(100); setStatusText("Appointment booked!");
         sessionStorage.setItem("appointmentData", JSON.stringify({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: result.paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -219,10 +440,11 @@ function Step2PaymentForm({
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
 
     try {
-      let patientId = patient.id;
+      let patientId = patient.id || prefetchedPatientId;
 
       if (isTestMode) {
         // BYPASS MODE — skip patient creation, skip payment
@@ -237,21 +459,21 @@ function Step2PaymentForm({
 
         setProgress(75); setStatusText("Creating appointment...");
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const isAsyncVisit = visitType === "instant" || visitType === "refill";
+        const isAsyncVisit = visitType === "async";
         let fullChiefComplaint = chiefComplaint || reason || "Test visit";
         if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
           appointmentData: {
             email: patient.email || "test@medazon.com", firstName: patient.firstName || "Test", lastName: patient.lastName || "Patient",
             phone: patient.phone || "0000000000", dateOfBirth: convertDateToISO(patient.dateOfBirth) || "1990-01-01",
             streetAddress: patient.address || "Test Address", symptoms: reason || "Test", chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: isAsyncVisit ? new Date().toISOString().split("T")[0] : appointmentDate,
-            appointmentTime: isAsyncVisit ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            visitType, appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !!patient.id,
-            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
+            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
         };
@@ -261,14 +483,14 @@ function Step2PaymentForm({
           body: JSON.stringify(appointmentPayload),
         });
         const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
         setProgress(100); setStatusText("Appointment booked!");
         sessionStorage.setItem("appointmentData", JSON.stringify({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -286,6 +508,7 @@ function Step2PaymentForm({
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "",
+            pharmacyPhone: pharmacyPhone || "",
           }),
         });
         const createResult = await createRes.json();
@@ -305,8 +528,7 @@ function Step2PaymentForm({
         // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
         const submitResult = await elements.submit();
         if (submitResult.error) {
-          setError(submitResult.error.message || "Please complete the payment form.");
-          setPayInFlight(false);
+          handleStripeError(submitResult.error);
           return;
         }
 
@@ -315,33 +537,74 @@ function Step2PaymentForm({
           elements, redirect: "if_required",
           confirmParams: {
             return_url: `${window.location.origin}/success`,
+            payment_method_data: {
+              billing_details: {
+                name: `${pd.firstName} ${pd.lastName}`.trim(),
+                email: pd.email || undefined,
+                phone: pd.phone || undefined,
+              },
+            },
           },
         });
         paymentError = result.error; paymentIntent = result.paymentIntent;
       }
 
-      if (paymentError) { setError(paymentError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (paymentError) { handleStripeError(paymentError); return; }
 
-      // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified
+      const holdCleared = paymentIntent?.status === "requires_capture" || paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (paymentIntent?.status === "succeeded") {
+      // Step 2: Charge $1.89 booking fee server-side
+      const paymentMethodId = typeof paymentIntent?.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent?.payment_method?.id;
+
+      // Hold cleared — safe to show progress (PaymentElement no longer needed)
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      if (!isTestMode) {
+        if (!paymentMethodId) {
+          setIsProcessing(false);
+          setError("Could not retrieve payment method. Please try again.");
+          setPayInFlight(false);
+          return;
+        }
+        const bookingRes = await fetch("/api/confirm-booking-fee", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+        });
+        const bookingResult = await bookingRes.json();
+        if (!bookingRes.ok) {
+          setIsProcessing(false);
+          handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+          return;
+        }
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const isAsync = visitType === "instant" || visitType === "refill";
+        const isAsync = visitType === "async";
         let fullChiefComplaint = chiefComplaint || reason;
         if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
         if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
         const appointmentPayload = {
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
           appointmentData: {
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: isAsync ? new Date().toISOString().split("T")[0] : appointmentDate,
-            appointmentTime: isAsync ? new Date().toTimeString().slice(0, 5) : appointmentTime,
+            visitType, appointmentDate: appointmentDate,
+            appointmentTime: appointmentTime,
             patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
-            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "",
+            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
             browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
           },
         };
@@ -351,14 +614,14 @@ function Step2PaymentForm({
           body: JSON.stringify(appointmentPayload),
         });
         const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(appointmentResult.error || "Failed to create appointment");
+        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
         setProgress(100); setStatusText("Appointment booked!");
         sessionStorage.setItem("appointmentData", JSON.stringify({
           ...appointmentPayload.appointmentData,
           appointmentId: appointmentResult.appointmentId,
           accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id, visit_intent_id: visitIntentId,
+          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
         await new Promise((r) => setTimeout(r, 800));
@@ -383,14 +646,60 @@ function Step2PaymentForm({
     );
   }
 
-  const canPay = isNewPatient
-    ? (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight && newDobComplete))
-    : (!!(stripe && elements && acceptedTerms && elementReady && !payInFlight));
-
   return (
     <>
       <div className="w-full space-y-2">
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
+
+        {/* Decline state — warm, empathetic, actionable */}
+        {declineState && (
+          <div className="rounded-xl border border-[#2dd4a0]/25 px-3 py-3 space-y-2" style={{ background: "linear-gradient(135deg, rgba(13,18,24,0.95) 0%, rgba(20,28,36,0.95) 100%)" }}>
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ background: "rgba(45,212,160,0.12)" }}>
+                <span className="text-[14px]">💙</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-[12px] leading-[1.3]">{declineState.headline}</p>
+                <p className="text-gray-400 text-[11px] leading-[1.4] mt-0.5">{declineState.body}</p>
+              </div>
+              <button onClick={() => setDeclineState(null)} className="flex-shrink-0 text-gray-600 hover:text-gray-400 text-[14px] leading-none mt-0.5">×</button>
+            </div>
+            <div className="flex gap-2 pt-0.5">
+              {declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setTimeout(() => handlePay(), 50); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Try Again
+                </button>
+              )}
+              {!declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setShowCardForm(true); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Use a Different Card
+                </button>
+              )}
+              {declineState.showBnpl && process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK && (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(patient.email || "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2dd4a0] border border-[#2dd4a0]/30 text-center transition-all active:scale-[0.98]"
+                  style={{ background: "rgba(45,212,160,0.06)" }}
+                >
+                  Book Now, Pay Later
+                </a>
+              )}
+            </div>
+            <p className="text-gray-600 text-[10px] leading-[1.3] text-center pt-0.5">
+              Care first. Your information is saved — nothing to re-enter.
+            </p>
+          </div>
+        )}
 
         {isTestMode ? (
           <button onClick={() => {
@@ -402,7 +711,7 @@ function Step2PaymentForm({
           </button>
         ) : (
           <div className="space-y-1.5">
-            {/* Express Checkout — one-tap Apple Pay / Google Pay / Link */}
+            {/* Express Checkout — one-tap Apple Pay / Google Pay */}
             <div style={{ visibility: expressVisible ? "visible" : "hidden", height: expressVisible ? "auto" : "0" }}>
               <ExpressCheckoutElement
                 onConfirm={handleExpressConfirm}
@@ -425,64 +734,51 @@ function Step2PaymentForm({
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Card form — ALWAYS open for new patients, collapsed for returning */}
+
+            {/* Card form — always open for new patients, collapsed for returning */}
             {showCardForm || isNewPatient ? (
               <>
-                {/* DOB field — new patients only */}
-                {isNewPatient && (
-                  <div className={`space-y-1.5 rounded-lg px-1 py-1 transition-all ${pulseField === "dob" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
-                    <label className="text-white text-[10px] font-semibold">Date of Birth</label>
-                    <div className="flex gap-2">
-                      <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
-                        onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
-                      />
-                      <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
-                        onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
-                      />
-                      <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
-                        onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-1 rounded-lg px-2 py-1.5 text-white text-[12px] text-center focus:outline-none placeholder:text-white/50" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
-                      />
-                    </div>
-                  </div>
+                {/* Field hint — shown when a specific field caused the decline */}
+                {declineState?.fieldHint && (
+                  <p className="text-[#f97316] text-[10px] font-medium px-1 -mb-1">
+                    ⚠ {declineState.fieldHint}
+                  </p>
                 )}
 
-                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
-                  <PaymentElement onReady={() => setElementReady(true)} options={{
+                {/* Stripe PaymentElement — name/email/phone collected above; address collected by Stripe */}
+                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#2dd4a0] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
+                  <PaymentElement onReady={() => setElementReady(true)} onChange={() => { if (declineState) setDeclineState(null); }} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
                     wallets: { applePay: "never", googlePay: "never" },
-                    fields: { billingDetails: isNewPatient
-                      ? { name: "auto", email: "auto", phone: "auto", address: "auto" }
-                      : { name: "never", email: "never", phone: "never" }
+                    fields: {
+                      billingDetails: {
+                        name: "never",
+                        email: "never",
+                        phone: "never",
+                        address: "auto",
+                      },
                     },
                   }} />
                 </div>
 
-                {/* Sticky terms + pay button */}
-                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 4px), 4px)" }}>
+                {/* Terms + pay button */}
+                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your <strong className="text-white">{getPrice(visitType as VisitType).display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
                     </label>
                   </div>
                   <button onClick={() => {
                     if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
-                    if (isNewPatient && !newDobComplete) { setPulseField("dob"); setTimeout(() => setPulseField(null), 1500); return; }
+                    if (isNewPatient && !newPatientFieldsComplete) { setPulseField(newDobComplete ? "fields" : "dob"); setTimeout(() => setPulseField(null), 1500); return; }
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
                   }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
-                    <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
+                    <Lock size={13} /> {payInFlight ? "Processing..." : "BOOK NOW, PAY LATER"}
                   </button>
+                  <p className="text-center text-gray-600 text-[9px] tracking-wide mt-1">CARE FIRST program</p>
                 </div>
               </>
             ) : (
@@ -494,6 +790,82 @@ function Step2PaymentForm({
         )}
       </div>
     </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FAQ Accordion Components — Instant & Refill popup education
+// ═══════════════════════════════════════════════════════════════
+function FAQItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", background: "none", border: "none", cursor: "pointer", textAlign: "left" as const, gap: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: "#cbd5e1", lineHeight: 1.3, flex: 1 }}>{q}</span>
+        <span style={{ fontSize: 14, color: "#64748b", flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ paddingBottom: 8, paddingRight: 4 }}>
+          <p style={{ fontSize: 10, color: "#94a3b8", lineHeight: 1.5, margin: 0 }}>{a}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InstantFAQ() {
+  const [expanded, setExpanded] = useState(false);
+  const faqs = [
+    { q: "How long will I wait?", a: "Most patients connect within minutes. You'll see your position in the queue. If you book after 8:30 PM Arizona time, your visit is locked in for 9:00 AM the next morning." },
+    { q: "What if no one is available right now?", a: "You hold your spot in queue and we notify you the moment a provider is ready. You don't have to stay on the screen." },
+    { q: "Is this a real doctor?", a: "Yes. Our provider is a licensed nurse practitioner with full prescribing authority. Your care is clinically supervised." },
+    { q: "Can I get a prescription?", a: "Yes. If clinically appropriate, your prescription is sent directly to your pharmacy the same day." },
+    { q: "What if I book after 8:30 PM?", a: "We lock in your first available slot at 9:00 AM Arizona time the next morning — no need to book again." },
+    { q: "Is my visit completely private?", a: "Completely. Your reason for visiting is encrypted and never shared outside your care team." },
+  ];
+  return (
+    <div style={{ marginTop: 4, marginBottom: 2 }}>
+      <button
+        onClick={() => setExpanded(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.04em" }}>Common Questions</span>
+        <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
+          {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RefillFAQ() {
+  const [expanded, setExpanded] = useState(false);
+  const faqs = [
+    { q: "Do I need an appointment?", a: "No. Submit your refill request and your provider reviews it same day. No video, no phone call required." },
+    { q: "How fast will my pharmacy get it?", a: "Most refills are sent within a few hours during business hours. You'll receive a confirmation when it's sent." },
+    { q: "What if I need a controlled substance?", a: "Controlled medications require a brief live consultation (video or phone). We'll upgrade your visit automatically — no extra charge." },
+    { q: "Can they refill any medication?", a: "Most non-controlled medications, yes. Your provider will only decline if it's clinically unsafe to refill without a visit." },
+    { q: "What if my prescription is expired?", a: "Your provider can issue a new prescription if your history supports it. Most routine medications are approved." },
+    { q: "Is there a limit on refills?", a: "No standing limit. Each request is reviewed individually and approved based on your clinical history." },
+  ];
+  return (
+    <div style={{ marginTop: 4, marginBottom: 2 }}>
+      <button
+        onClick={() => setExpanded(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.04em" }}>Common Questions</span>
+        <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
+      </button>
+      {expanded && (
+        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
+          {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -625,7 +997,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
         <div className="px-1 mt-4 mb-1">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)", textAlign: "center" }}>
             {title.split("\n").map((line, i) => {
               // Last word of last line gets green accent
               const words = line.split(" ");
@@ -636,13 +1008,13 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-2 leading-relaxed">{sub}</p>
+          <p className="text-[#6b7280] mt-2 leading-relaxed" style={{ textAlign: "center", fontSize: "13px" }}>{sub}</p>
         </div>
-        <div className="flex flex-wrap gap-1.5 mt-2 px-1">
-          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
-          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👩‍⚕️ Board-Certified</span>}
-          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>⭐ 4.9 · 10K+</span>}
-          {step <= 3 && <span className="text-[8px] text-[#6b7280] flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👤 Same Provider</span>}
+        <div className="flex flex-wrap gap-1.5 mt-2 px-1 justify-center">
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👩‍⚕️ Board-Certified</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>⭐ 4.9 · 10K+</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👤 Same Provider</span>}
         </div>
       </div>
     );
@@ -654,8 +1026,8 @@ export default function ExpressCheckoutPage() {
     const sub = isReturn ? "Your provider is ready for you." : pick(confirmSubs, 5);
     return (
       <div style={{ animation: "fadeInBelow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both" }}>
-        <div className="px-1 mt-4 mb-2">
-          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)" }}>
+        <div className="px-1 mt-4 mb-2" style={{ textAlign: "center" }}>
+          <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(40px, 11vw, 52px)", textAlign: "center" }}>
             {title.split("\n").map((line, i) => {
               const words = line.split(" ");
               if (i === title.split("\n").length - 1 && words.length > 0) {
@@ -665,7 +1037,7 @@ export default function ExpressCheckoutPage() {
               return <span key={i}>{line}{"\n"}</span>;
             })}
           </h2>
-          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed">{sub}</p>
+          <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{sub}</p>
         </div>
         {/* Timeline */}
         <div className="mt-3 space-y-0">
@@ -673,22 +1045,22 @@ export default function ExpressCheckoutPage() {
             { icon: "👩‍⚕️", t: activeTimeline.s2, d: activeTimeline.d2, time: "~18 min" },
             { icon: "💊", t: activeTimeline.s3, d: activeTimeline.d3, time: "Same day" }].map((item, i) => (
             <div key={i}>
-              {i > 0 && <div className="ml-[17px] w-px h-1.5 bg-[#2dd4a0]/15"></div>}
-              <div className="flex gap-3 py-2">
+              {i > 0 && <div className="w-px h-1.5 bg-[#2dd4a0]/15" style={{ margin: "0 auto" }}></div>}
+              <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
                 <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
-                <div>
+                <div className="mt-1" style={{ textAlign: "center" }}>
                   <div className="text-[11px] font-bold text-white">{item.t}</div>
-                  <div className="text-[9px] text-[#6b7280] mt-0.5">{item.d}</div>
-                  <span className="inline-flex items-center gap-1 mt-1 text-[9px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                  <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
         {/* Discretion callout */}
-        <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)" }}>
-          <span className="text-[18px] flex-shrink-0">🙈</span>
-          <p className="text-[10px] text-[#9ca3af] leading-relaxed"><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
+        <div className="mt-3 rounded-xl px-3 py-2.5 flex flex-col items-center gap-1.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)", textAlign: "center" }}>
+          <span className="text-[18px]">🙈</span>
+          <p className="text-[11px] text-[#9ca3af] leading-relaxed" style={{ textAlign: "center" }}><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
         </div>
         {/* Provider quote */}
         <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/6" style={{ background: "rgba(255,255,255,0.02)" }}>
@@ -708,6 +1080,8 @@ export default function ExpressCheckoutPage() {
   const [calWeekOffset, setCalWeekOffset] = useState(0);
   const [calSelectedDay, setCalSelectedDay] = useState("");
   const [calSelectedTime, setCalSelectedTime] = useState("");
+  const [calApiSlots, setCalApiSlots] = useState<string[]>([]);   // HH:MM from API
+  const [calApiLoading, setCalApiLoading] = useState(false);
 
   // Guided Sequence State
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
@@ -719,6 +1093,18 @@ export default function ExpressCheckoutPage() {
   const [visitTypeChosen, setVisitTypeChosen] = useState(false);
   const [confirmReviewed, setConfirmReviewed] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
+  // ── New patient fields — live here, outside Elements, passed into Step2PaymentForm ──
+  const [npFirstName, setNpFirstName] = useState("");
+  const [npLastName,  setNpLastName]  = useState("");
+  const [npEmail,     setNpEmail]     = useState("");
+  const [npPhone,     setNpPhone]     = useState("");
+  const [npAddress,   setNpAddress]   = useState("");
+  const [npDobMonth,  setNpDobMonth]  = useState("");
+  const [npDobDay,    setNpDobDay]    = useState("");
+  const [npDobYear,   setNpDobYear]   = useState("");
+  const npDobComplete = npDobMonth.length === 2 && npDobDay.length === 2 && npDobYear.length === 4;
+  const npFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
+    npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0 && npDobComplete;
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [contactFirstName, setContactFirstName] = useState("");
@@ -741,11 +1127,48 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType as VisitType),
+    [visitType]
+  );
   const [visitIntentId, setVisitIntentId] = useState("");
+  const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
-  const isAsync = visitType === "instant" || visitType === "refill";
+  const isAsync = visitType === "async";
   const isReturningPatient = !!patient?.id || (!!patient?.source && patient.source !== "new");
+
+  // ── Arizona time helpers for instant visit after-hours cutoff ──
+  const getArizonaHour = (): number => {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", hour12: false }).formatToParts(new Date());
+      return parseInt(parts.find(p => p.type === "hour")?.value || "12");
+    } catch { return new Date().getHours(); }
+  };
+  const getArizonaTomorrowISO = (): string => {
+    const now = new Date();
+    const azFormatter = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", year: "numeric", month: "2-digit", day: "2-digit" });
+    const parts = azFormatter.formatToParts(now);
+    const y = parseInt(parts.find(p => p.type === "year")?.value || "0");
+    const m = parseInt(parts.find(p => p.type === "month")?.value || "0");
+    const d = parseInt(parts.find(p => p.type === "day")?.value || "0");
+    const tomorrow = new Date(y, m - 1, d + 1);
+    return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,"0")}-${String(tomorrow.getDate()).padStart(2,"0")}`;
+  };
+  // After 8:30PM Arizona time, instant visits are locked to 9AM next morning
+  const instantIsAfterCutoff = visitType === "instant" && getArizonaHour() >= 21;
+  // (20:30 = 8:30PM; getArizonaHour returns 20 for 8:00-8:59PM, we use >=21 for after 9PM cutoff,
+  //  but business logic is 8:30PM so we check minutes too)
+  const getInstantAZInfo = (): { isAfterCutoff: boolean; nextMorningDate: string; nextMorningTime: string } => {
+    try {
+      const now = new Date();
+      const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
+      const parts = fmt.formatToParts(now);
+      const azHour = parseInt(parts.find(p => p.type === "hour")?.value || "12");
+      const azMin = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+      const isAfterCutoff = azHour > 20 || (azHour === 20 && azMin >= 30); // after 8:30PM AZ
+      return { isAfterCutoff, nextMorningDate: getArizonaTomorrowISO(), nextMorningTime: "09:00" };
+    } catch { return { isAfterCutoff: false, nextMorningDate: getArizonaTomorrowISO(), nextMorningTime: "09:00" }; }
+  };
   useEffect(() => { console.log("[Patient] isReturning:", isReturningPatient, "id:", patient?.id, "source:", patient?.source); }, [patient, isReturningPatient]);
 
   // ── Load patient ───────────────────────────────────────
@@ -857,22 +1280,6 @@ export default function ExpressCheckoutPage() {
 
   useEffect(() => { setHasControlledSelected(selectedMeds.some(m => isControlledSubstance(m))); }, [selectedMeds]);
 
-  // ── allFieldsReady ─────────────────────────────────────
-  const allFieldsReady = useMemo(() => {
-    if (!reason || !symptomsDone) return false;
-    if (!pharmacy) return false;
-    if (!visitTypeConfirmed) return false;
-    if (needsCalendar) return !!(appointmentDate && appointmentTime);
-    if (visitType === "instant" && wantToTalk && (!appointmentDate || !appointmentTime)) return false;
-    if (visitType === "refill") {
-      const hasMedsOrNotes = selectedMeds.length > 0 || symptomsText.trim().length > 0 || !!photoFile;
-      if (!hasMedsOrNotes) return false;
-      if (hasControlledSelected) return !!controlledAcknowledged;
-      return true;
-    }
-    return !!asyncAcknowledged;
-  }, [reason, chiefComplaint, pharmacy, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, visitType, wantToTalk, selectedMeds, symptomsText, photoFile, hasControlledSelected, asyncAcknowledged, controlledAcknowledged]);
-
   // Track payment intent fetch errors for retry
   const [paymentIntentError, setPaymentIntentError] = useState<string | null>(null);
   const paymentFetchController = useRef<AbortController | null>(null);
@@ -913,6 +1320,7 @@ export default function ExpressCheckoutPage() {
         if (data.clientSecret) setClientSecret(data.clientSecret);
         else throw new Error("No clientSecret in response");
         if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+        if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
       })
       .catch((err) => {
         if (err.name === "AbortError") { console.log("[PaymentPrefetch] aborted (expected)"); return; }
@@ -980,9 +1388,9 @@ export default function ExpressCheckoutPage() {
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
         ".Label": { color: "#ffffff", fontSize: "10px", fontWeight: "600", marginBottom: "2px" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "6px 8px", fontSize: "12px" },
-        ".Input:focus": { border: "2px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
-        ".Input::placeholder": { color: "rgba(255,255,255,0.5)" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "6px 8px", fontSize: "12px" },
+        ".Input:focus": { border: "3px solid #2dd4a0", boxShadow: "0 0 0 2px rgba(45,212,160,0.25)" },
+        ".Input::placeholder": { color: "rgba(255,255,255,0.75)", fontWeight: "600" },
         ".Block": { padding: "4px 0" },
       },
     },
@@ -1009,7 +1417,20 @@ export default function ExpressCheckoutPage() {
 
   const handleSuccess = () => {
     if (hasControlledSelected) { setShowControlledScheduler(true); return; }
-    // Show post-payment intake form instead of routing immediately
+    // Returning patients skip intake — route directly to confirmation
+    if (isReturningPatient) {
+      const stored = sessionStorage.getItem("appointmentData");
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          if (data.accessToken) { clearAnswers(); router.push(`/appointment/${data.accessToken}`); return; }
+        } catch {}
+      }
+      clearAnswers();
+      router.push("/success");
+      return;
+    }
+    // New patients: show post-payment intake form
     setIntakePhase(true);
   };
 
@@ -1063,15 +1484,6 @@ export default function ExpressCheckoutPage() {
       if (existingData.accessToken) { router.push(`/appointment/${existingData.accessToken}`); } else { router.push("/success"); }
     } catch (err: any) { setScheduleError(err.message || "Failed to schedule. Please try again."); setSchedulingAppointment(false); }
   };
-
-  const notReadyMessage = useMemo(() => {
-    if (!reason) return "Select a reason for visit to continue";
-    if (needsCalendar && (!appointmentDate || !appointmentTime)) return "Select date & time to continue";
-    if (visitType === "refill" && selectedMeds.length === 0) return "Select medications to refill";
-    if (visitType === "refill" && hasControlledSelected && !controlledAcknowledged) return "Acknowledge controlled substance terms to continue";
-    if (isAsync && !hasControlledSelected && !asyncAcknowledged) return "Acknowledge the async visit terms to continue";
-    return "Complete all fields to continue";
-  }, [reason, needsCalendar, appointmentDate, appointmentTime, visitType, selectedMeds, hasControlledSelected, isAsync, asyncAcknowledged, controlledAcknowledged]);
 
   // ═══ GUIDED STEP LOGIC ═══
   // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType browse,
@@ -1128,6 +1540,7 @@ export default function ExpressCheckoutPage() {
           if (data.clientSecret) { setClientSecret(data.clientSecret); console.log("[Fallback] clientSecret received"); }
           else throw new Error("No clientSecret in response");
           if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+          if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
@@ -1233,6 +1646,7 @@ export default function ExpressCheckoutPage() {
   const step6Ref = useRef<HTMLDivElement>(null);
   const [step4PopupFired, setStep4PopupFired] = useState(false);
 
+
   // Auto-scroll to visit type step when pharmacy is selected
   useEffect(() => {
     if (pharmacy && symptomsDone && !visitTypeConfirmed && visitTypeRef.current) {
@@ -1251,6 +1665,8 @@ export default function ExpressCheckoutPage() {
       return () => clearTimeout(timer);
     }
   }, [activeGuideStep, visitTypeConfirmed, step4PopupFired, visitTypePopup]);
+
+
 
   // ── Auto-scroll Step 6 (payment) into view when it activates ──
   // Step 6 scroll removed — payment is now in Step 4.5;
@@ -1300,12 +1716,16 @@ export default function ExpressCheckoutPage() {
 
   // ═══ STEP 3 — POST-PAYMENT: Controlled Substance Scheduler ═══
   if (showControlledScheduler) {
+    // Use local date string (YYYY-MM-DD) — NOT toISOString() which is UTC and can be tomorrow
+    const toLocalDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
     const getAvailableDates = () => {
       const dates: { label: string; value: string; dayLabel: string; monthDay: string }[] = [];
       const now = new Date();
       for (let i = 0; i < 7; i++) {
-        const d = new Date(now); d.setDate(d.getDate() + i);
-        const value = d.toISOString().split("T")[0];
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+        const value = toLocalDateStr(d); // local date, not UTC
         const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
         const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         dates.push({ label: `${monthNames[d.getMonth()]} ${d.getDate()}`, value, dayLabel: i === 0 ? "Today" : i === 1 ? "Tmrw" : dayNames[d.getDay()], monthDay: `${d.getDate()}` });
@@ -1314,11 +1734,19 @@ export default function ExpressCheckoutPage() {
     };
     const getTimeSlots = () => {
       const slots: { label: string; value: string }[] = [];
-      const isToday = controlledScheduleDate === new Date().toISOString().split("T")[0];
-      const currentHour = new Date().getHours();
+      const now = new Date();
+      const todayStr = toLocalDateStr(now); // local date, not UTC
+      const isToday = controlledScheduleDate === todayStr;
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
       for (let h = 9; h <= 21; h++) {
-        if (isToday && h <= currentHour) continue;
         for (const m of [0, 30]) {
+          // Skip if this slot has already passed (compare slot time vs current time in minutes)
+          if (isToday) {
+            const slotMinutes = h * 60 + m;
+            const nowMinutes = currentHour * 60 + currentMinute;
+            if (slotMinutes <= nowMinutes) continue;
+          }
           const hr = h > 12 ? h - 12 : h === 0 ? 12 : h;
           const ampm = h >= 12 ? "PM" : "AM";
           slots.push({ label: `${hr}:${String(m).padStart(2,"0")} ${ampm}`, value: `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}` });
@@ -1331,7 +1759,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div className="text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "0" }}>
         <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="text-center pt-1 pb-1">
             <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span>
             <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS </span>
@@ -1410,10 +1838,9 @@ export default function ExpressCheckoutPage() {
       <div className="ec-root fixed inset-0 bg-[#070a08] overflow-hidden" style={{ height: "100dvh" }}>
         <style>{`
           @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
-          @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         `}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
 
           {/* Header — compact */}
           <div className="flex-shrink-0 text-center pt-1 pb-0.5">
@@ -1575,10 +2002,10 @@ export default function ExpressCheckoutPage() {
   );
 
   return (
-    <div className="ec-root text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "100vh" }}>
+    <div className="ec-root text-white font-sans" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "100vh", overflow: "hidden" }}>
       <style>{`
         @supports (height: 100dvh) { .ec-root { height: 100dvh !important; } }
-        @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
+        @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
         @keyframes guidePulse { 0%,100% { box-shadow: 0 0 8px rgba(249,115,22,0.3); } 50% { box-shadow: 0 0 18px rgba(249,115,22,0.55); } }
         @keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }
         @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); } 50% { box-shadow: 0 0 16px rgba(249,115,22,0.5); } }
@@ -1591,10 +2018,10 @@ export default function ExpressCheckoutPage() {
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)" }}>
           {/* Logo + Brand */}
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
@@ -1616,15 +2043,37 @@ export default function ExpressCheckoutPage() {
 
         {/* ═══ SCROLLABLE GUIDED FORM ═══ */}
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none" }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
 
           {/* STEP 1: Reason for Visit — hidden when answered */}
           {!reason ? (
-            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-4 transition-all mt-3 ${activeOrangeBorder}`}>
-                <button onClick={() => setReasonDialogOpen(true)} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-[#2dd4a0]/40 bg-[#0d1218] hover:border-[#2dd4a0]/60 text-left transition-all">
-                  <span className="text-gray-300 text-[15px]">{reason || "Select a reason..."}</span>
-                  <ChevronDown size={14} className="text-gray-500" />
+            <div style={{ position: "relative", zIndex: 1, marginTop: "12px" }}>
+              <div className={`rounded-xl bg-transparent p-4 transition-all ${activeOrangeBorder}`} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  onTouchEnd={(e) => { e.preventDefault(); setReasonDialogOpen(true); }}
+                  onClick={() => setReasonDialogOpen(true)}
+                  style={{
+                    position: "relative",
+                    zIndex: 10,
+                    WebkitTapHighlightColor: "transparent",
+                    touchAction: "manipulation",
+                    cursor: "pointer",
+                    display: "flex",
+                    width: "100%",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                    border: "2px solid rgba(45,212,160,0.4)",
+                    background: "#0d1218",
+                    textAlign: "left",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                  }}
+                >
+                  <span style={{ color: "#d1d5db", fontSize: "15px" }}>{reason || "Select a reason..."}</span>
+                  <ChevronDown size={14} color="#6b7280" />
                 </button>
               </div>
               <BelowCardContent step={1} />
@@ -1650,18 +2099,23 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 3: Preferred Pharmacy — hidden when answered */}
+          {/* STEP 3: Preferred Pharmacy — inline, no modal */}
           {reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 ${activeOrangeBorder}`}>
-                <PharmacySelector value={pharmacy} onChange={(val: string, info?: any) => {
-                  setPharmacy(val);
-                  if (info) {
-                    const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined };
-                    setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
-                    saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
-                  } else { saveAnswers({ pharmacy: val }); }
-                }} placeholder="Search pharmacy..." className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-white/50" />
+              <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 relative z-10 ${activeOrangeBorder}`}>
+                <PharmacySelector
+                  value={pharmacy}
+                  onChange={(val: string, info?: any) => {
+                    setPharmacy(val);
+                    if (info) {
+                      const pInfo: PharmacyInfo = { name: info.name || val, address: info.address || info.formatted_address || "", photo: info.photo || info.photoUrl || "", rating: info.rating || undefined, reviewCount: info.reviewCount || info.user_ratings_total || undefined, isOpen: info.isOpen ?? info.opening_hours?.open_now ?? undefined, phone: info.phone || undefined };
+                      setPharmacyInfo(pInfo); setPharmacyAddress(info.address || info.formatted_address || "");
+                      saveAnswers({ pharmacy: val, pharmacyInfo: pInfo, pharmacyAddress: pInfo.address });
+                    } else { saveAnswers({ pharmacy: val }); }
+                  }}
+                  placeholder="Search pharmacy..."
+                  className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-white/50"
+                />
               </div>
               <BelowCardContent step={3} />
             </div>
@@ -1669,32 +2123,20 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
-          {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup ? (
               <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                  <div className="grid grid-cols-4 gap-2">
-                    {([
-                      { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
-                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
-                      { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
-                      { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
-                    ] as const).map((vt) => {
+                  <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {VISIT_TYPES.map((vt) => {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
                       const hasPopupOpen = !!visitTypePopup;
                       return (<button key={vt.key} onClick={() => {
-                        if (vt.key === "video" || vt.key === "phone") {
-                          setVisitType(vt.key); setVisitTypePopup(null);
-                          setDateTimeDialogOpen(true); setCalWeekOffset(0);
-                          setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
-                          setCalSelectedTime("");
-                        } else {
-                          setVisitTypePopup(vt.key);
-                        }
+                        setVisitTypePopup(vt.key);
                       }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                        <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
-                        {hasPopupOpen && !isActive && <span className="text-[7px] text-gray-500 mt-0.5">tap to select</span>}
+                        <Icon size={16} style={{ color: vt.color }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : ""}`} style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
                       </button>);
                     })}
                   </div>
@@ -1707,14 +2149,77 @@ export default function ExpressCheckoutPage() {
             <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="p-3 space-y-2.5 relative bg-transparent border border-white/10 rounded-xl" style={{ minHeight: "140px" }}>
                 <button onClick={() => setVisitTypePopup(null)} className="absolute top-2.5 right-2.5 text-gray-500 hover:text-white transition-colors z-10"><X size={16} /></button>
+                {visitTypePopup === "async" && (<>
+                  <div className="px-1 mb-2" style={{ textAlign: "center" }}>
+                    <h2 className="text-white font-black leading-[1.05] tracking-tight whitespace-pre-line" style={{ fontSize: "clamp(28px, 8vw, 36px)", textAlign: "center" }}>
+                      {visitContent.async.title.split("\n").map((line, i) => {
+                        const words = line.split(" ");
+                        if (i === visitContent.async.title.split("\n").length - 1 && words.length > 0) {
+                          const last = words.pop();
+                          return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+                        }
+                        return <span key={i}>{line}{"\n"}</span>;
+                      })}
+                    </h2>
+                    <p className="text-[11px] text-[#6b7280] mt-1 leading-relaxed" style={{ textAlign: "center" }}>{visitContent.async.sub}</p>
+                  </div>
+                  <div className="space-y-0">
+                    {visitContent.async.steps.map((item, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="w-px h-1.5 bg-[#2dd4a0]/15" style={{ margin: "0 auto" }}></div>}
+                        <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
+                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1" style={{ textAlign: "center" }}>
+                            <div className="text-[11px] font-bold text-white">{item.t}</div>
+                            <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; setVisitType("async"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); setAppointmentDate(today); setAppointmentTime(""); setVisitTypePopup(null); saveAnswers({ visitType: "async", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: today, appointmentTime: "" }); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
+                </>)}
                 {visitTypePopup === "instant" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#2dd4a0]/15 flex items-center justify-center flex-shrink-0"><Zap size={16} className="text-[#2dd4a0]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Get Seen Without Being Seen</h3><p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-wider">Instant Care · No Appointment</p></div></div>
-                  <p className="text-gray-300 text-[11px] leading-relaxed">Provider reviews your case privately, sends treatment + Rx to your pharmacy.</p>
-                  <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">100% private</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">1–2 hours</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#2dd4a0]" /><span className="text-white text-[10px]">Rx to pharmacy</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "instant", visitTypeChosen: true, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  {/* Header */}
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(245,158,11,0.12)" }}><Zap size={16} className="text-[#f59e0b]" /></div>
+                    <div>
+                      <h3 className="text-white font-black text-[14px] leading-tight">⚡ Instant Visit</h3>
+                      <p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Connect with a provider right now</p>
+                    </div>
+                  </div>
+                  {/* After-hours notice */}
+                  {(() => { const azInfo = getInstantAZInfo(); return azInfo.isAfterCutoff ? (
+                    <div className="rounded-xl px-3 py-2 mb-1" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
+                      <p className="text-[#f97316] text-[10px] font-bold">🌙 After Hours</p>
+                      <p className="text-gray-300 text-[10px] mt-0.5">The provider will connect with you tomorrow at <strong>9:00 AM Arizona time</strong>. Your spot is locked in now.</p>
+                    </div>
+                  ) : null; })()}
+                  {/* Steps */}
+                  <div className="space-y-0">
+                    {[{ icon: "📝", t: "Complete Quick Intake", d: "Tell us what you need — takes about 2 minutes.", time: "~2 min" }, { icon: "⏱", t: "Join the Queue", d: "You'll be notified the moment a provider is ready.", time: "Usually minutes" }, { icon: "📹", t: "Connect Live", d: "Meet by live video and get treated in real time.", time: "Starts when called" }].map((item, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="w-px h-1.5 bg-[#f59e0b]/15" style={{ margin: "0 auto" }}></div>}
+                        <div className="flex flex-col items-center py-1.5" style={{ textAlign: "center" }}>
+                          <div className="w-[30px] h-[30px] rounded-full flex-shrink-0 flex items-center justify-center text-[13px] border border-[#f59e0b]/15" style={{ background: "rgba(245,158,11,0.06)" }}>{item.icon}</div>
+                          <div className="mt-1">
+                            <div className="text-[10px] font-bold text-white">{item.t}</div>
+                            <div className="text-[10px] text-[#6b7280] mt-0.5">{item.d}</div>
+                            <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[#f59e0b] font-bold px-1.5 py-0.5 rounded border border-[#f59e0b]/12" style={{ background: "rgba(245,158,11,0.08)" }}>⏱ {item.time}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* FAQ accordion */}
+                  <InstantFAQ />
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
-                  <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Rx Refill — No Appointment</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Same-day pharmacy pickup</p></div></div>
+                  <div className="flex items-center gap-2.5 mb-1"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">💊 Rx Refill</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Provider reviews &amp; sends to pharmacy same day</p></div></div>
                   <div className="rounded-xl bg-[#0d1218] border border-white/10 p-2.5 space-y-1.5">
                     <p className="text-white text-[10px] font-semibold">Select Medications to Refill</p>
                     {medsLoading ? (
@@ -1738,7 +2243,9 @@ export default function ExpressCheckoutPage() {
                     )}
                     <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-white/50" />
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("refill"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); saveAnswers({ visitType: "refill", visitTypeChosen: true, visitTypeConfirmed: true }); setVisitTypePopup(null); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  {/* FAQ accordion */}
+                  <RefillFAQ />
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; setVisitType("refill"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); setAppointmentDate(today); setAppointmentTime(""); setVisitTypePopup(null); saveAnswers({ visitType: "refill", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: today, appointmentTime: "" }); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "video" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
@@ -1752,16 +2259,16 @@ export default function ExpressCheckoutPage() {
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
                   <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
                 </>)}
-                <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
+                {(visitTypePopup === "refill" || visitTypePopup === "video" || visitTypePopup === "phone") && <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>}
               </div>
             </div>
           )}
-          {reason && symptomsDone && pharmacy && !visitTypeChosen && <BelowCardContent step={4} />}
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup && <BelowCardContent step={4} />}
           </div>
           {/* END Step 4 wrapper */}
 
           {/* STEP 4.5: Confirm Summary (new patient) / Summary + Pay (returning patient) */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && !confirmReviewed && !isReturningPatient ? (
+          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !confirmReviewed && !isReturningPatient ? (
             /* ── NEW PATIENT: Confirm Summary with CONTINUE button ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
@@ -1783,7 +2290,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
-                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
                       <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
@@ -1804,7 +2311,10 @@ export default function ExpressCheckoutPage() {
                   {appointmentDate && appointmentTime && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      </div>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
@@ -1813,13 +2323,19 @@ export default function ExpressCheckoutPage() {
                   </div>
                 </div>
                 {/* CONTINUE button */}
-                <button onClick={() => { setConfirmReviewed(true); saveAnswers({ confirmReviewed: true }); }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
+                <button onClick={() => {
+                  if (needsCalendar && (!appointmentDate || !appointmentTime)) {
+                    setDateTimeDialogOpen(true);
+                    return;
+                  }
+                  setConfirmReviewed(true); saveAnswers({ confirmReviewed: true });
+                }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
                   CONTINUE
                 </button>
               </div>
               <ConfirmBelowContent isReturn={false} />
             </div>
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && isReturningPatient ? (
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
             /* ── RETURNING PATIENT: Summary + Wallets + collapsed card form ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
@@ -1841,7 +2357,7 @@ export default function ExpressCheckoutPage() {
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
-                        {visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
+                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
                       <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
@@ -1862,7 +2378,10 @@ export default function ExpressCheckoutPage() {
                   {appointmentDate && appointmentTime && (
                     <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      </div>
                     </div>
                   )}
                   <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
@@ -1874,7 +2393,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card fallback */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -1901,10 +2420,84 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                {/* Payment — Express wallets + DOB + card form open */}
+
+                {/* ── NEW PATIENT INFO — outside Elements, no Stripe autofill contamination ── */}
+                <div className="space-y-1">
+                  {/* Row 1: First + Last */}
+                  <div className="flex gap-1">
+                    <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                      name="pt-fn-x7k2" data-lpignore="true" data-form-type="other"
+                      placeholder="First name" value={npFirstName}
+                      onChange={(e) => setNpFirstName(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                      name="pt-ln-m9p4" data-lpignore="true" data-form-type="other"
+                      placeholder="Last name" value={npLastName}
+                      onChange={(e) => setNpLastName(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                  {/* Row 2: Email + Phone */}
+                  <div className="flex gap-1">
+                    <input type="text" inputMode="email" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-em-j3r8" data-lpignore="true" data-form-type="other"
+                      placeholder="Email" value={npEmail}
+                      onChange={(e) => setNpEmail(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input type="text" inputMode="tel" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-ph-q5w1" data-lpignore="true" data-form-type="other"
+                      placeholder="Phone" value={npPhone}
+                      onChange={(e) => setNpPhone(e.target.value)}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                  </div>
+                  {/* Row 3: Address (flex-3) + DOB single field (flex-2) */}
+                  <div className="flex gap-1">
+                    <input type="text" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-ad-h6n0" data-lpignore="true" data-form-type="other"
+                      placeholder="Street address" value={npAddress}
+                      onChange={(e) => setNpAddress(e.target.value)}
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                    />
+                    <input type="text" inputMode="numeric" autoComplete="new-password" autoCorrect="off" spellCheck={false}
+                      name="pt-db-c2v9" data-lpignore="true" data-form-type="other"
+                      placeholder="MM/DD/YYYY"
+                      value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g,"").slice(0,8);
+                        setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
+                      }}
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
+                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "3px solid rgba(45,212,160,0.65)" }}
+                      onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                      onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
+                    />
+                  </div>
+                </div>
+
+                {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
+                      npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
+                    />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -1980,8 +2573,61 @@ export default function ExpressCheckoutPage() {
         const DAY_ABBR = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
         const SHORT_MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
         const MONTH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"];
+        const timeSlots = ["9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM"];
         const convertTo24 = (t: string) => { const [time, period] = t.split(" "); let [h, m] = time.split(":").map(Number); if (period === "PM" && h !== 12) h += 12; if (period === "AM" && h === 12) h = 0; return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; };
+        const getSlotBadge = (slot: string, day: Date): { label: string; color: string } | null => {
+          const dow = day.getDay(); // 0=Sun, 6=Sat
+          const isWeekendDay = dow === 0 || dow === 6;
+          if (isWeekendDay) return { label: "Weekend · $249", color: "#f59e0b" };
+          // After hours: 5:30 PM onward on weekdays
+          const t24 = convertTo24(slot);
+          const [h] = t24.split(":").map(Number);
+          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours · $249", color: "#f97316" };
+          return null;
+        };
+        // Convert HH:MM (API format) to display string "9:00 AM"
+        const to12h = (t24: string): string => {
+          const [h, m] = t24.split(":").map(Number);
+          const period = h >= 12 ? "PM" : "AM";
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          return `${h12}:${String(m).padStart(2,"0")} ${period}`;
+        };
+        // Build slots for a given day:
+        // 1. If calApiSlots loaded from API — use those (already filtered by doctor availability + booked slots)
+        // 2. Otherwise fall back to static timeSlots with client-side AZ past-time filter
+        const filterSlotsForDay = (day: Date): string[] => {
+          if (calApiSlots.length > 0) {
+            // API returns HH:MM — convert to display format, apply past-time filter for today
+            const displaySlots = calApiSlots.map(t24 => to12h(t24));
+            if (!isSameDay(day, today)) return displaySlots;
+            try {
+              const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
+              const parts = fmt.formatToParts(new Date());
+              const azH = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+              const azM = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+              const nowMins = azH * 60 + azM;
+              return displaySlots.filter(slot => {
+                const t24 = convertTo24(slot);
+                const [sh, sm] = t24.split(":").map(Number);
+                return (sh * 60 + sm) > nowMins;
+              });
+            } catch { return displaySlots; }
+          }
+          // Fallback: static slots with AZ past-time filter for today
+          if (!isSameDay(day, today)) return timeSlots;
+          try {
+            const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Phoenix", hour: "numeric", minute: "numeric", hour12: false });
+            const parts = fmt.formatToParts(new Date());
+            const azH = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+            const azM = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+            const nowMins = azH * 60 + azM;
+            return timeSlots.filter(slot => {
+              const t24 = convertTo24(slot);
+              const [sh, sm] = t24.split(":").map(Number);
+              return (sh * 60 + sm) > nowMins;
+            });
+          } catch { return timeSlots; }
+        };
         const getSpecialLabel = (d: Date) => { if (isSameDay(d, today)) return "Today"; if (isSameDay(d, tomorrow)) return "Tomorrow"; return null; };
         const monthLabel = `${MONTH_FULL[visibleDays[0].getMonth()]} ${visibleDays[0].getFullYear()}`;
         const selectedDateObj = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : null;
@@ -2015,7 +2661,7 @@ export default function ExpressCheckoutPage() {
                   const isToday = isSameDay(day, today);
                   const special = getSpecialLabel(day);
                   return (
-                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); }}
+                    <button key={iso} onClick={() => { setCalSelectedDay(iso); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(true); fetch(`/api/get-doctor-availability?date=${iso}`).then(r => r.json()).then(data => { if (data.availableSlots) setCalApiSlots(data.availableSlots); }).catch(() => {}).finally(() => setCalApiLoading(false)); }}
                       className="flex-1 flex flex-col items-center justify-center rounded-[14px] transition-all active:scale-95"
                       style={{
                         padding: "10px 4px 8px",
@@ -2056,33 +2702,58 @@ export default function ExpressCheckoutPage() {
               {calSelectedDay ? (
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
+                  {calApiLoading ? (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 12 }}>
+                      <div className="animate-spin" style={{ width: 24, height: 24, border: "2px solid rgba(45,212,160,0.2)", borderTop: "2px solid #2dd4a0", borderRadius: "50%" }} />
+                      <p style={{ color: "#64748b", fontSize: 12 }}>Loading available times...</p>
+                    </div>
+                  ) : (
+                  <>
                   <div id="cal-time-grid" className="rounded-xl transition-all" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                    {timeSlots.map((slot, i) => {
-                      const t24 = convertTo24(slot);
-                      const isActive = calSelectedTime === t24;
-                      return (
-                        <button key={slot} onClick={() => setCalSelectedTime(t24)}
-                          className="active:scale-95 transition-all"
-                          style={{
-                            padding: "14px 16px",
-                            borderRadius: 12,
-                            border: isActive ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.1)",
-                            background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "rgba(255,255,255,0.03)",
-                            color: isActive ? "#ffffff" : "#e2e8f0",
-                            fontSize: 16,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            textAlign: "center" as const,
-                            boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
-                            animation: "slotFadeIn 0.3s ease both",
-                            animationDelay: `${i * 0.05}s`,
-                          }}>
-                          {slot}
-                        </button>
+                    {(() => {
+                      const selectedDayDate = calSelectedDay ? new Date(calSelectedDay + "T12:00:00") : today;
+                      const slots = filterSlotsForDay(selectedDayDate);
+                      if (slots.length === 0) return (
+                        <div style={{ gridColumn: "1/-1", padding: "24px 0", textAlign: "center" }}>
+                          <p style={{ color: "#64748b", fontSize: 13 }}>No more slots available today.</p>
+                          <p style={{ color: "#475569", fontSize: 11, marginTop: 4 }}>Please select a different day.</p>
+                        </div>
                       );
-                    })}
+                      return slots.map((slot, i) => {
+                        const t24 = convertTo24(slot);
+                        const isActive = calSelectedTime === t24;
+                        const badge = getSlotBadge(slot, selectedDayDate);
+                        return (
+                          <button key={slot} onClick={() => setCalSelectedTime(t24)}
+                            className="active:scale-95 transition-all"
+                            style={{
+                              padding: badge ? "10px 12px 8px" : "14px 16px",
+                              borderRadius: 12,
+                              border: isActive ? "2px solid rgba(45,212,160,0.5)" : badge ? "2px solid rgba(249,115,22,0.2)" : "2px solid rgba(255,255,255,0.1)",
+                              background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : badge ? "rgba(249,115,22,0.04)" : "rgba(255,255,255,0.03)",
+                              color: isActive ? "#ffffff" : "#e2e8f0",
+                              fontSize: 15,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              textAlign: "center" as const,
+                              boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                              animation: "slotFadeIn 0.3s ease both",
+                              animationDelay: `${i * 0.05}s`,
+                              display: "flex",
+                              flexDirection: "column" as const,
+                              alignItems: "center",
+                              gap: 3,
+                            }}>
+                            <span>{slot}</span>
+                            {badge && <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? "#fed7aa" : badge.color, letterSpacing: "0.02em", lineHeight: 1 }}>{badge.label}</span>}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
                   <p className="text-center mt-3" style={{ fontSize: 10, color: "#475569" }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                  </>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -2153,6 +2824,1599 @@ export default function ExpressCheckoutPage() {
 
 
 // force rebuild Mon Feb 23 17:54:49 UTC 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -7,7 +7,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { useStripe, useElements, PaymentElement, ExpressCheckoutElement } from "@stripe/react-stripe-js";
 import {
   Zap, Calendar, ChevronDown, X, Clock, Lock, Search,
-  Phone, Video, Pill, Camera, AlertTriangle, Shield, Check, Star, Upload,
+  Phone, Video, Pill, Camera, AlertTriangle, Shield, Check, Star, Upload, MessageSquare,
 } from "lucide-react";
 import symptomSuggestions from "@/data/symptom-suggestions.json";
 import AppointmentCalendar from "@/components/AppointmentCalendar";
@@ -89,16 +89,108 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Stripe decline handling
+// ═══════════════════════════════════════════════════════════════
+type DeclineCategory = "soft" | "funds" | "card_data" | "expired" | "permanent" | "processing" | "terms" | "generic";
+
+interface DeclineState {
+  category: DeclineCategory;
+  code: string;
+  headline: string;
+  body: string;
+  fieldHint: string | null;   // shown above PaymentElement
+  retryable: boolean;
+  showBnpl: boolean;
+}
+
+function getDeclineState(err: { type?: string; code?: string; decline_code?: string; message?: string }): DeclineState {
+  const code = err.decline_code || err.code || "";
+  const type = err.type || "";
+
+  // Card-data errors — patient typed something wrong
+  if (["incorrect_cvc", "invalid_cvc"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your security code doesn't match. No charge was made. Check the 3-digit number on the back of your card and try again.",
+      fieldHint: "Check your security code (3 digits on the back)" };
+  }
+  if (["incorrect_number", "invalid_number"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "One digit in your card number looks off. No charge was made. Give it a second look and try again.",
+      fieldHint: "Double-check your card number" };
+  }
+  if (["incorrect_zip"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "Your billing ZIP code doesn't match what your bank has on file. No charge was made.",
+      fieldHint: "Check your billing ZIP code" };
+  }
+  if (["invalid_expiry_month", "invalid_expiry_year"].includes(code)) {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "Small typo — easy fix.",
+      body: "The expiration date doesn't look right. No charge was made. Check the month and year on your card.",
+      fieldHint: "Check your expiration date" };
+  }
+
+  // Expired card
+  if (code === "expired_card") {
+    return { category: "expired", code, retryable: false, showBnpl: true,
+      headline: "Looks like this card has expired.",
+      body: "Cards expire — easy to forget. No charge was made. Add a current card and we'll have you booked in under a minute.",
+      fieldHint: "This card is expired — please use a different card" };
+  }
+
+  // Insufficient funds / velocity
+  if (["insufficient_funds", "card_velocity_exceeded"].includes(code)) {
+    return { category: "funds", code, retryable: false, showBnpl: true,
+      headline: "Your health comes first — let's find another way.",
+      body: `Remember: you're only paying ${"\u0024"}1.89 today. The visit fee is only collected after your provider accepts. Try a different card, or use a saved card below.`,
+      fieldHint: null };
+  }
+
+  // Permanent / bank-blocked — no BNPL
+  if (["fraudulent", "lost_card", "stolen_card", "pickup_card", "do_not_try_again", "restricted_card", "transaction_not_allowed"].includes(code)) {
+    return { category: "permanent", code, retryable: false, showBnpl: false,
+      headline: "Your bank has put a hold on this card.",
+      body: "This sometimes happens after a card is replaced or flagged for security. There's nothing wrong on your end — your bank just needs you to use a different payment method. Your information is saved.",
+      fieldHint: null };
+  }
+
+  // Processing errors — not the patient's fault
+  if (["processing_error", "issuer_not_available", "try_again_later"].includes(code)) {
+    return { category: "processing", code, retryable: true, showBnpl: true,
+      headline: "That was us, not you.",
+      body: "There was a temporary issue reaching your bank — your card was not charged. Tap Try Again below.",
+      fieldHint: null };
+  }
+
+  // Generic / soft declines — do_not_honor, generic_decline, card_declined
+  if (type === "card_error" || ["card_declined", "do_not_honor", "no_action_taken", "generic_decline", "not_permitted"].includes(code)) {
+    return { category: "soft", code, retryable: true, showBnpl: true,
+      headline: "No worries — this happens more than you'd think.",
+      body: "Your bank flagged this as unusual, which is common for new or online purchases. Your card wasn't charged. Try once more or use a different card — your information is saved.",
+      fieldHint: null };
+  }
+
+  // Fallback
+  return { category: "generic", code, retryable: true, showBnpl: false,
+    headline: "Something went wrong with payment.",
+    body: err.message || "Your card was not charged. Please try again.",
+    fieldHint: null };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Step 2 Payment Form — single viewport, no scroll
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, onCardExpand,
+  currentPrice, pharmacy, pharmacyAddress, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; selectedMedications: string[];
-  symptomsText: string; onSuccess: () => void; visitIntentId: string; onCardExpand?: (expanded: boolean) => void;
+  symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -106,6 +198,7 @@ function Step2PaymentForm({
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [declineState, setDeclineState] = useState<DeclineState | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [elementReady, setElementReady] = useState(false);
   const [payInFlight, setPayInFlight] = useState(false);
@@ -113,11 +206,38 @@ function Step2PaymentForm({
   const [showCardForm, setShowCardForm] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
   const isNewPatient = !patient?.id;
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType as VisitType),
+    [visitType]
+  );
   const [newDobMonth, setNewDobMonth] = useState("");
   const [newDobDay, setNewDobDay] = useState("");
   const [newDobYear, setNewDobYear] = useState("");
   const newDobComplete = newDobMonth.length === 2 && newDobDay.length === 2 && newDobYear.length === 4;
   const newDobISO = newDobComplete ? `${newDobYear}-${newDobMonth}-${newDobDay}` : "";
+
+  // ── Payment speed: pre-fire patient creation as soon as DOB completes ──
+  // Removes check-create-patient from the hot pay path for new patients.
+  const [prefetchedPatientId, setPrefetchedPatientId] = useState<string | null>(null);
+  const prefetchPatientRef = useRef(false);
+  useEffect(() => {
+    if (!isNewPatient || !newDobComplete || prefetchPatientRef.current) return;
+    const pd = getPatientData();
+    if (!pd.email || !pd.firstName || !pd.lastName) return;
+    prefetchPatientRef.current = true;
+    fetch("/api/check-create-patient", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+        phone: pd.phone, dateOfBirth: newDobISO,
+        address: pd.address, pharmacy: pharmacy || "",
+        pharmacyAddress: pharmacyAddress || "",
+      }),
+    })
+      .then(r => r.json())
+      .then(result => { if (result.patientId) setPrefetchedPatientId(result.patientId); })
+      .catch(() => { prefetchPatientRef.current = false; }); // allow retry on pay tap if prefetch failed
+  }, [isNewPatient, newDobComplete, newDobISO]);
 
   const getPatientData = () => {
     if (!isNewPatient) {
@@ -126,13 +246,26 @@ function Step2PaymentForm({
     return { email: patient.email || "", firstName: patient.firstName || "", lastName: patient.lastName || "", phone: patient.phone || "", dateOfBirth: newDobISO, address: patient.address || "" };
   };
 
+  const handleStripeError = (err: { type?: string; code?: string; decline_code?: string; message?: string }) => {
+    const ds = getDeclineState(err);
+    setDeclineState(ds);
+    setError(null);
+    setPayInFlight(false);
+    // Pulse the card section on card_data errors so patient knows what to fix
+    if (ds.category === "card_data" || ds.category === "expired" || ds.category === "soft" || ds.category === "funds") {
+      setPulseField("card");
+      setTimeout(() => setPulseField(null), 2000);
+    }
+  };
+
   // ── Express Checkout (Apple Pay / Google Pay) one-tap handler ──
   const handleExpressConfirm = async () => {
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
     try {
       const pd = getPatientData();
-      let patientId = patient.id;
+      let patientId = patient.id || prefetchedPatientId;
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -151,8 +284,9 @@ function Step2PaymentForm({
       if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
 
       const { error: submitError } = await elements.submit();
-      if (submitError) { setError(submitError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (submitError) { handleStripeError(submitError); return; }
 
+      // Step 1: Confirm the $189 visit hold — verifies funds exist
       const result = await stripe.confirmPayment({
         elements, redirect: "if_required",
         confirmParams: {
@@ -161,11 +295,44 @@ function Step2PaymentForm({
         },
       });
 
-      if (result.error) { setError(result.error.message || "Payment failed."); setPayInFlight(false); return; }
+      if (result.error) { handleStripeError(result.error); return; }
 
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified — this is the success signal
+      const holdCleared = result.paymentIntent?.status === "requires_capture" || result.paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (result.paymentIntent?.status === "succeeded") {
+      // Step 2: Charge the $1.89 booking fee server-side using same payment method
+      const paymentMethodId = typeof result.paymentIntent?.payment_method === "string"
+        ? result.paymentIntent.payment_method
+        : result.paymentIntent?.payment_method?.id;
+
+      if (!paymentMethodId) {
+        setError("Could not retrieve payment method. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      const bookingRes = await fetch("/api/confirm-booking-fee", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+      });
+      const bookingResult = await bookingRes.json();
+      if (!bookingRes.ok) {
+        setIsProcessing(false);
+        handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+        return;
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      // Hold cleared + booking fee charged — create appointment
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -219,6 +386,7 @@ function Step2PaymentForm({
   const handlePay = async () => {
     if (!acceptedTerms) { setError("Please accept the terms to continue."); return; }
     setError(null);
+    setDeclineState(null);
     setPayInFlight(true);
 
     try {
@@ -278,6 +446,7 @@ function Step2PaymentForm({
 
       // NORMAL MODE — real patient creation + real payment
       const pd = getPatientData();
+      if (!patientId) patientId = prefetchedPatientId; // use pre-fired result if available
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -297,35 +466,66 @@ function Step2PaymentForm({
 
       if (isTestMode) {
         setIsProcessing(true); setProgress(45); setStatusText("Test mode...");
-        paymentIntent = { id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, status: "succeeded" };
+        paymentIntent = { id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, status: "requires_capture" };
         await new Promise((r) => setTimeout(r, 500));
       } else {
         if (!stripe || !elements) { setError("Payment not ready. Please try again."); setPayInFlight(false); return; }
 
-        // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
+        // Submit elements first — validates form
         const submitResult = await elements.submit();
         if (submitResult.error) {
-          setError(submitResult.error.message || "Please complete the payment form.");
-          setPayInFlight(false);
+          handleStripeError(submitResult.error);
           return;
         }
 
-        // NOW confirm — PaymentElement is still mounted because isProcessing is false
+        // Step 1: Confirm the $189 visit hold — verifies funds exist
         const result = await stripe.confirmPayment({
           elements, redirect: "if_required",
-          confirmParams: {
-            return_url: `${window.location.origin}/success`,
-          },
+          confirmParams: { return_url: `${window.location.origin}/success` },
         });
         paymentError = result.error; paymentIntent = result.paymentIntent;
       }
 
-      if (paymentError) { setError(paymentError.message || "Payment failed."); setPayInFlight(false); return; }
+      if (paymentError) { handleStripeError(paymentError); return; }
 
-      // Payment succeeded — NOW safe to show progress spinner (PaymentElement no longer needed)
-      setIsProcessing(true); setProgress(75); setStatusText("Creating appointment...");
+      // requires_capture = hold cleared, funds verified
+      const holdCleared = paymentIntent?.status === "requires_capture" || paymentIntent?.status === "succeeded";
+      if (!holdCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
 
-      if (paymentIntent?.status === "succeeded") {
+      // Step 2: Charge the $1.89 booking fee server-side
+      const paymentMethodId = typeof paymentIntent?.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent?.payment_method?.id;
+
+      // Hold cleared — safe to show progress (PaymentElement no longer needed)
+      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+
+      if (!isTestMode) {
+        if (!paymentMethodId) {
+          setIsProcessing(false);
+          setError("Could not retrieve payment method. Please try again.");
+          setPayInFlight(false);
+          return;
+        }
+        const bookingRes = await fetch("/api/confirm-booking-fee", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+        });
+        const bookingResult = await bookingRes.json();
+        if (!bookingRes.ok) {
+          setIsProcessing(false);
+          handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
+          return;
+        }
+      }
+
+      setProgress(75); setStatusText("Creating appointment...");
+
+      if (holdCleared) {
         const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const isAsync = visitType === "instant" || visitType === "refill";
         let fullChiefComplaint = chiefComplaint || reason;
@@ -390,7 +590,63 @@ function Step2PaymentForm({
   return (
     <>
       <div className="w-full space-y-2">
+        {/* Non-payment errors (terms, form validation) — keep the simple red banner */}
         {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-2 py-1.5 rounded-lg text-[10px]">{error}<button onClick={() => setError(null)} className="ml-2 underline text-[9px]">Dismiss</button></div>}
+
+        {/* Decline state — warm, empathetic, actionable */}
+        {declineState && (
+          <div className="rounded-xl border border-[#2dd4a0]/25 px-3 py-3 space-y-2" style={{ background: "linear-gradient(135deg, rgba(13,18,24,0.95) 0%, rgba(20,28,36,0.95) 100%)" }}>
+            {/* Icon + headline */}
+            <div className="flex items-start gap-2">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ background: "rgba(45,212,160,0.12)" }}>
+                <span className="text-[14px]">💙</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-[12px] leading-[1.3]">{declineState.headline}</p>
+                <p className="text-gray-400 text-[11px] leading-[1.4] mt-0.5">{declineState.body}</p>
+              </div>
+              <button onClick={() => setDeclineState(null)} className="flex-shrink-0 text-gray-600 hover:text-gray-400 text-[14px] leading-none mt-0.5">×</button>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2 pt-0.5">
+              {declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setTimeout(() => handlePay(), 50); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Try Again
+                </button>
+              )}
+              {!declineState.retryable && (
+                <button
+                  onClick={() => { setDeclineState(null); setShowCardForm(true); }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
+                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                >
+                  Use a Different Card
+                </button>
+              )}
+              {declineState.showBnpl && process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK && (
+                <a
+                  href={`${process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(patient.email || "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2dd4a0] border border-[#2dd4a0]/30 text-center transition-all active:scale-[0.98]"
+                  style={{ background: "rgba(45,212,160,0.06)" }}
+                >
+                  Book Now, Pay Later
+                </a>
+              )}
+            </div>
+
+            {/* Care-first note */}
+            <p className="text-gray-600 text-[10px] leading-[1.3] text-center pt-0.5">
+              Care first. Your information is saved — nothing to re-enter.
+            </p>
+          </div>
+        )}
 
         {isTestMode ? (
           <button onClick={() => {
@@ -435,28 +691,35 @@ function Step2PaymentForm({
                     <div className="flex gap-2">
                       <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" value={newDobMonth}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobMonth(v); if (v.length === 2) (document.getElementById("dob-day") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.65)" }}
+                        onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                        onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-day" type="text" inputMode="numeric" maxLength={2} placeholder="DD" value={newDobDay}
                         onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 2); setNewDobDay(v); if (v.length === 2) (document.getElementById("dob-year") as HTMLInputElement)?.focus(); }}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.65)" }}
+                        onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                        onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                       />
                       <input id="dob-year" type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" value={newDobYear}
                         onChange={(e) => setNewDobYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)" }}
-                        onFocus={(e) => { e.target.style.border = "2px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 1px #2dd4a0"; }}
-                        onBlur={(e) => { e.target.style.border = "2px solid rgba(45,212,160,0.35)"; e.target.style.boxShadow = "none"; }}
+                        className="flex-1 rounded-xl px-3 py-2 text-white text-[13px] text-center focus:outline-none placeholder:text-gray-600" style={{ background: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.65)" }}
+                        onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                        onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                       />
                     </div>
                   </div>
                 )}
 
-                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
-                  <PaymentElement onReady={() => setElementReady(true)} options={{
+                {/* Field hint — shown when a specific field caused the decline */}
+                {declineState?.fieldHint && (
+                  <p className="text-[#f97316] text-[10px] font-medium px-1 -mb-1">
+                    ⚠ {declineState.fieldHint}
+                  </p>
+                )}
+
+                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#2dd4a0] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
+                  <PaymentElement onReady={() => setElementReady(true)} onChange={() => { if (declineState) setDeclineState(null); }} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
                     wallets: { applePay: "never", googlePay: "never" },
@@ -468,11 +731,11 @@ function Step2PaymentForm({
                 </div>
 
                 {/* Sticky terms + pay button */}
-                <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 8px), 8px)" }}>
+                <div className="sticky bottom-0 z-10 pt-2 pb-1" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
                   <div className={`flex items-start gap-1.5 mb-2 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time.
+                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{visitFeePrice.display}</strong>. By completing this booking you acknowledged that your visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -481,8 +744,9 @@ function Step2PaymentForm({
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
                   }} className="w-full text-white font-extrabold py-3.5 rounded-xl transition-all text-[14px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
-                    <Lock size={13} /> {payInFlight ? "Processing..." : `Pay ${currentPrice.display} & Reserve`}
+                    <Lock size={13} /> {payInFlight ? "Processing..." : "BOOK NOW, PAY LATER"}
                   </button>
+                  <p className="text-center text-gray-600 text-[9px] tracking-wide mt-1">CARE FIRST program</p>
                 </div>
               </>
             ) : (
@@ -577,8 +841,14 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  const visitFeePrice = useMemo(() => getPrice(visitType), [visitType]);
+  // For scheduled visits (video/phone), price from the selected appointment slot.
+  // For instant/refill (no calendar), price from booking time (now).
+  const visitFeePrice = useMemo(
+    () => getPrice(visitType),
+    [visitType]
+  );
   const [visitIntentId, setVisitIntentId] = useState("");
+  const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "instant" || visitType === "refill";
   const isReturningPatient = !!patient?.id;
@@ -749,6 +1019,7 @@ export default function ExpressCheckoutPage() {
         if (data.clientSecret) setClientSecret(data.clientSecret);
         else throw new Error("No clientSecret in response");
         if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+        if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
       })
       .catch((err) => {
         if (err.name === "AbortError") { console.log("[PaymentPrefetch] aborted (expected)"); return; }
@@ -764,8 +1035,9 @@ export default function ExpressCheckoutPage() {
   // Retry handler for payment intent failures
   const retryPaymentIntent = useCallback(() => {
     setClientSecret("");
+    setVisitIntentId("");
+    setBookingIntentId("");
     setPaymentIntentError(null);
-    // useEffect above will re-fire because clientSecret is now ""
   }, []);
 
   // ── Fallback for step 5 payment — moved below uiStep declaration ──
@@ -773,7 +1045,7 @@ export default function ExpressCheckoutPage() {
   const handleVisitTypeChange = (type: VisitType) => {
     // Abort any in-flight payment intent fetch before changing type
     paymentFetchController.current?.abort();
-    setVisitType(type); setClientSecret(""); setVisitIntentId(""); setAsyncAcknowledged(false);
+    setVisitType(type); setClientSecret(""); setVisitIntentId(""); setBookingIntentId(""); setAsyncAcknowledged(false);
     setPaymentIntentError(null);
     setVisitTypeChosen(false);
     setVisitTypeConfirmed(false);
@@ -816,9 +1088,9 @@ export default function ExpressCheckoutPage() {
         ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
         ".TabIcon--selected": { fill: "#2dd4a0" },
         ".Label": { color: "#ffffff", fontSize: "11px", fontWeight: "600" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "2px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
-        ".Input:focus": { border: "2px solid #2dd4a0", boxShadow: "0 0 0 1px #2dd4a0" },
-        ".Input::placeholder": { color: "rgba(255,255,255,0.4)" },
+        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "8px 10px", fontSize: "13px" },
+        ".Input:focus": { border: "3px solid #2dd4a0", boxShadow: "0 0 0 2px rgba(45,212,160,0.25)" },
+        ".Input::placeholder": { color: "rgba(255,255,255,0.75)", fontWeight: "600" },
         ".Block": { padding: "8px 0" },
       },
     },
@@ -964,6 +1236,7 @@ export default function ExpressCheckoutPage() {
           if (data.clientSecret) { setClientSecret(data.clientSecret); console.log("[Fallback] clientSecret received"); }
           else throw new Error("No clientSecret in response");
           if (data.visitIntentId) setVisitIntentId(data.visitIntentId);
+          if (data.bookingIntentId) setBookingIntentId(data.bookingIntentId);
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
@@ -1158,7 +1431,7 @@ export default function ExpressCheckoutPage() {
     return (
       <div className="text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "0" }}>
         <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 4px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="text-center pt-1 pb-1">
             <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span>
             <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS </span>
@@ -1240,7 +1513,7 @@ export default function ExpressCheckoutPage() {
           @supports (height: 100svh) { .ec-root { height: 100svh !important; } }
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         `}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 8px)", paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
 
           {/* Header — compact */}
           <div className="flex-shrink-0 text-center pt-1 pb-0.5">
@@ -1417,10 +1690,10 @@ export default function ExpressCheckoutPage() {
         @keyframes slotFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes charPulse { 0%,100% { transform: scale(1); opacity: 0.9; } 50% { transform: scale(1.25); opacity: 1; } }
       `}</style>
-      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)", paddingLeft: "16px", paddingRight: "16px" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col overflow-hidden" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 8px), 8px)" }}>
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)" }}>
           {/* Logo + Brand */}
           <div className="flex items-center justify-center gap-1.5 mb-0.5">
             <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
@@ -1492,32 +1765,47 @@ export default function ExpressCheckoutPage() {
 
           {/* STEP 4: Select Visit Type */}
           <div ref={visitTypeRef}>
-          {reason && symptomsDone && pharmacy && !visitTypeChosen ? (
+          {reason && symptomsDone && pharmacy && !visitTypeChosen && !visitTypePopup ? (
               <div style={{ animation: "fadeInStep 0.9s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
                 <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                  <div className="grid grid-cols-4 gap-2">
+                  <span className="text-gray-400 text-[9px] font-semibold uppercase tracking-wider">Select Visit Type</span>
+                  {/* Row 1: 3 async types — taller square cards */}
+                  <div className="grid grid-cols-3 gap-2">
                     {([
-                      { key: "instant" as VisitType, label: "Treat Me\nNow", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
-                      { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
-                      { key: "video" as VisitType, label: "Video\nVisit", icon: Video, color: "#3b82f6", badge: null },
-                      { key: "phone" as VisitType, label: "Phone\n/ SMS", icon: Phone, color: "#a855f7", badge: null },
+                      { key: "instant" as VisitType, label: "Treat Me Now", icon: Zap, color: "#2dd4a0", badge: "✨ NEW" },
+                      { key: "refill" as VisitType, label: "Rx Refill", icon: Pill, color: "#f59e0b", badge: "⚡ FAST" },
+                      { key: "async" as VisitType, label: "Send a Note", icon: MessageSquare, color: "#f43f5e", badge: "💬" },
                     ] as const).map((vt) => {
                       const Icon = vt.icon;
                       const isActive = visitTypePopup === vt.key;
-                      const hasPopupOpen = !!visitTypePopup;
-                      return (<button key={vt.key} onClick={() => {
-                        if (vt.key === "video" || vt.key === "phone") {
-                          setVisitType(vt.key); setVisitTypePopup(null);
-                          setDateTimeDialogOpen(true); setCalWeekOffset(0);
-                          setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })());
-                          setCalSelectedTime("");
-                        } else {
-                          setVisitTypePopup(vt.key);
-                        }
-                      }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
+                      return (<button key={vt.key} onClick={() => { setVisitTypePopup(vt.key); }} className="relative flex flex-col items-center justify-center py-4 px-2 rounded-xl transition-all" style={{
+                        minHeight: "88px",
+                        border: isActive ? `3px solid ${vt.color}88` : `2px solid ${vt.color}38`,
+                        background: isActive ? `${vt.color}1a` : `${vt.color}0d`,
+                        boxShadow: isActive ? `0 0 16px ${vt.color}30` : "none",
+                      }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
-                        <Icon size={18} style={{ color: isActive ? vt.color : "#6b7280" }} /><span className={`text-[9px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : "text-gray-400"}`}>{vt.label}</span>
-                        {hasPopupOpen && !isActive && <span className="text-[7px] text-gray-500 mt-0.5">tap to select</span>}
+                        <Icon size={22} style={{ color: vt.color }} />
+                        <span className="text-[10px] font-bold mt-2 text-center leading-tight" style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
+                      </button>);
+                    })}
+                  </div>
+                  {/* Row 2: 2 live types — wider landscape cards */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { key: "video" as VisitType, label: "Video Visit", icon: Video, color: "#3b82f6", badge: null },
+                      { key: "phone" as VisitType, label: "Phone / SMS", icon: Phone, color: "#a855f7", badge: null },
+                    ] as const).map((vt) => {
+                      const Icon = vt.icon;
+                      const isActive = visitTypePopup === vt.key;
+                      return (<button key={vt.key} onClick={() => { setVisitTypePopup(vt.key); }} className="flex flex-row items-center justify-center gap-2.5 py-3.5 px-3 rounded-xl transition-all" style={{
+                        minHeight: "56px",
+                        border: isActive ? `3px solid ${vt.color}88` : `2px solid ${vt.color}38`,
+                        background: isActive ? `${vt.color}1a` : `${vt.color}0d`,
+                        boxShadow: isActive ? `0 0 16px ${vt.color}30` : "none",
+                      }}>
+                        <Icon size={18} style={{ color: vt.color }} />
+                        <span className="text-[11px] font-bold" style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
                       </button>);
                     })}
                   </div>
@@ -1695,7 +1983,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + card fallback */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -1724,7 +2012,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment — Express wallets + DOB + card form open */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
