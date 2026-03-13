@@ -228,6 +228,7 @@ function InlineCTABlock({ onActivate }: { onActivate: () => void }) {
 }
 
 
+  export default function AssessmentPageContent() {
   const [showMore, setShowMore] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showInlineStep, setShowInlineStep] = useState(false);
@@ -872,6 +873,12 @@ function InlineCTABlock({ onActivate }: { onActivate: () => void }) {
     </main>
   );
 }
+
+
+
+
+
+
 
 
 
