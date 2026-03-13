@@ -330,6 +330,27 @@ export default function AssessmentPageContent() {
             }
           </div>
 
+                    {/* Hero Condition Pills */}
+          <div className="hero-condition-pills w-full mb-3">
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+              <button onClick={() => handleConditionClick('uti')} className="flex-shrink-0 bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">UTIs</button>
+              <button onClick={() => handleConditionClick('weight-loss')} className="flex-shrink-0 bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Weight Loss</button>
+              <button onClick={() => handleConditionClick('anxiety')} className="flex-shrink-0 bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Anxiety</button>
+              <button onClick={() => handleConditionClick('depression')} className="flex-shrink-0 bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Depression</button>
+              <button onClick={() => handleConditionClick('cold-flu')} className="flex-shrink-0 bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Cold &amp; Flu</button>
+              <button onClick={() => handleConditionClick('skin')} className="flex-shrink-0 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Skin Issues</button>
+              <button onClick={() => handleConditionClick('std')} className="flex-shrink-0 bg-pink-500/10 border border-pink-500/30 text-pink-300 hover:bg-pink-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">STD Testing</button>
+              <button onClick={() => handleConditionClick('erectile-dysfunction')} className="flex-shrink-0 bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Erectile Dysfunction</button>
+              <button onClick={() => handleConditionClick('birth-control')} className="flex-shrink-0 bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Birth Control</button>
+              <button onClick={() => handleConditionClick('hair-loss')} className="flex-shrink-0 bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Hair Loss</button>
+              <button onClick={() => handleConditionClick('allergies')} className="flex-shrink-0 bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Allergies</button>
+              <button onClick={() => handleConditionClick('sinus')} className="flex-shrink-0 bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Sinus Infections</button>
+              <button onClick={() => handleConditionClick('adhd')} className="flex-shrink-0 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">ADHD</button>
+              <button onClick={() => handleConditionClick('rx-refill')} className="flex-shrink-0 bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">Rx Refills</button>
+              <button onClick={() => handleConditionClick('other')} className="flex-shrink-0 bg-white/5 border border-white/20 text-gray-300 hover:bg-white/10 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all">+ 40 more</button>
+            </div>
+          </div>
+
           {/* CTA + Email + Return Patient */}
           <div className="mb-4">
             <PairedCTABlock />
