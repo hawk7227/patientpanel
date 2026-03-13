@@ -5,9 +5,9 @@
 // REPLACES the existing sw.js — merges offline caching with push notifications
 // ============================================================================
 
-const CACHE_NAME = 'medazon-app-v1'
-const STATIC_CACHE = 'medazon-static-v1'
-const API_CACHE = 'medazon-api-v1'
+const CACHE_NAME = 'medazon-app-v2'
+const STATIC_CACHE = 'medazon-static-v2'
+const API_CACHE = 'medazon-api-v2'
 
 // ── Install ──────────────────────────────────────────────────
 
