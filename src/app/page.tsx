@@ -344,9 +344,9 @@ export default function AssessmentPageContent() {
           </div>
 
           {/* Hero — 6-grid condition cards, instant-visit frame */}
-          <div className="relative w-full mb-3">
-            <div className="absolute rounded-3xl pointer-events-none" style={{ top: '-8px', left: '-8px', right: '-8px', bottom: '-8px', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(20,184,166,0.15) 100%)', filter: 'blur(20px)' }}></div>
-            <div className="relative rounded-3xl p-4 overflow-hidden" style={{ background: '#0a1210', border: '1px solid rgba(20,184,166,0.3)' }}>
+          <div className="relative w-full mb-3" style={{ isolation: 'isolate' }}>
+            <div className="absolute pointer-events-none" style={{ inset: '-8px', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(20,184,166,0.15) 100%)', filter: 'blur(20px)', borderRadius: '24px', zIndex: -1 }}></div>
+            <div className="relative rounded-2xl p-4 overflow-hidden" style={{ background: 'linear-gradient(180deg, rgba(5,11,20,0.95) 0%, rgba(13,18,24,0.98) 100%)', border: '1px solid rgba(45,245,198,0.2)', boxShadow: '0 0 40px rgba(45,245,198,0.15), 0 0 80px rgba(45,245,198,0.08)' }}>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
                   <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
