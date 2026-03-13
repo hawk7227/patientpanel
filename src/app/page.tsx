@@ -316,6 +316,20 @@ export default function AssessmentPageContent() {
             </div>
           </div>
 
+                    {/* Queue Bar */}
+          <div className="flex items-center justify-center gap-3 px-3 py-2 mb-3 mx-auto" style={{ background: "rgba(45,245,198,0.05)", border: "1px solid rgba(45,212,160,0.15)", borderRadius: "12px", maxWidth: "320px" }}>
+            <div className="flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2df5c6" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <span className="text-xl font-black" style={{ color: "#2df5c6" }}>{queuePosition}</span>
+              <span className="text-sm font-semibold text-white">in Queue</span>
+            </div>
+            <div className="w-px h-6" style={{ background: "rgba(45,245,198,0.3)" }} />
+            {queuePosition === 1
+              ? <span className="text-sm font-bold" style={{ color: "#2df5c6" }}>🎉 You&apos;re Up Next!</span>
+              : <span className="text-sm font-semibold" style={{ color: "#9ca3af" }}>Spots filling fast</span>
+            }
+          </div>
+
           {/* CTA + Email + Return Patient */}
           <div className="mb-4">
             <PairedCTABlock />
