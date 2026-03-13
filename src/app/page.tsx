@@ -142,6 +142,15 @@ function PairedCTABlock() {
 export default function AssessmentPageContent() {
   const [showMore, setShowMore] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [queuePosition, setQueuePosition] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('landing_queue_pos');
+      if (stored) return parseInt(stored);
+      const pos = Math.floor(Math.random() * 3) + 2;
+      sessionStorage.setItem('landing_queue_pos', String(pos));
+      return pos;
+    } catch { return 3; }
+  });
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const v = videoRef.current;
