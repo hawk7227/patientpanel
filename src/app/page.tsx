@@ -343,32 +343,37 @@ export default function AssessmentPageContent() {
             </div>
           </div>
 
-          {/* Hero — 6-grid condition cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full mb-3">
-            <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-              <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
-              <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">1. Submit Info &nbsp;2. Provider Reviews &nbsp;3. Rx Sent</div></div>
-            </button>
-            <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-              <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
-              <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">1. Choose Date &amp; Time &nbsp;2. Meet By Video &nbsp;3. Agree Treatment</div></div>
-            </button>
-            <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-              <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-              <div className="text-center"><div className="text-white font-semibold text-sm">Connect by Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">1. Set Day &amp; Time &nbsp;2. Connect &nbsp;3. Treatment Begins</div></div>
-            </button>
-            <button onClick={() => handleConditionClick('anxiety')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-              <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
-              <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
-            </button>
-            <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-              <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
-              <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
-            </button>
-            <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-              <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
-              <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
-            </button>
+          {/* Hero — 6-grid condition cards, instant-visit frame */}
+          <div className="relative w-full mb-3">
+            <div className="absolute rounded-3xl pointer-events-none" style={{ top: '-8px', left: '-8px', right: '-8px', bottom: '-8px', background: 'linear-gradient(180deg, rgba(239,68,68,0.25) 0%, rgba(20,184,166,0.15) 100%)', filter: 'blur(20px)' }}></div>
+            <div className="relative rounded-3xl p-4 overflow-hidden" style={{ background: '#0a1210', border: '1px solid rgba(20,184,166,0.3)' }}>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                  <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">Submit · Review · Rx Sent</div></div>
+                </button>
+                <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                  <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">Choose Date · Meet · Agree Treatment</div></div>
+                </button>
+                <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                  <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center"><div className="text-white font-semibold text-sm">Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">Set Time · Connect · Treatment Begins</div></div>
+                </button>
+                <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                  <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
+                </button>
+                <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                  <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
+                </button>
+                <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
+                  <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
+                  <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* CTA + Email + Return Patient */}
