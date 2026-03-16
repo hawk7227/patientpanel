@@ -11,6 +11,8 @@
   "dependencies": {
     "@daily-co/daily-js": "^0.74.0",
     "@googlemaps/js-api-loader": "^2.0.2",
+    "@octokit/auth-app": "^8.2.0",
+    "@octokit/rest": "^22.0.1",
     "@stripe/react-stripe-js": "^5.4.0",
     "@stripe/stripe-js": "^8.5.2",
     "@supabase/supabase-js": "^2.84.0",
