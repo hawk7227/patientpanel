@@ -12,6 +12,7 @@ import {
   BarChart2, Shield, Image as ImageIcon, MessageCircle, Check, Lock, Users, RotateCcw, RefreshCw, Star, EyeOff, User, ChevronLeft
 } from "lucide-react";
 import Link from "next/link";
+import VisitCards from "@/components/home/VisitCards";
 import { CONDITIONS_LIST, EXPANDED_CONDITIONS } from "@/lib/assessment-data";
 
 const getPillColorClass = (color: string) => {
@@ -498,55 +499,10 @@ export default function AssessmentPageContent() {
         </div>
       </section>
 
+
+
       {/* VISIT TYPES */}
-      <section className="py-16 px-4">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-4 font-serif text-center">
-            Choose How You Want to <span className="text-teal-400">Be Treated</span>
-          </h2>
-          <p className="text-center text-sm text-gray-500 mb-10">Every visit type is handled by your provider. Same person. Every time.</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div onClick={() => handleConditionClick('instant')} className="relative h-48 md:h-56 rounded-2xl overflow-hidden border border-teal-500/30 group cursor-pointer">
-              <img src="/assets/service_uti.jpg" alt="Instant Visit" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-              <div className="absolute top-3 left-3"><span className="bg-teal-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Fastest</span></div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
-                <p className="text-2xl mb-1">💬</p>
-                <h3 className="text-white font-bold text-sm mb-1 drop-shadow-md">Get Seen <span className="text-teal-400">Without Being Seen</span></h3>
-                <p className="text-gray-300 text-[10px] drop-shadow-md">No video. No phone. Just results.</p>
-              </div>
-            </div>
-            <div onClick={() => handleConditionClick('rx-refill')} className="relative h-48 md:h-56 rounded-2xl overflow-hidden border border-amber-500/30 group cursor-pointer">
-              <img src="/assets/service_general.jpg" alt="Rx Refill" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-              <div className="absolute top-3 left-3"><span className="bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">Fast</span></div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
-                <p className="text-2xl mb-1">💊</p>
-                <h3 className="text-white font-bold text-sm mb-1 drop-shadow-md">Quick Rx Refill — <span className="text-amber-400">Skip the Wait</span></h3>
-                <p className="text-gray-300 text-[10px] drop-shadow-md">Select meds. Provider approves. Done.</p>
-              </div>
-            </div>
-            <div onClick={() => handleConditionClick('video')} className="relative h-48 md:h-56 rounded-2xl overflow-hidden border border-blue-500/30 group cursor-pointer">
-              <img src="/assets/service_anxiety.jpg" alt="Video Visit" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
-                <p className="text-2xl mb-1">📹</p>
-                <h3 className="text-white font-bold text-sm mb-1 drop-shadow-md">Live <span className="text-blue-400">Video Visit</span></h3>
-                <p className="text-gray-300 text-[10px] drop-shadow-md">Face-to-face with your provider.</p>
-              </div>
-            </div>
-            <div onClick={() => handleConditionClick('phone')} className="relative h-48 md:h-56 rounded-2xl overflow-hidden border border-purple-500/30 group cursor-pointer">
-              <img src="/assets/service_cold_flu.jpg" alt="Phone Visit" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-              <div className="absolute inset-0 bg-black/50 group-hover:bg-black/60 transition-colors" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-3">
-                <p className="text-2xl mb-1">📞</p>
-                <h3 className="text-white font-bold text-sm mb-1 drop-shadow-md">Phone <span className="text-purple-400">Visit</span></h3>
-                <p className="text-gray-300 text-[10px] drop-shadow-md">Talk to your provider. No camera needed.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <VisitCards onCardClick={(type) => handleConditionClick(type)} />
 
       {/* HOW IT WORKS */}
       <section id="how-it-works" className="py-16 px-4">
