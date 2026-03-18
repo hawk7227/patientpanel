@@ -304,7 +304,8 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
           Every visit type is handled by your provider. Same person. Every time.
         </p>
 
-        {/* Row 1: carousel + video + phone */}
+        {/* Mobile: 2x2 grid — Row 1: carousel + video */}
+        {/* Desktop: 3 col — Row 1: carousel + video + phone */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           <CarouselSlot
             cards={[CARDS[0], SMS_CARD]}
@@ -320,7 +321,8 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
               Get Started →
             </button>
           </div>
-          <div className="flex flex-col gap-2">
+          {/* Phone Visit — hidden on mobile, shown on desktop in row 1 */}
+          <div className="hidden md:flex flex-col gap-2">
             <ParallaxCard card={CARDS[2]} onClick={() => onCardClick(getType(CARDS[2].ctaHref))} />
             <button
               onClick={() => onCardClick(getType(CARDS[2].ctaHref))}
@@ -332,20 +334,56 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
           </div>
         </div>
 
-        {/* Row 2: instant + rx — centered */}
-        <div className="grid grid-cols-2 gap-3 max-w-[66%] mx-auto">
-          {[CARDS[3], CARDS[4]].map((card) => (
-            <div key={card.imageAlt} className="flex flex-col gap-2">
-              <ParallaxCard card={card} onClick={() => onCardClick(getType(card.ctaHref))} />
-              <button
-                onClick={() => onCardClick(getType(card.ctaHref))}
-                className="w-full py-3 rounded-full font-black text-sm transition-all duration-180 hover:opacity-85 hover:-translate-y-px"
-                style={{ border: `1.5px solid ${card.btnBorderColor}`, color: card.btnTextColor, background: "transparent", boxShadow: card.btnGlow }}
-              >
-                Get Started →
-              </button>
-            </div>
-          ))}
+        {/* Mobile Row 2: phone + instant | Desktop Row 2: instant + rx centered */}
+        <div className="grid grid-cols-2 gap-3 md:max-w-[66%] md:mx-auto">
+          {/* Phone Visit — mobile only in row 2 */}
+          <div className="flex flex-col gap-2 md:hidden">
+            <ParallaxCard card={CARDS[2]} onClick={() => onCardClick(getType(CARDS[2].ctaHref))} />
+            <button
+              onClick={() => onCardClick(getType(CARDS[2].ctaHref))}
+              className="w-full py-3 rounded-full font-black text-sm transition-all duration-180 hover:opacity-85 hover:-translate-y-px"
+              style={{ border: `1.5px solid ${CARDS[2].btnBorderColor}`, color: CARDS[2].btnTextColor, background: "transparent", boxShadow: CARDS[2].btnGlow }}
+            >
+              Get Started →
+            </button>
+          </div>
+          {/* Instant — mobile row 2 right, desktop row 2 left */}
+          <div className="flex flex-col gap-2">
+            <ParallaxCard card={CARDS[3]} onClick={() => onCardClick(getType(CARDS[3].ctaHref))} />
+            <button
+              onClick={() => onCardClick(getType(CARDS[3].ctaHref))}
+              className="w-full py-3 rounded-full font-black text-sm transition-all duration-180 hover:opacity-85 hover:-translate-y-px"
+              style={{ border: `1.5px solid ${CARDS[3].btnBorderColor}`, color: CARDS[3].btnTextColor, background: "transparent", boxShadow: CARDS[3].btnGlow }}
+            >
+              Get Started →
+            </button>
+          </div>
+          {/* Rx Refill — desktop row 2 right, hidden on mobile row 2 (appears in row 3) */}
+          <div className="flex flex-col gap-2 hidden md:flex">
+            <ParallaxCard card={CARDS[4]} onClick={() => onCardClick(getType(CARDS[4].ctaHref))} />
+            <button
+              onClick={() => onCardClick(getType(CARDS[4].ctaHref))}
+              className="w-full py-3 rounded-full font-black text-sm transition-all duration-180 hover:opacity-85 hover:-translate-y-px"
+              style={{ border: `1.5px solid ${CARDS[4].btnBorderColor}`, color: CARDS[4].btnTextColor, background: "transparent", boxShadow: CARDS[4].btnGlow }}
+            >
+              Get Started →
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Row 3: Rx Refill centered */}
+        <div className="grid grid-cols-2 gap-3 mt-3 md:hidden">
+          <div className="flex flex-col gap-2">
+            <ParallaxCard card={CARDS[4]} onClick={() => onCardClick(getType(CARDS[4].ctaHref))} />
+            <button
+              onClick={() => onCardClick(getType(CARDS[4].ctaHref))}
+              className="w-full py-3 rounded-full font-black text-sm transition-all duration-180 hover:opacity-85 hover:-translate-y-px"
+              style={{ border: `1.5px solid ${CARDS[4].btnBorderColor}`, color: CARDS[4].btnTextColor, background: "transparent", boxShadow: CARDS[4].btnGlow }}
+            >
+              Get Started →
+            </button>
+          </div>
+          <div /> {/* empty cell to keep 2-col grid balanced */}
         </div>
       </div>
     </section>
