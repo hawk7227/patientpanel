@@ -135,7 +135,8 @@ function PairedCTABlock({
       <Link
         href="/express-checkout"
         onClick={handleCTAClick}
-        className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl text-base md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap"
+        className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap"
+        style={{ fontSize: 'clamp(13px, 3.8vw, 20px)' }}
       >
         {showSteps ? "Book Now — $1.89 Reserve Fee" : "Book My 1st Visit — $1.89 Reserve Fee"} <ArrowRight size={20} />
       </Link>
