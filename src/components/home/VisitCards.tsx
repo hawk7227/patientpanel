@@ -138,12 +138,11 @@ const CARDS: CardDef[] = [
 function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
   return (
     <div className="flex flex-col gap-2">
-      {/* Card — exact same panel style as condition cards: bg-color-10 border border-color-30 rounded-xl */}
       <button
         onClick={onClick}
-        className={`group flex flex-col text-left w-full rounded-xl border transition-all
+        className={`group flex flex-col text-left w-full rounded-xl border transition-all duration-200
           ${card.colorClasses.bg} ${card.colorClasses.border}
-          hover:bg-white/5 hover:border-white/20`}
+          hover:bg-white/5 hover:border-white/20 hover:scale-[1.01] active:scale-[0.99]`}
       >
         {/* Zone 1 — Title */}
         <div className="px-4 pt-4 pb-2 text-center w-full">
@@ -153,17 +152,17 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
           </span>
         </div>
 
-        {/* Zone 2 — Image */}
+        {/* Zone 2 — Image with hover zoom + badge pulse */}
         <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
           {card.badge && (
-            <div className={`absolute top-2 left-2 z-10 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${card.colorClasses.badge}`}>
+            <div className={`absolute top-2 left-2 z-10 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition-transform duration-200 group-hover:scale-110 ${card.colorClasses.badge}`}>
               {card.badge}
             </div>
           )}
           <img
             src={card.img}
             alt={card.alt}
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
           />
         </div>
 
@@ -206,12 +205,17 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
         </div>
       </button>
 
-      {/* CTA — separated below card, same glass style */}
+      {/* CTA — white text, bright glow, interactive */}
       <button
         onClick={onClick}
-        className={`w-full py-3 rounded-full text-xs font-bold transition-all
-          border ${card.colorClasses.border} ${card.colorClasses.text}
-          ${card.colorClasses.bg} hover:bg-white/5`}
+        className={`w-full py-3 rounded-full text-xs font-bold transition-all duration-200
+          border ${card.colorClasses.border}
+          ${card.colorClasses.bg}
+          text-white
+          hover:bg-white/10 hover:border-white/40 active:scale-[0.98]`}
+        style={{
+          textShadow: "0 0 12px rgba(255,255,255,0.9), 0 0 24px rgba(255,255,255,0.4)",
+        }}
       >
         Get Started →
       </button>
