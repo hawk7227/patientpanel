@@ -233,7 +233,7 @@ export default function AssessmentPageContent() {
       {/* SECTION 3: HERO */}
       <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(12px, 3vw, 32px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.12),transparent_60%)]" />
-        <div className="max-w-lg mx-auto relative z-10 text-center">
+        <div className="max-w-lg md:max-w-4xl mx-auto relative z-10 text-center">
 
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
