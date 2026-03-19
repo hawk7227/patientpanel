@@ -16,6 +16,7 @@ interface CardDef {
   img: string;
   alt: string;
   badge?: string;
+  cta: string;
   href: string;
   colorClasses: {
     bg: string;
@@ -36,6 +37,7 @@ const CARDS: CardDef[] = [
     img: "/assets/asyncvisitdocoroncomputer2.png",
     alt: "Async Visit",
     badge: "FASTEST",
+    cta: "Send Symptoms Now",
     href: "/express-checkout?type=async",
     colorClasses: {
       bg: "bg-pink-500/10",
@@ -54,6 +56,7 @@ const CARDS: CardDef[] = [
     img: "/assets/cards/resized_800X600/smsvisit.png",
     alt: "SMS Visit",
     badge: "FAST",
+    cta: "Start Chat Now",
     href: "/express-checkout?type=sms",
     colorClasses: {
       bg: "bg-purple-500/10",
@@ -72,6 +75,7 @@ const CARDS: CardDef[] = [
     img: "/assets/cards/resized_800X600/refilvisit2.png",
     alt: "Rx Refill",
     badge: "FAST",
+    cta: "Send Refill Request",
     href: "/express-checkout?type=rx-refill",
     colorClasses: {
       bg: "bg-green-500/10",
@@ -89,6 +93,7 @@ const CARDS: CardDef[] = [
     checks: ["Same-Day Appointments", "Personalized Diagnosis", "Prescriptions sent during your visit", "No follow-up needed"],
     img: "/assets/cards/resized_800X600/smsvisitladyoncouch.png",
     alt: "Video Visit",
+    cta: "Start My Visit",
     href: "/express-checkout?type=video",
     colorClasses: {
       bg: "bg-blue-500/10",
@@ -106,6 +111,7 @@ const CARDS: CardDef[] = [
     checks: ["Schedule a call", "Provider calls you directly", "Rx sent if appropriate"],
     img: "/assets/cards/resized_800X600/phonevisit.png",
     alt: "Phone Visit",
+    cta: "Schedule My Call",
     href: "/express-checkout?type=phone",
     colorClasses: {
       bg: "bg-cyan-500/10",
@@ -123,6 +129,7 @@ const CARDS: CardDef[] = [
     checks: ["Wait in the online queue", "Quick treatment — no call", "First available provider"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_01_29 PM.png",
     alt: "Instant Visit",
+    cta: "Take Next Spot",
     href: "/express-checkout?type=instant",
     colorClasses: {
       bg: "bg-orange-500/10",
@@ -208,17 +215,18 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
       {/* CTA — white text, bright glow, white trim border */}
       <button
         onClick={onClick}
-        className={`w-full py-3 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
+        className={`w-full py-3 rounded-full font-bold transition-all duration-200 cursor-pointer
           ${card.colorClasses.bg}
           text-white
           hover:bg-white/10 active:scale-[0.97] active:bg-white/10`}
         style={{
+          fontSize: "clamp(11px, 1.8vw, 14px)",
           border: "1px solid rgba(255,255,255,0.35)",
           textShadow: "0 0 12px rgba(255,255,255,0.9), 0 0 24px rgba(255,255,255,0.4)",
           boxShadow: "0 0 0 1px rgba(255,255,255,0.08), inset 0 0 12px rgba(255,255,255,0.04)",
         }}
       >
-        Get Started →
+        {card.cta} →
       </button>
     </div>
   );
