@@ -94,7 +94,7 @@ const CARDS: CardDef[] = [
     accent: "Video Visit",
     accentClass: "text-blue-400",
     subtext: "Face-to-Face Care, Instantly",
-    checks: ["Same-Day Appointments", "Personalized Diagnosis", "Prescriptions sent during your visit", "No follow-up needed"],
+    checks: ["Same-Day Appointments", "Personalized Diagnosis", "Prescriptions sent during your visit"],
     img: "/assets/cards/resized_800X600/smsvisitladyoncouch.png",
     alt: "Video Visit",
     cta: "Start My Visit",
