@@ -205,17 +205,17 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
         </div>
       </button>
 
-      {/* CTA — white text, bright glow, interactive */}
+      {/* CTA — white text, bright glow, white trim border */}
       <button
         onClick={onClick}
         className={`w-full py-3 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
-          border ${card.colorClasses.border}
           ${card.colorClasses.bg}
           text-white
-          hover:bg-white/10 hover:border-white/40
-          active:scale-[0.97] active:bg-white/10 active:border-white/40`}
+          hover:bg-white/10 active:scale-[0.97] active:bg-white/10`}
         style={{
+          border: "1px solid rgba(255,255,255,0.35)",
           textShadow: "0 0 12px rgba(255,255,255,0.9), 0 0 24px rgba(255,255,255,0.4)",
+          boxShadow: "0 0 0 1px rgba(255,255,255,0.08), inset 0 0 12px rgba(255,255,255,0.04)",
         }}
       >
         Get Started →
