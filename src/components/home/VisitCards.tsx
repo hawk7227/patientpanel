@@ -64,6 +64,29 @@ const CARDS: CardDef[] = [
     },
   },
   {
+    title: "Rx",
+    accent: "Refill",
+    accentClass: "text-green-400",
+    subtext: "Faster Care, Same Quality",
+    checks: [],
+    sections: [
+      { icon: "⚡", label: "Faster Care, Same Quality", items: ["Reviewed in minutes, not hours", "No waiting rooms, no scheduling"] },
+      { icon: "💊", label: "Easy Prescription Renewal", items: ["Refill or adjust your medication quickly", "Sent directly to your pharmacy"] },
+      { icon: "🔒", label: "Do It From Anywhere", items: ["Phone, tablet, or desktop", "Takes under 60 seconds to submit"] },
+    ],
+    img: "/assets/cards/resized_800X600/refilvisit2.png",
+    alt: "Rx Refill",
+    badge: "FAST",
+    href: "/express-checkout?type=rx-refill",
+    colorClasses: {
+      bg: "bg-green-500/10",
+      border: "border-green-500/30",
+      text: "text-green-400",
+      check: "text-green-400",
+      badge: "bg-green-500 text-black",
+    },
+  },
+  {
     title: "Live",
     accent: "Video Visit",
     accentClass: "text-blue-400",
@@ -117,29 +140,6 @@ const CARDS: CardDef[] = [
       text: "text-orange-400",
       check: "text-orange-400",
       badge: "bg-orange-500 text-black",
-    },
-  },
-  {
-    title: "Rx",
-    accent: "Refill",
-    accentClass: "text-green-400",
-    subtext: "Faster Care, Same Quality",
-    checks: [],
-    sections: [
-      { icon: "⚡", label: "Faster Care, Same Quality", items: ["Reviewed in minutes, not hours", "No waiting rooms, no scheduling"] },
-      { icon: "💊", label: "Easy Prescription Renewal", items: ["Refill or adjust your medication quickly", "Sent directly to your pharmacy"] },
-      { icon: "🔒", label: "Do It From Anywhere", items: ["Phone, tablet, or desktop", "Takes under 60 seconds to submit"] },
-    ],
-    img: "/assets/cards/resized_800X600/refilvisit2.png",
-    alt: "Rx Refill",
-    badge: "FAST",
-    href: "/express-checkout?type=rx-refill",
-    colorClasses: {
-      bg: "bg-green-500/10",
-      border: "border-green-500/30",
-      text: "text-green-400",
-      check: "text-green-400",
-      badge: "bg-green-500 text-black",
     },
   },
 ];
@@ -239,16 +239,16 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
           Every visit type is handled by your provider. Same person. Every time.
         </p>
 
-        {/* Row 1 — 3 columns */}
+        {/* Row 1 — Async | SMS | Rx Refill */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
           {CARDS.slice(0, 3).map((card) => (
             <VisitCard key={card.alt} card={card} onClick={() => go(card.href)} />
           ))}
         </div>
 
-        {/* Row 2 — 2 centered */}
-        <div className="grid grid-cols-2 gap-3 max-w-[66%] mx-auto">
-          {CARDS.slice(3, 5).map((card) => (
+        {/* Row 2 — Video | Phone | Instant */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {CARDS.slice(3, 6).map((card) => (
             <VisitCard key={card.alt} card={card} onClick={() => go(card.href)} />
           ))}
         </div>
