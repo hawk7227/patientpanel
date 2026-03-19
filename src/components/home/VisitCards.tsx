@@ -125,7 +125,7 @@ const CARDS: CardDef[] = [
     title: "Instant",
     accent: "Visit",
     accentClass: "text-orange-400",
-    subtext: "First available provider. No appointment needed.",
+    subtext: "First available provider. No wait.",
     checks: ["Wait in the online queue", "Quick treatment — no call", "First available provider"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_01_29 PM.png",
     alt: "Instant Visit",
@@ -176,7 +176,7 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
         {/* Zone 3 — Content */}
         <div className="px-4 py-4 w-full">
           {card.subtext && (
-            <p className="text-white font-semibold text-xs text-center mb-3 leading-snug">
+            <p className="text-white font-semibold text-center mb-3 leading-snug" style={{ fontSize: "clamp(10px, 1.6vw, 12px)" }}>
               {card.subtext}
             </p>
           )}
@@ -184,15 +184,15 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
             <div className="flex flex-col gap-3">
               {card.sections.map((s) => (
                 <div key={s.label}>
-                  <div className={`flex items-center gap-1.5 mb-1 text-[10px] font-bold ${card.colorClasses.text}`}>
+                  <div className={`flex items-center gap-1.5 mb-1 font-bold ${card.colorClasses.text}`} style={{ fontSize: "clamp(10px, 1.4vw, 11px)" }}>
                     <span style={{ fontSize: 11 }}>{s.icon}</span>
                     <span>{s.label}</span>
                   </div>
                   <div className="flex flex-col gap-1 pl-1">
                     {s.items.map((item) => (
                       <div key={item} className="flex items-start gap-2">
-                        <span className={`font-bold text-sm flex-shrink-0 ${card.colorClasses.check}`}>✓</span>
-                        <span className="text-gray-300 text-[11px] font-medium">{item}</span>
+                        <span className={`font-bold flex-shrink-0 ${card.colorClasses.check}`} style={{ fontSize: "clamp(11px, 1.6vw, 13px)" }}>✓</span>
+                        <span className="text-gray-300 font-medium leading-snug" style={{ fontSize: "clamp(11px, 1.5vw, 13px)" }}>{item}</span>
                       </div>
                     ))}
                   </div>
@@ -203,8 +203,8 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
             <div className="flex flex-col gap-2">
               {card.checks.map((c) => (
                 <div key={c} className="flex items-start gap-2">
-                  <span className={`font-bold text-sm flex-shrink-0 ${card.colorClasses.check}`}>✓</span>
-                  <span className="text-gray-300 text-[11px] font-medium">{c}</span>
+                  <span className={`font-bold flex-shrink-0 ${card.colorClasses.check}`} style={{ fontSize: "clamp(11px, 1.6vw, 13px)" }}>✓</span>
+                  <span className="text-gray-300 font-medium leading-snug" style={{ fontSize: "clamp(11px, 1.5vw, 13px)" }}>{c}</span>
                 </div>
               ))}
             </div>
