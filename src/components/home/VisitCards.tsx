@@ -123,7 +123,6 @@ const CARDS: CardDef[] = [
     checks: ["Wait in the online queue", "Quick treatment — no call", "First available provider"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_01_29 PM.png",
     alt: "Instant Visit",
-    badge: "FASTEST",
     href: "/express-checkout?type=instant",
     colorClasses: {
       bg: "bg-orange-500/10",
@@ -140,9 +139,10 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
     <div className="flex flex-col gap-2">
       <button
         onClick={onClick}
-        className={`group flex flex-col text-left w-full rounded-xl border transition-all duration-200
+        className={`group flex flex-col text-left w-full rounded-xl border transition-all duration-200 cursor-pointer
           ${card.colorClasses.bg} ${card.colorClasses.border}
-          hover:bg-white/5 hover:border-white/20 hover:scale-[1.01] active:scale-[0.99]`}
+          hover:bg-white/5 hover:border-white/20 hover:scale-[1.01]
+          active:scale-[0.98] active:bg-white/5 active:border-white/20`}
       >
         {/* Zone 1 — Title */}
         <div className="px-4 pt-4 pb-2 text-center w-full">
@@ -152,17 +152,17 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
           </span>
         </div>
 
-        {/* Zone 2 — Image with hover zoom + badge pulse */}
+        {/* Zone 2 — Image with hover+active zoom, badge scale */}
         <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
           {card.badge && (
-            <div className={`absolute top-2 left-2 z-10 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition-transform duration-200 group-hover:scale-110 ${card.colorClasses.badge}`}>
+            <div className={`absolute top-2 left-2 z-10 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full transition-transform duration-200 group-hover:scale-110 group-active:scale-110 ${card.colorClasses.badge}`}>
               {card.badge}
             </div>
           )}
           <img
             src={card.img}
             alt={card.alt}
-            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105 group-active:scale-105"
           />
         </div>
 
@@ -208,11 +208,12 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
       {/* CTA — white text, bright glow, interactive */}
       <button
         onClick={onClick}
-        className={`w-full py-3 rounded-full text-xs font-bold transition-all duration-200
+        className={`w-full py-3 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
           border ${card.colorClasses.border}
           ${card.colorClasses.bg}
           text-white
-          hover:bg-white/10 hover:border-white/40 active:scale-[0.98]`}
+          hover:bg-white/10 hover:border-white/40
+          active:scale-[0.97] active:bg-white/10 active:border-white/40`}
         style={{
           textShadow: "0 0 12px rgba(255,255,255,0.9), 0 0 24px rgba(255,255,255,0.4)",
         }}
