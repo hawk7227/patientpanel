@@ -28,7 +28,7 @@ const CARDS: CardDef[] = [
     accentClass: "text-pink-400",
     subtext: "Submit symptoms for provider review",
     checks: ["Tell us about your symptoms", "Provider reviews in queue", "Rx sent if appropriate"],
-    img: "/assets/cards/1773933626027_asyncvisitdocoroncomputer.png",
+    img: "/assets/asyncvisitdocoroncomputer2.png",
     alt: "Async Visit",
     badge: "FASTEST",
     href: "/express-checkout?type=async",
@@ -158,7 +158,7 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
           <img
             src={card.img}
             alt={card.alt}
-            className="absolute inset-0 w-full h-full object-cover object-top"
+            className="absolute inset-0 w-full h-full object-cover object-center"
           />
         </div>
 
