@@ -24,6 +24,7 @@ interface CardDef {
     text: string;
     check: string;
     badge: string;
+    ctaBg: string;
   };
 }
 
@@ -45,6 +46,7 @@ const CARDS: CardDef[] = [
       text: "text-pink-400",
       check: "text-pink-400",
       badge: "bg-pink-500 text-black",
+      ctaBg: "bg-pink-500",
     },
   },
   {
@@ -64,6 +66,7 @@ const CARDS: CardDef[] = [
       text: "text-purple-400",
       check: "text-purple-400",
       badge: "bg-purple-500 text-black",
+      ctaBg: "bg-purple-500",
     },
   },
   {
@@ -83,6 +86,7 @@ const CARDS: CardDef[] = [
       text: "text-green-400",
       check: "text-green-400",
       badge: "bg-green-500 text-black",
+      ctaBg: "bg-green-500",
     },
   },
   {
@@ -101,6 +105,7 @@ const CARDS: CardDef[] = [
       text: "text-blue-400",
       check: "text-blue-400",
       badge: "bg-blue-500 text-black",
+      ctaBg: "bg-blue-500",
     },
   },
   {
@@ -119,6 +124,7 @@ const CARDS: CardDef[] = [
       text: "text-cyan-400",
       check: "text-cyan-400",
       badge: "bg-cyan-500 text-black",
+      ctaBg: "bg-cyan-500",
     },
   },
   {
@@ -137,6 +143,7 @@ const CARDS: CardDef[] = [
       text: "text-orange-400",
       check: "text-orange-400",
       badge: "bg-orange-500 text-black",
+      ctaBg: "bg-orange-500",
     },
   },
 ];
@@ -212,18 +219,18 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
         </div>
       </button>
 
-      {/* CTA — white text, bright glow, white trim border */}
+      {/* CTA — badge color bg, white bold text, glow */}
       <button
         onClick={onClick}
-        className={`w-full py-3 rounded-full font-bold transition-all duration-200 cursor-pointer
-          ${card.colorClasses.bg}
-          text-white
-          hover:bg-white/10 active:scale-[0.97] active:bg-white/10`}
+        className={`w-full py-3 rounded-full font-black transition-all duration-200 cursor-pointer
+          ${card.colorClasses.ctaBg}
+          hover:opacity-90 active:scale-[0.97] active:opacity-90`}
         style={{
           fontSize: "clamp(11px, 1.8vw, 14px)",
-          border: "1px solid rgba(255,255,255,0.35)",
-          textShadow: "0 0 12px rgba(255,255,255,0.9), 0 0 24px rgba(255,255,255,0.4)",
-          boxShadow: "0 0 0 1px rgba(255,255,255,0.08), inset 0 0 12px rgba(255,255,255,0.04)",
+          color: "#ffffff",
+          textShadow: "0 0 10px rgba(255,255,255,0.6)",
+          boxShadow: "0 0 14px rgba(255,255,255,0.1)",
+          border: "none",
         }}
       >
         {card.cta} →
