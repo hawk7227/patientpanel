@@ -5,254 +5,188 @@ import { useEffect, useRef, useState, useCallback } from "react";
 interface CardDef {
   title: string;
   accent: string;
-  accentColor: string;
+  accentClass: string;
   subtext: string;
   checks: string[];
   img: string;
   alt: string;
   badge?: string;
-  badgeColor?: string;
   href: string;
-  color: string;
-  btnBorder: string;
-  btnText: string;
-  glow: string;
+  colorClasses: {
+    bg: string;
+    border: string;
+    text: string;
+    check: string;
+    badge: string;
+  };
 }
-
-const C = "#00e0c0";
-const P = "#c084fc";
-const O = "#f59e0b";
 
 const CARDS: CardDef[] = [
   {
-    title: "Get Seen ",
-    accent: "Without Being Seen",
-    accentColor: C,
-    subtext: "No video. No phone. Just results.",
+    title: "Async",
+    accent: "Visit",
+    accentClass: "text-pink-400",
+    subtext: "Submit symptoms for provider review",
     checks: ["Tell us about your symptoms", "Provider reviews in queue", "Rx sent if appropriate"],
-    img: "/assets/cards/card-01-white-monitor.png",
+    img: "/assets/cards/1773933626027_asyncvisitdocoroncomputer.png",
     alt: "Async Visit",
     badge: "FASTEST",
-    badgeColor: C,
     href: "/express-checkout?type=async",
-    color: C, btnBorder: C, btnText: C,
-    glow: "0 0 14px rgba(0,224,192,0.25)",
+    colorClasses: {
+      bg: "bg-pink-500/10",
+      border: "border-pink-500/30",
+      text: "text-pink-400",
+      check: "text-pink-400",
+      badge: "bg-pink-500 text-black",
+    },
   },
   {
-    title: "Text Your Way to ",
-    accent: "Better Health",
-    accentColor: C,
-    subtext: "No app. No wait. Just text.",
+    title: "SMS",
+    accent: "Visit",
+    accentClass: "text-teal-400",
+    subtext: "Text your way to better health",
     checks: ["Send symptoms via SMS", "Provider replies directly", "Rx sent if appropriate"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_06_36 PM.png",
     alt: "SMS Visit",
     badge: "FAST",
-    badgeColor: C,
     href: "/express-checkout?type=sms",
-    color: C, btnBorder: C, btnText: C,
-    glow: "0 0 14px rgba(0,224,192,0.25)",
+    colorClasses: {
+      bg: "bg-teal-500/10",
+      border: "border-teal-500/30",
+      text: "text-teal-400",
+      check: "text-teal-400",
+      badge: "bg-teal-500 text-black",
+    },
   },
   {
-    title: "Live ",
+    title: "Live",
     accent: "Video Visit",
-    accentColor: C,
-    subtext: "Face-to-face with your provider.",
+    accentClass: "text-teal-400",
+    subtext: "Face-to-face with your provider",
     checks: ["Book a time slot", "Join from your phone", "Get care in minutes"],
     img: "/assets/cards/card-03-video-ui-alt.png",
     alt: "Video Visit",
     href: "/express-checkout?type=video",
-    color: C, btnBorder: C, btnText: C,
-    glow: "0 0 14px rgba(0,224,192,0.25)",
+    colorClasses: {
+      bg: "bg-teal-500/10",
+      border: "border-teal-500/30",
+      text: "text-teal-400",
+      check: "text-teal-400",
+      badge: "bg-teal-500 text-black",
+    },
   },
   {
-    title: "Phone ",
+    title: "Phone",
     accent: "Visit",
-    accentColor: P,
+    accentClass: "text-purple-400",
     subtext: "Talk to your provider. No camera needed.",
     checks: ["Schedule a call", "Provider calls you directly", "Rx sent if appropriate"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_01_29 PM.png",
     alt: "Phone Visit",
     href: "/express-checkout?type=phone",
-    color: P, btnBorder: "#a855f7", btnText: P,
-    glow: "0 0 14px rgba(168,85,247,0.25)",
+    colorClasses: {
+      bg: "bg-purple-500/10",
+      border: "border-purple-500/30",
+      text: "text-purple-400",
+      check: "text-purple-400",
+      badge: "bg-purple-500 text-black",
+    },
   },
   {
-    title: "Join the provider ",
-    accent: "queue instantly",
-    accentColor: O,
+    title: "Instant",
+    accent: "Visit",
+    accentClass: "text-orange-400",
     subtext: "First available provider. No appointment needed.",
     checks: ["Wait in the online queue", "Quick treatment — no call", "First available provider"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_11_15 PM.png",
     alt: "Instant Visit",
     badge: "FASTEST",
-    badgeColor: O,
     href: "/express-checkout?type=instant",
-    color: O, btnBorder: O, btnText: O,
-    glow: "0 0 14px rgba(245,158,11,0.25)",
+    colorClasses: {
+      bg: "bg-orange-500/10",
+      border: "border-orange-500/30",
+      text: "text-orange-400",
+      check: "text-orange-400",
+      badge: "bg-orange-500 text-black",
+    },
   },
   {
-    title: "Quick Rx Refill — ",
-    accent: "Skip the Wait",
-    accentColor: O,
+    title: "Quick",
+    accent: "Rx Refill",
+    accentClass: "text-amber-400",
     subtext: "Select meds. Provider approves. Done.",
     checks: ["Select your medication", "Provider reviews & approves", "Sent to your pharmacy"],
     img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_02_36 PM.png",
     alt: "Rx Refill",
     badge: "FAST",
-    badgeColor: O,
     href: "/express-checkout?type=rx-refill",
-    color: O, btnBorder: O, btnText: O,
-    glow: "0 0 14px rgba(245,158,11,0.25)",
+    colorClasses: {
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/30",
+      text: "text-amber-400",
+      check: "text-amber-400",
+      badge: "bg-amber-500 text-black",
+    },
   },
 ];
 
-function CardContent({ card }: { card: CardDef }) {
+function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
   return (
-    <>
-      <img src={card.img} alt={card.alt} className="card-img" style={{
-        position: "absolute", inset: 0, width: "100%", height: "100%",
-        objectFit: "cover", objectPosition: "top center",
-        transition: "transform 220ms ease-out", willChange: "transform",
-      }} />
-      <div style={{
-        position: "absolute", inset: 0,
-        background: "linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.3) 55%,transparent 100%)",
-      }} />
-      {card.badge && (
-        <div className="card-badge" style={{
-          position: "absolute", top: 10, left: 10,
-          background: card.badgeColor, color: "#0a0a0a",
-          fontSize: 9, fontWeight: 900, letterSpacing: "0.05em",
-          textTransform: "uppercase", padding: "3px 10px",
-          borderRadius: 999, zIndex: 3,
-          willChange: "transform", transition: "transform 200ms ease-out",
-        }}>{card.badge}</div>
-      )}
-      <div className="card-content" style={{
-        position: "absolute", bottom: 0, left: 0, right: 0,
-        padding: 12, zIndex: 3,
-        willChange: "transform", transition: "transform 200ms ease-out",
-      }}>
-        <h3 style={{ color: "#fff", fontWeight: 900, lineHeight: 1.25, marginBottom: 4, fontSize: "clamp(11px, 1.8vw, 15px)" }}>
-          {card.title}<span style={{ color: card.accentColor }}>{card.accent}</span>
-        </h3>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "clamp(9px,1.1vw,11px)", marginBottom: 6 }}>{card.subtext}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {card.checks.map((c) => (
-            <div key={c} style={{ display: "flex", alignItems: "flex-start", gap: 5, fontSize: "clamp(8px,1vw,10px)" }}>
-              <div style={{
-                flexShrink: 0, width: 11, height: 11, borderRadius: "50%",
-                background: `${card.color}22`, color: card.color,
-                fontSize: 7, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1,
-              }}>✓</div>
-              <span style={{ color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>{c}</span>
-            </div>
-          ))}
+    <div className="flex flex-col gap-2">
+      {/* Card — exact same panel style as condition cards: bg-color-10 border border-color-30 rounded-xl */}
+      <button
+        onClick={onClick}
+        className={`group flex flex-col text-left w-full rounded-xl border transition-all
+          ${card.colorClasses.bg} ${card.colorClasses.border}
+          hover:bg-white/5 hover:border-white/20`}
+      >
+        {/* Zone 1 — Title */}
+        <div className="px-4 pt-4 pb-2 text-center w-full">
+          <span className="text-white font-semibold text-sm">
+            {card.title}{" "}
+            <span className={card.accentClass}>{card.accent}</span>
+          </span>
         </div>
-      </div>
-    </>
-  );
-}
 
-function ParallaxCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
+        {/* Zone 2 — Image */}
+        <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
+          {card.badge && (
+            <div className={`absolute top-2 left-2 z-10 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${card.colorClasses.badge}`}>
+              {card.badge}
+            </div>
+          )}
+          <img
+            src={card.img}
+            alt={card.alt}
+            className="absolute inset-0 w-full h-full object-cover object-top"
+          />
+        </div>
 
-  const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const x = (e.clientX - r.left - r.width / 2) / r.width;
-    const y = (e.clientY - r.top - r.height / 2) / r.height;
-    const img = ref.current.querySelector<HTMLElement>(".card-img");
-    const content = ref.current.querySelector<HTMLElement>(".card-content");
-    const badge = ref.current.querySelector<HTMLElement>(".card-badge");
-    if (img) img.style.transform = `scale(1.06) translate(${x * -8}px,${y * -8}px)`;
-    if (content) content.style.transform = `translate(${x * 6}px,${y * 6}px)`;
-    if (badge) badge.style.transform = `translate(${x * 10}px,${y * 10}px)`;
-  }, []);
+        {/* Zone 3 — Content */}
+        <div className="px-4 py-4 w-full">
+          <p className="text-white font-semibold text-xs text-center mb-3 leading-snug">
+            {card.subtext}
+          </p>
+          <div className="flex flex-col gap-2">
+            {card.checks.map((c) => (
+              <div key={c} className="flex items-start gap-2">
+                <span className={`font-bold text-sm flex-shrink-0 ${card.colorClasses.check}`}>✓</span>
+                <span className="text-gray-300 text-[11px] font-medium">{c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </button>
 
-  const onLeave = useCallback(() => {
-    if (!ref.current) return;
-    ["card-img", "card-content", "card-badge"].forEach((cls) => {
-      const el = ref.current!.querySelector<HTMLElement>(`.${cls}`);
-      if (el) el.style.transform = "";
-    });
-  }, []);
-
-  return (
-    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} onClick={onClick}
-      style={{
-        position: "relative", width: "100%", aspectRatio: "3/4",
-        borderRadius: 16, overflow: "hidden", cursor: "pointer",
-        border: `1.5px solid ${card.color}44`, background: "#111118",
-      }}>
-      <CardContent card={card} />
-    </div>
-  );
-}
-
-function Btn({ card, onClick }: { card: CardDef; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      width: "100%", padding: "11px 0", borderRadius: 999,
-      border: `1.5px solid ${card.btnBorder}`, color: card.btnText,
-      background: "transparent", boxShadow: card.glow,
-      fontWeight: 900, fontSize: 13, cursor: "pointer",
-      transition: "opacity 180ms",
-    }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "0.75"; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = "1"; }}
-    >Get Started →</button>
-  );
-}
-
-function Carousel({ cards, onCta }: { cards: CardDef[]; onCta: (href: string) => void }) {
-  const [cur, setCur] = useState(0);
-  const [autoOn, setAutoOn] = useState(true);
-  const txRef = useRef(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (!autoOn) return;
-    timerRef.current = setInterval(() => setCur((c) => (c + 1) % cards.length), 2500);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [autoOn, cards.length]);
-
-  const stop = () => { setAutoOn(false); if (timerRef.current) clearInterval(timerRef.current); };
-  const go = (n: number) => setCur(((n % cards.length) + cards.length) % cards.length);
-  const card = cards[cur];
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div onClick={stop}
-        onTouchStart={(e) => { txRef.current = e.touches[0].clientX; }}
-        onTouchEnd={(e) => { stop(); const d = txRef.current - e.changedTouches[0].clientX; if (Math.abs(d) > 30) go(cur + (d > 0 ? 1 : -1)); }}
-        style={{
-          position: "relative", width: "100%", aspectRatio: "3/4",
-          borderRadius: 16, overflow: "hidden", cursor: "pointer",
-          border: `1.5px solid ${card.color}55`, background: "#111118",
-        }}>
-        <CardContent card={card} />
-      </div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
-        {cards.map((_, i) => (
-          <button key={i} onClick={() => { stop(); go(i); }} style={{
-            width: 6, height: 6, borderRadius: "50%", border: "none", padding: 0, cursor: "pointer",
-            background: i === cur ? card.color : "rgba(255,255,255,0.2)",
-            transform: i === cur ? "scale(1.3)" : "scale(1)",
-            transition: "all 200ms",
-          }} />
-        ))}
-      </div>
-      <Btn card={card} onClick={() => onCta(card.href)} />
-    </div>
-  );
-}
-
-function Slot({ card, onClick }: { card: CardDef; onClick: () => void }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <ParallaxCard card={card} onClick={onClick} />
-      <Btn card={card} onClick={onClick} />
+      {/* CTA — separated below card, same glass style */}
+      <button
+        onClick={onClick}
+        className={`w-full py-3 rounded-full text-xs font-bold transition-all
+          border ${card.colorClasses.border} ${card.colorClasses.text}
+          ${card.colorClasses.bg} hover:bg-white/5`}
+      >
+        Get Started →
+      </button>
     </div>
   );
 }
@@ -261,41 +195,29 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
   const go = (href: string) => onCardClick(href.split("type=")[1] || "async");
 
   return (
-    <section style={{ background: "#0a0a0f", padding: "64px 16px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <h2 style={{
-          textAlign: "center", color: "#fff", fontWeight: 900,
-          marginBottom: 12, fontSize: "clamp(22px,4vw,34px)",
-        }}>
-          Choose How You Want to{" "}
-          <span style={{ color: "#00e0c0" }}>Be Treated</span>
+    <section className="py-16 px-4">
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-3xl font-bold mb-4 font-serif text-center">
+          Choose How You Want to <span className="text-teal-400">Be Treated</span>
         </h2>
-        <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 14, marginBottom: 32 }}>
+        <p className="text-center text-sm text-gray-500 mb-10">
           Every visit type is handled by your provider. Same person. Every time.
         </p>
 
-        {/* Row 1 — 3 equal columns, minmax(0) prevents blowout */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 12, marginBottom: 12,
-        }}>
-          <Carousel cards={[CARDS[0], CARDS[1]]} onCta={go} />
-          <Slot card={CARDS[2]} onClick={() => go(CARDS[2].href)} />
-          <Slot card={CARDS[3]} onClick={() => go(CARDS[3].href)} />
+        {/* Row 1 — 3 columns */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+          {CARDS.slice(0, 3).map((card) => (
+            <VisitCard key={card.alt} card={card} onClick={() => go(card.href)} />
+          ))}
         </div>
 
-        {/* Row 2 — 2 columns, centered at 66% of row 1 width */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-          gap: 12,
-          maxWidth: "66.666%",
-          margin: "0 auto",
-        }}>
-          <Slot card={CARDS[4]} onClick={() => go(CARDS[4].href)} />
-          <Slot card={CARDS[5]} onClick={() => go(CARDS[5].href)} />
+        {/* Row 2 — 2 centered */}
+        <div className="grid grid-cols-2 gap-3 max-w-[66%] mx-auto">
+          {CARDS.slice(3, 5).map((card) => (
+            <VisitCard key={card.alt} card={card} onClick={() => go(card.href)} />
+          ))}
         </div>
+
       </div>
     </section>
   );
