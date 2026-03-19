@@ -72,7 +72,6 @@ const CARDS: CardDef[] = [
     sections: [
       { icon: "⚡", label: "Faster Care, Same Quality", items: ["Reviewed in minutes, not hours", "No waiting rooms, no scheduling"] },
       { icon: "💊", label: "Easy Prescription Renewal", items: ["Refill or adjust your medication quickly", "Sent directly to your pharmacy"] },
-      { icon: "🔒", label: "Do It From Anywhere", items: ["Phone, tablet, or desktop", "Takes under 60 seconds to submit"] },
     ],
     img: "/assets/cards/resized_800X600/refilvisit2.png",
     alt: "Rx Refill",
