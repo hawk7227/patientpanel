@@ -347,34 +347,12 @@ export default function AssessmentPageContent() {
                 </div>
               </div>
 
-              {/* 6-grid condition cards — inside the same frame */}
+              {/* FAST TREATMENT NOW OPTIONS — visit cards grid */}
               <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-center gap-2 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Zap className="w-6 h-6 text-red-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">No Call Visits</div><div className="text-[10px] text-gray-500 mt-1">Submit · Review · Rx Sent</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('video')} className="group flex flex-col items-center justify-center gap-2 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Video className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">Video Visits</div><div className="text-[10px] text-gray-500 mt-1">Choose Date · Meet · Agree Treatment</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('phone')} className="group flex flex-col items-center justify-center gap-2 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <MessageCircle className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">Phone or SMS</div><div className="text-[10px] text-gray-500 mt-1">Set Time · Connect · Treatment Begins</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('adhd')} className="group flex flex-col items-center justify-center gap-2 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Lightbulb className="w-6 h-6 text-indigo-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">ADHD</div><div className="text-[10px] text-gray-500 mt-1">Focus, attention</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-center gap-2 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Zap className="w-6 h-6 text-teal-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">Weight Management</div><div className="text-[10px] text-gray-500 mt-1">Semaglutide, tirzepatide</div></div>
-                  </button>
-                  <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-center gap-2 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl p-4 h-32 transition-all">
-                    <Shield className="w-6 h-6 text-pink-400 group-hover:scale-110 transition-transform" />
-                    <div className="text-center"><div className="text-white font-semibold text-sm">STD Concerns</div><div className="text-[10px] text-gray-500 mt-1">Discreet, judgment-free</div></div>
-                  </button>
-                </div>
+                <h2 className="text-white font-black text-center mb-6" style={{ fontSize: 'clamp(16px,3.5vw,22px)', letterSpacing: '-0.01em' }}>
+                  FAST TREATMENT <span className="text-teal-400">NOW OPTIONS</span>
+                </h2>
+                <VisitCards onCardClick={(type) => handleConditionClick(type)} />
               </div>
 
             </div>
@@ -499,10 +477,6 @@ export default function AssessmentPageContent() {
         </div>
       </section>
 
-
-
-      {/* VISIT TYPES */}
-      <VisitCards onCardClick={(type) => handleConditionClick(type)} />
 
       {/* HOW IT WORKS */}
       <section id="how-it-works" className="py-16 px-4">

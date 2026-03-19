@@ -227,29 +227,13 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
   const go = (href: string) => onCardClick(href.split("type=")[1] || "async");
 
   return (
-    <section className="py-16 px-4">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl font-bold mb-4 font-serif text-center">
-          Choose How You Want to <span className="text-teal-400">Be Treated</span>
-        </h2>
-        <p className="text-center text-sm text-gray-500 mb-10">
-          Every visit type is handled by your provider. Same person. Every time.
-        </p>
-
-        {/* 
-          Desktop (md): 3 cols — Async|SMS|Rx  /  Video|Phone|Instant
-          Mobile (2 col): order classes pair Async|SMS, Rx|Instant, Video|Phone
-        */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="order-1 md:order-1"><VisitCard card={CARDS[0]} onClick={() => go(CARDS[0].href)} /></div>
-          <div className="order-2 md:order-2"><VisitCard card={CARDS[1]} onClick={() => go(CARDS[1].href)} /></div>
-          <div className="order-3 md:order-3"><VisitCard card={CARDS[2]} onClick={() => go(CARDS[2].href)} /></div>
-          <div className="order-5 md:order-4"><VisitCard card={CARDS[3]} onClick={() => go(CARDS[3].href)} /></div>
-          <div className="order-6 md:order-5"><VisitCard card={CARDS[4]} onClick={() => go(CARDS[4].href)} /></div>
-          <div className="order-4 md:order-6"><VisitCard card={CARDS[5]} onClick={() => go(CARDS[5].href)} /></div>
-        </div>
-
-      </div>
-    </section>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="order-1 md:order-1"><VisitCard card={CARDS[0]} onClick={() => go(CARDS[0].href)} /></div>
+      <div className="order-2 md:order-2"><VisitCard card={CARDS[1]} onClick={() => go(CARDS[1].href)} /></div>
+      <div className="order-3 md:order-3"><VisitCard card={CARDS[2]} onClick={() => go(CARDS[2].href)} /></div>
+      <div className="order-5 md:order-4"><VisitCard card={CARDS[3]} onClick={() => go(CARDS[3].href)} /></div>
+      <div className="order-6 md:order-5"><VisitCard card={CARDS[4]} onClick={() => go(CARDS[4].href)} /></div>
+      <div className="order-4 md:order-6"><VisitCard card={CARDS[5]} onClick={() => go(CARDS[5].href)} /></div>
+    </div>
   );
 }
