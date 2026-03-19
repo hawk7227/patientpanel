@@ -67,10 +67,10 @@ const CARDS: CardDef[] = [
     title: "Rx",
     accent: "Refill",
     accentClass: "text-green-400",
-    subtext: "Faster Care, Same Quality",
+    subtext: "",
     checks: [],
     sections: [
-      { icon: "⚡", label: "Faster Care, Same Quality", items: ["Reviewed in minutes, not hours", "No waiting rooms, no scheduling"] },
+      { icon: "⚡", label: "Faster Care, Same Quality", items: ["Reviewed in minutes, not hours"] },
       { icon: "💊", label: "Easy Prescription Renewal", items: ["Refill or adjust your medication quickly", "Sent directly to your pharmacy"] },
     ],
     img: "/assets/cards/resized_800X600/refilvisit2.png",
@@ -177,9 +177,11 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
 
         {/* Zone 3 — Content */}
         <div className="px-4 py-4 w-full">
-          <p className="text-white font-semibold text-xs text-center mb-3 leading-snug">
-            {card.subtext}
-          </p>
+          {card.subtext && (
+            <p className="text-white font-semibold text-xs text-center mb-3 leading-snug">
+              {card.subtext}
+            </p>
+          )}
           {card.sections ? (
             <div className="flex flex-col gap-3">
               {card.sections.map((s) => (
