@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+interface CardSection {
+  icon: string;
+  label: string;
+  items: string[];
+}
 
 interface CardDef {
   title: string;
@@ -8,6 +12,7 @@ interface CardDef {
   accentClass: string;
   subtext: string;
   checks: string[];
+  sections?: CardSection[];
   img: string;
   alt: string;
   badge?: string;
@@ -111,21 +116,26 @@ const CARDS: CardDef[] = [
     },
   },
   {
-    title: "Quick",
-    accent: "Rx Refill",
-    accentClass: "text-amber-400",
-    subtext: "Select meds. Provider approves. Done.",
-    checks: ["Select your medication", "Provider reviews & approves", "Sent to your pharmacy"],
-    img: "/assets/cards/ChatGPT Image Mar 18, 2026, 04_02_36 PM.png",
+    title: "Rx",
+    accent: "Refill",
+    accentClass: "text-green-400",
+    subtext: "Faster Care, Same Quality",
+    checks: [],
+    sections: [
+      { icon: "⚡", label: "Faster Care, Same Quality", items: ["Reviewed in minutes, not hours", "No waiting rooms, no scheduling"] },
+      { icon: "💊", label: "Easy Prescription Renewal", items: ["Refill or adjust your medication quickly", "Sent directly to your pharmacy"] },
+      { icon: "🔒", label: "Do It From Anywhere", items: ["Phone, tablet, or desktop", "Takes under 60 seconds to submit"] },
+    ],
+    img: "/assets/cards/resized_800X600/refilvisit2.png",
     alt: "Rx Refill",
     badge: "FAST",
     href: "/express-checkout?type=rx-refill",
     colorClasses: {
-      bg: "bg-amber-500/10",
-      border: "border-amber-500/30",
-      text: "text-amber-400",
-      check: "text-amber-400",
-      badge: "bg-amber-500 text-black",
+      bg: "bg-green-500/10",
+      border: "border-green-500/30",
+      text: "text-green-400",
+      check: "text-green-400",
+      badge: "bg-green-500 text-black",
     },
   },
 ];
@@ -167,14 +177,35 @@ function VisitCard({ card, onClick }: { card: CardDef; onClick: () => void }) {
           <p className="text-white font-semibold text-xs text-center mb-3 leading-snug">
             {card.subtext}
           </p>
-          <div className="flex flex-col gap-2">
-            {card.checks.map((c) => (
-              <div key={c} className="flex items-start gap-2">
-                <span className={`font-bold text-sm flex-shrink-0 ${card.colorClasses.check}`}>✓</span>
-                <span className="text-gray-300 text-[11px] font-medium">{c}</span>
-              </div>
-            ))}
-          </div>
+          {card.sections ? (
+            <div className="flex flex-col gap-3">
+              {card.sections.map((s) => (
+                <div key={s.label}>
+                  <div className={`flex items-center gap-1.5 mb-1 text-[10px] font-bold ${card.colorClasses.text}`}>
+                    <span style={{ fontSize: 11 }}>{s.icon}</span>
+                    <span>{s.label}</span>
+                  </div>
+                  <div className="flex flex-col gap-1 pl-1">
+                    {s.items.map((item) => (
+                      <div key={item} className="flex items-start gap-2">
+                        <span className={`font-bold text-sm flex-shrink-0 ${card.colorClasses.check}`}>✓</span>
+                        <span className="text-gray-300 text-[11px] font-medium">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {card.checks.map((c) => (
+                <div key={c} className="flex items-start gap-2">
+                  <span className={`font-bold text-sm flex-shrink-0 ${card.colorClasses.check}`}>✓</span>
+                  <span className="text-gray-300 text-[11px] font-medium">{c}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </button>
 
