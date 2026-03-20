@@ -1,42 +1,49 @@
 "use client";
 
+import React from "react";
+
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft } from "lucide-react";
 
+// ─── Types ───────────────────────────────────────────────────
 interface PatientInfo {
   id: string | null;
   firstName: string; lastName: string; email: string; phone: string;
   dateOfBirth: string; address: string; source: string; pharmacy: string;
 }
-interface BookingOverlayProps { visitType: string; onClose: () => void; }
+interface BookingOverlayProps {
+  visitType: string;
+  anchorId: string;
+  onClose: () => void;
+}
 
+// ─── Constants ───────────────────────────────────────────────
 const PHARMAS = [
   "CVS Pharmacy","Walgreens","Rite Aid","Walmart Pharmacy","Kroger Pharmacy",
   "Publix Pharmacy","Costco Pharmacy","Sam's Club Pharmacy",
   "Target Pharmacy (CVS)","Albertsons Pharmacy","Safeway Pharmacy","Fry's Pharmacy","HEB Pharmacy",
 ];
-
 const VISIT_LABELS: Record<string,string> = {
   async:"📝 Async Visit", sms:"💬 SMS Visit", refill:"💊 Rx Refill",
   video:"📹 Video Visit", phone:"📞 Phone Visit", instant:"⚡ Instant Visit",
 };
-
 const VISIT_COLORS: Record<string,{accent:string;border:string;cta:string;dim:string}> = {
-  async:  {accent:"#f472b6",border:"rgba(236,72,153,.55)", cta:"#ec4899",dim:"rgba(236,72,153,.08)"},
-  sms:    {accent:"#c084fc",border:"rgba(168,85,247,.55)", cta:"#a855f7",dim:"rgba(168,85,247,.08)"},
-  refill: {accent:"#4ade80",border:"rgba(34,197,94,.55)",  cta:"#22c55e",dim:"rgba(34,197,94,.08)"},
-  video:  {accent:"#60a5fa",border:"rgba(59,130,246,.55)", cta:"#3b82f6",dim:"rgba(59,130,246,.08)"},
-  phone:  {accent:"#22d3ee",border:"rgba(6,182,212,.55)",  cta:"#0891b2",dim:"rgba(6,182,212,.08)"},
-  instant:{accent:"#fb923c",border:"rgba(249,115,22,.55)", cta:"#f97316",dim:"rgba(249,115,22,.08)"},
+  async:   {accent:"#f472b6",border:"rgba(236,72,153,.55)", cta:"#ec4899", dim:"rgba(236,72,153,.08)"},
+  sms:     {accent:"#c084fc",border:"rgba(168,85,247,.55)", cta:"#a855f7", dim:"rgba(168,85,247,.08)"},
+  refill:  {accent:"#4ade80",border:"rgba(34,197,94,.55)",  cta:"#22c55e", dim:"rgba(34,197,94,.08)"},
+  video:   {accent:"#60a5fa",border:"rgba(59,130,246,.55)", cta:"#3b82f6", dim:"rgba(59,130,246,.08)"},
+  phone:   {accent:"#22d3ee",border:"rgba(6,182,212,.55)",  cta:"#0891b2", dim:"rgba(6,182,212,.08)"},
+  instant: {accent:"#fb923c",border:"rgba(249,115,22,.55)", cta:"#f97316", dim:"rgba(249,115,22,.08)"},
 };
 
+// ─── Helpers ─────────────────────────────────────────────────
 function getTotalSteps(r:boolean){return r?3:5;}
 function getStepTitle(s:number,r:boolean){
   if(r){if(s===1)return"Reason for Visit";if(s===2)return"Pick Date & Time";return"Complete Booking";}
   if(s===1)return"Describe Your Symptoms";if(s===2)return"Select Pharmacy";
   if(s===3)return"Pick Date & Time";if(s===4)return"Confirm Your Visit";return"Complete Booking";
 }
-
 const DAY_ABBR=["SUN","MON","TUE","WED","THU","FRI","SAT"];
 const SHORT_MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const TIME_SLOTS_12=[
@@ -45,7 +52,6 @@ const TIME_SLOTS_12=[
   "3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM",
   "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM",
 ];
-
 function to24(t:string){
   const[time,period]=t.split(" ");let[h,m]=time.split(":").map(Number);
   if(period==="PM"&&h!==12)h+=12;if(period==="AM"&&h===12)h=0;
@@ -65,25 +71,27 @@ function getAZNowMins(){
   }catch{return new Date().getHours()*60+new Date().getMinutes();}
 }
 function getSlotBadge(t12:string,day:Date):{label:string;color:string}|null{
-  const dow=day.getDay();
-  if(dow===0||dow===6)return{label:"Weekend · $249",color:"#f59e0b"};
+  if(day.getDay()===0||day.getDay()===6)return{label:"Weekend · $249",color:"#f59e0b"};
   const h=parseInt(to24(t12).split(":")[0]);
   if(h>=17&&t12!=="5:00 PM")return{label:"After Hours · $249",color:"#f97316"};
   return null;
 }
 function filterSlotsForDay(day:Date,apiSlots:string[]){
   const today=new Date();today.setHours(0,0,0,0);
-  const isToday=isSameDay(day,today);
   let slots=apiSlots.length>0
     ?apiSlots.map(t24=>{const[h,m]=t24.split(":").map(Number);const p=h>=12?"PM":"AM";const h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,"0")} ${p}`;})
     :TIME_SLOTS_12;
-  if(!isToday)return slots;
+  if(!isSameDay(day,today))return slots;
   const nowMins=getAZNowMins();
   return slots.filter(s=>{const[h,m]=to24(s).split(":").map(Number);return(h*60+m)>nowMins;});
 }
 
-export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
+// ─── Main ────────────────────────────────────────────────────
+export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverlayProps){
   const col=VISIT_COLORS[visitType]||VISIT_COLORS.async;
+  const [mounted,setMounted]=useState(false);
+  const [rect,setRect]=useState<{top:number;left:number;width:number}|null>(null);
+
   const [step,setStep]=useState(1);
   const [patient,setPatient]=useState<PatientInfo|null>(null);
   const isReturning=!!(patient?.id||(patient?.source&&patient.source!=="new"));
@@ -100,38 +108,59 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
   const [apiSlots,setApiSlots]=useState<string[]>([]);
   const [apiLoading,setApiLoading]=useState(false);
 
-  const cardRef=useRef<HTMLDivElement>(null);
   const symRef=useRef<HTMLTextAreaElement>(null);
   const symRem=Math.max(0,10-symptoms.trim().length);
 
+  // ── Mount + measure anchor position ──
+  useEffect(()=>{
+    setMounted(true);
+    const measure=()=>{
+      const el=document.getElementById(anchorId);
+      if(!el)return;
+      const r=el.getBoundingClientRect();
+      setRect({top:r.top+window.scrollY,left:r.left,width:r.width});
+    };
+    measure();
+    window.addEventListener("resize",measure);
+    return()=>window.removeEventListener("resize",measure);
+  },[anchorId]);
+
+  // ── Scroll overlay into view when keyboard opens ──
+  const scrollIntoView=useCallback(()=>{
+    if(!rect)return;
+    setTimeout(()=>{
+      window.scrollTo({top:rect.top-16,behavior:"smooth"});
+    },120);
+  },[rect]);
+
+  // ── Lock page scroll while open ──
+  useEffect(()=>{
+    const y=window.scrollY;
+    document.body.style.overflow="hidden";
+    document.body.style.position="fixed";
+    document.body.style.top=`-${y}px`;
+    document.body.style.width="100%";
+    return()=>{
+      document.body.style.overflow="";
+      document.body.style.position="";
+      document.body.style.top="";
+      document.body.style.width="";
+      window.scrollTo(0,y);
+    };
+  },[]);
+
+  // ── Patient ──
   useEffect(()=>{
     try{const s=sessionStorage.getItem("expressPatient");if(s)setPatient(JSON.parse(s));}catch{}
   },[]);
-
   useEffect(()=>{
     if(isReturning&&patient?.pharmacy&&!pharmacy){setPharmacy(patient.pharmacy);setPharmaQuery(patient.pharmacy);}
   },[isReturning,patient]);
-
   useEffect(()=>{
-    if(step===1&&!isReturning)setTimeout(()=>symRef.current?.focus(),180);
+    if(step===1&&!isReturning)setTimeout(()=>symRef.current?.focus(),200);
   },[step,isReturning]);
 
-  // Scroll card into view when step changes or keyboard opens
-  const scrollCardIntoView=useCallback(()=>{
-    if(cardRef.current){
-      setTimeout(()=>cardRef.current?.scrollIntoView({behavior:"smooth",block:"nearest"}),100);
-    }
-  },[]);
-
-  useEffect(()=>{scrollCardIntoView();},[step]);
-
-  const fetchSlots=useCallback((day:string)=>{
-    setCalDay(day);setCalTime("");setApiSlots([]);setApiLoading(true);
-    fetch(`/api/get-doctor-availability?date=${day}`)
-      .then(r=>r.json()).then(data=>{if(data.availableSlots)setApiSlots(data.availableSlots);})
-      .catch(()=>{}).finally(()=>setApiLoading(false));
-  },[]);
-
+  // ── Calendar ──
   const today=new Date();today.setHours(0,0,0,0);
   const tomorrow=new Date(today);tomorrow.setDate(tomorrow.getDate()+1);
   const VISIBLE=6,TOTAL=28;
@@ -141,15 +170,22 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
   const selectedDayObj=calDay?new Date(calDay+"T12:00:00"):null;
   const slots=selectedDayObj?filterSlotsForDay(selectedDayObj,apiSlots):[];
 
-  // Auto-load today on calendar step
-  const calStepActive=(step===3&&!isReturning)||(step===2&&isReturning);
+  const fetchSlots=useCallback((day:string)=>{
+    setCalDay(day);setCalTime("");setApiSlots([]);setApiLoading(true);
+    fetch(`/api/get-doctor-availability?date=${day}`)
+      .then(r=>r.json()).then(data=>{if(data.availableSlots)setApiSlots(data.availableSlots);})
+      .catch(()=>{}).finally(()=>setApiLoading(false));
+  },[]);
+
+  const isCalStep=(step===3&&!isReturning)||(step===2&&isReturning);
   useEffect(()=>{
-    if(!calStepActive)return;
+    if(!isCalStep)return;
     if(!calDay)fetchSlots(isoDate(today));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[calStepActive]);
+  },[isCalStep]);
 
-  const goBack=()=>{if(step===1){onClose();return;}setStep(s=>s-1);};
+  // ── Nav ──
+  const goBack=()=>{if(step===1){onClose();return;}setStep((s:number)=>s-1);};
   const goContinue=()=>{
     if(isReturning){
       if(step===1){if(!reason.trim())return;setStep(2);return;}
@@ -162,7 +198,6 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
     if(step===4){setStep(5);return;}
     navigateToCheckout();
   };
-
   const navigateToCheckout=()=>{
     try{
       localStorage.removeItem("medazon_express_answers");
@@ -180,51 +215,54 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
     :PHARMAS.slice(0,6);
 
   const progressPct=Math.round((step/totalSteps)*100);
-  const isCalStep=(step===2&&isReturning)||(step===3&&!isReturning);
   const contDisabled=
     (step===1&&!isReturning&&symptoms.trim().length<10)||
     (step===1&&isReturning&&!reason.trim())||
     (step===2&&!isReturning&&!pharmacy)||
     (isCalStep&&(!calDay||!calTime));
 
-  // Field border style helper
-  const fieldBorder=(valid:boolean)=>`2px solid ${valid?`rgba(45,212,160,.5)`:col.border}`;
+  const fieldBorder=(valid:boolean)=>`2px solid ${valid?"rgba(45,212,160,.5)":col.border}`;
 
-  return(
+  if(!mounted||!rect)return null;
+
+  const overlay=(
     <>
-      {/* Dim background — behind card, pointer-events none */}
-      <div style={{
-        position:"fixed",inset:0,zIndex:50,
-        background:"rgba(4,8,7,.72)",
-        pointerEvents:"none",
-        animation:"dimIn .2s ease",
-      }}/>
-
       <style>{`
         @keyframes dimIn{from{opacity:0}to{opacity:1}}
-        @keyframes cardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         @keyframes stepIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
         @keyframes slotIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
-      {/* Card — inline, replaces VisitCards, auto-height */}
+      {/* Full-page dim — behind card */}
       <div
-        ref={cardRef}
+        onClick={onClose}
         style={{
-          position:"relative",zIndex:60,
-          background:"#090e0b",
-          border:`2px solid ${col.border}`,
-          borderRadius:16,
-          overflow:"hidden",
-          animation:"cardIn .22s cubic-bezier(.4,0,.2,1)",
+          position:"fixed",inset:0,zIndex:9998,
+          background:"rgba(4,8,7,.78)",
+          animation:"dimIn .2s ease",
         }}
-      >
+      />
+
+      {/* Card — positioned over the anchor element */}
+      <div style={{
+        position:"absolute",
+        top:rect.top,
+        left:rect.left,
+        width:rect.width,
+        zIndex:9999,
+        background:"#090e0b",
+        border:`2px solid ${col.border}`,
+        borderRadius:16,
+        overflow:"hidden",
+        animation:"cardIn .25s cubic-bezier(.4,0,.2,1)",
+      }}>
+
         {/* Header */}
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",padding:"14px 14px 0"}}>
-          <div style={{flex:1,marginRight:10}}>
-            <div style={{fontSize:"clamp(17px,4.5vw,22px)",fontWeight:900,color:"#fff",lineHeight:1.1}}
-                 key={step}>
+          <div style={{flex:1,marginRight:10}} key={step}>
+            <div style={{fontSize:"clamp(17px,4.5vw,22px)",fontWeight:900,color:"#fff",lineHeight:1.1}}>
               {getStepTitle(step,isReturning)}
             </div>
             <div style={{fontSize:11,color:"rgba(255,255,255,.35)",marginTop:3,fontWeight:600}}>
@@ -233,31 +271,28 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
           </div>
           <button onClick={onClose} style={{
             width:28,height:28,borderRadius:"50%",
-            border:`1px solid ${col.border}`,
-            background:col.dim,
+            border:`1px solid ${col.border}`,background:col.dim,
             color:"#fff",fontSize:13,cursor:"pointer",
             display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
           }}>✕</button>
         </div>
 
-        {/* Progress bar */}
+        {/* Progress */}
         <div style={{height:3,background:"rgba(255,255,255,.08)",margin:"10px 14px 0",borderRadius:2}}>
           <div style={{height:"100%",background:col.cta,borderRadius:2,width:`${progressPct}%`,transition:"width .35s"}}/>
         </div>
 
-        {/* Step content — auto height, no flex:1 stretching */}
-        <div style={{padding:"12px 14px 0",animation:"stepIn .25s cubic-bezier(.4,0,.2,1)"}} key={`content-${step}`}>
+        {/* Step content */}
+        <div style={{padding:"12px 14px 0"}} key={`content-${step}`}>
 
-          {/* STEP 1 NEW — Symptoms */}
+          {/* S1 NEW — Symptoms */}
           {step===1&&!isReturning&&(
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <textarea
-                ref={symRef}
-                value={symptoms}
-                onChange={e=>setSymptoms(e.target.value)}
+              <textarea ref={symRef} value={symptoms}
+                onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setSymptoms(e.target.value)}
+                onFocus={scrollIntoView}
                 placeholder="e.g., Burning during urination for 3 days..."
                 rows={5}
-                onFocus={scrollCardIntoView}
                 style={{
                   width:"100%",height:120,background:"rgba(255,255,255,.04)",
                   border:fieldBorder(symptoms.trim().length>=10),
@@ -271,16 +306,14 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
             </div>
           )}
 
-          {/* STEP 1 RETURNING — Reason */}
+          {/* S1 RETURNING — Reason */}
           {step===1&&isReturning&&(
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <textarea
-                value={reason}
-                onChange={e=>setReason(e.target.value)}
+              <textarea value={reason}
+                onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setReason(e.target.value)}
+                onFocus={scrollIntoView}
                 placeholder="e.g., Follow up for UTI, need prescription refill..."
-                rows={5}
-                autoFocus
-                onFocus={scrollCardIntoView}
+                rows={5} autoFocus
                 style={{
                   width:"100%",height:120,background:"rgba(255,255,255,.04)",
                   border:fieldBorder(reason.trim().length>0),
@@ -294,16 +327,13 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
             </div>
           )}
 
-          {/* STEP 2 NEW — Pharmacy */}
+          {/* S2 NEW — Pharmacy */}
           {step===2&&!isReturning&&(
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <input
-                type="text"
-                placeholder="Type pharmacy name..."
-                value={pharmaQuery}
-                autoFocus
-                onChange={e=>{setPharmaQuery(e.target.value);setPharmacy("");setShowDrop(true);}}
-                onFocus={()=>{setShowDrop(true);scrollCardIntoView();}}
+              <input type="text" placeholder="Type pharmacy name..."
+                value={pharmaQuery} autoFocus
+                onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setPharmaQuery(e.target.value);setPharmacy("");setShowDrop(true);}}
+                onFocus={()=>{setShowDrop(true);scrollIntoView();}}
                 style={{
                   width:"100%",background:"rgba(255,255,255,.04)",
                   border:fieldBorder(!!pharmacy),
@@ -312,29 +342,21 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
                 }}
               />
               {showDrop&&!pharmacy&&filteredPharmas.length>0&&(
-                <div style={{
-                  background:"#111c14",border:`1px solid ${col.border}`,
-                  borderRadius:10,overflow:"hidden",maxHeight:200,overflowY:"auto",
-                }}>
+                <div style={{background:"#111c14",border:`1px solid ${col.border}`,borderRadius:10,overflow:"hidden",maxHeight:200,overflowY:"auto"}}>
                   {filteredPharmas.map(p=>(
                     <div key={p}
-                      onMouseDown={e=>{e.preventDefault();setPharmacy(p);setPharmaQuery(p);setShowDrop(false);}}
-                      onTouchEnd={e=>{e.preventDefault();setPharmacy(p);setPharmaQuery(p);setShowDrop(false);}}
-                      style={{
-                        padding:"11px 12px",fontSize:13,color:"rgba(255,255,255,.85)",
-                        cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.05)",
-                      }}
+                      onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy(p);setPharmaQuery(p);setShowDrop(false);}}
+                      onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy(p);setPharmaQuery(p);setShowDrop(false);}}
+                      style={{padding:"11px 12px",fontSize:13,color:"rgba(255,255,255,.85)",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.05)"}}
                     >{p}</div>
                   ))}
                 </div>
               )}
-              {pharmacy&&(
-                <div style={{fontSize:12,color:"#4ade80",fontWeight:700}}>✓ {pharmacy} selected</div>
-              )}
+              {pharmacy&&<div style={{fontSize:12,color:"#4ade80",fontWeight:700}}>✓ {pharmacy} selected</div>}
             </div>
           )}
 
-          {/* STEP 3 NEW / STEP 2 RETURNING — Calendar */}
+          {/* Calendar */}
           {isCalStep&&(
             <div style={{display:"flex",flexDirection:"column",gap:0}}>
               {/* Day strip */}
@@ -342,28 +364,22 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
                 <button
                   onClick={()=>{setCalOffset(Math.max(0,calOffset-VISIBLE));setCalDay("");setCalTime("");}}
                   disabled={calOffset===0}
-                  style={{width:24,height:24,background:"none",border:"none",
-                    color:calOffset===0?"rgba(255,255,255,.15)":col.accent,
-                    cursor:calOffset===0?"default":"pointer",flexShrink:0,
-                    display:"flex",alignItems:"center",justifyContent:"center"}}
+                  style={{width:24,height:24,background:"none",border:"none",color:calOffset===0?"rgba(255,255,255,.15)":col.accent,cursor:calOffset===0?"default":"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}
                 ><ChevronLeft size={16}/></button>
+
                 <div style={{flex:1,display:"flex",gap:2}}>
                   {visibleDays.map(day=>{
                     const iso=isoDate(day);const isSel=calDay===iso;
                     const isToday=isSameDay(day,today);const isTom=isSameDay(day,tomorrow);
                     return(
                       <button key={iso} onClick={()=>fetchSlots(iso)} style={{
-                        flex:1,display:"flex",flexDirection:"column",alignItems:"center",
-                        justifyContent:"center",padding:"6px 1px 5px",borderRadius:9,cursor:"pointer",
-                        border:isSel?`2px solid ${col.accent}`:isToday?`2px solid rgba(45,212,160,.2)`:"2px solid transparent",
+                        flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                        padding:"6px 1px 5px",borderRadius:9,cursor:"pointer",
+                        border:isSel?`2px solid ${col.accent}`:isToday?"2px solid rgba(45,212,160,.2)":"2px solid transparent",
                         background:isSel?col.cta:"transparent",gap:1,minWidth:0,
                       }}>
-                        <span style={{fontSize:9,fontWeight:700,color:isSel?"#fff":"#64748b",letterSpacing:".04em",lineHeight:1}}>
-                          {DAY_ABBR[day.getDay()]}
-                        </span>
-                        <span style={{fontSize:18,fontWeight:700,color:isSel?"#fff":"#cbd5e1",lineHeight:1.2}}>
-                          {day.getDate()}
-                        </span>
+                        <span style={{fontSize:9,fontWeight:700,color:isSel?"#fff":"#64748b",letterSpacing:".04em",lineHeight:1}}>{DAY_ABBR[day.getDay()]}</span>
+                        <span style={{fontSize:18,fontWeight:700,color:isSel?"#fff":"#cbd5e1",lineHeight:1.2}}>{day.getDate()}</span>
                         <span style={{fontSize:8,fontWeight:600,color:isSel?"#fff":col.accent,lineHeight:1,marginTop:1}}>
                           {isToday?"Today":isTom?"Tmrw":SHORT_MO[day.getMonth()]}
                         </span>
@@ -371,37 +387,27 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
                     );
                   })}
                 </div>
+
                 <button
                   onClick={()=>{setCalOffset(Math.min(calOffset+VISIBLE,TOTAL-VISIBLE));setCalDay("");setCalTime("");}}
                   disabled={calOffset+VISIBLE>=TOTAL}
-                  style={{width:24,height:24,background:"none",border:"none",
-                    color:calOffset+VISIBLE>=TOTAL?"rgba(255,255,255,.15)":col.accent,
-                    cursor:calOffset+VISIBLE>=TOTAL?"default":"pointer",flexShrink:0,
-                    display:"flex",alignItems:"center",justifyContent:"center",
-                    transform:"rotate(180deg)"}}
+                  style={{width:24,height:24,background:"none",border:"none",color:calOffset+VISIBLE>=TOTAL?"rgba(255,255,255,.15)":col.accent,cursor:calOffset+VISIBLE>=TOTAL?"default":"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transform:"rotate(180deg)"}}
                 ><ChevronLeft size={16}/></button>
               </div>
 
-              {/* Divider */}
               <div style={{height:1,background:"rgba(255,255,255,.07)",marginBottom:8}}/>
 
-              {/* Time grid — fixed height, scrollable */}
+              {/* Time grid */}
               <div style={{height:180,overflowY:"auto",scrollbarWidth:"none"}}>
                 {!calDay?(
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",
-                    height:"100%",color:"rgba(255,255,255,.3)",fontSize:13}}>
-                    Select a day above
-                  </div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",color:"rgba(255,255,255,.3)",fontSize:13}}>Select a day above</div>
                 ):apiLoading?(
                   <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",gap:8}}>
-                    <div style={{width:18,height:18,border:"2px solid rgba(45,212,160,.2)",
-                      borderTop:`2px solid ${col.accent}`,borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+                    <div style={{width:18,height:18,border:"2px solid rgba(45,212,160,.2)",borderTop:`2px solid ${col.accent}`,borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
                     <span style={{color:"rgba(255,255,255,.4)",fontSize:12}}>Loading times…</span>
                   </div>
                 ):slots.length===0?(
-                  <div style={{textAlign:"center",color:"rgba(255,255,255,.3)",fontSize:13,paddingTop:20}}>
-                    No slots available — try another day
-                  </div>
+                  <div style={{textAlign:"center",color:"rgba(255,255,255,.3)",fontSize:13,paddingTop:20}}>No slots available — try another day</div>
                 ):(
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                     {slots.map((slot,i)=>{
@@ -427,7 +433,7 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
             </div>
           )}
 
-          {/* STEP 4 NEW — Confirm */}
+          {/* S4 NEW — Confirm */}
           {step===4&&!isReturning&&(
             <div style={{display:"flex",flexDirection:"column",gap:0}}>
               <div style={{border:`1px solid ${col.border}`,borderRadius:10,overflow:"hidden",background:"rgba(255,255,255,.02)"}}>
@@ -438,19 +444,12 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
                   ["Date",calDay?(()=>{const d=new Date(calDay+"T12:00:00");return`${DAY_ABBR[d.getDay()]}, ${SHORT_MO[d.getMonth()]} ${d.getDate()}`;})():""],
                   ["Time",calTime?(()=>{const[h,m]=calTime.split(":").map(Number);const p=h>=12?"PM":"AM";const h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,"0")} ${p}`;})():""],
                 ].map(([k,v],i,arr)=>(
-                  <div key={k} style={{
-                    display:"flex",justifyContent:"space-between",alignItems:"flex-start",
-                    padding:"9px 12px",borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,.05)":"none",fontSize:12,
-                  }}>
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"9px 12px",borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,.05)":"none",fontSize:12}}>
                     <span style={{color:"rgba(255,255,255,.4)",fontWeight:600,flexShrink:0}}>{k}</span>
-                    <span style={{
-                      color:"#fff",fontWeight:700,textAlign:"right",maxWidth:"62%",wordBreak:"break-word",fontSize:12,
-                      ...(k==="Symptoms"?{filter:"blur(4px)",userSelect:"none" as const}:{}),
-                    }}>{v}</span>
+                    <span style={{color:"#fff",fontWeight:700,textAlign:"right",maxWidth:"62%",wordBreak:"break-word",fontSize:12,...(k==="Symptoms"?{filter:"blur(4px)",userSelect:"none" as const}:{})}}>{v}</span>
                   </div>
                 ))}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                  padding:"10px 12px",background:"rgba(45,212,160,.05)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"rgba(45,212,160,.05)"}}>
                   <span style={{color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700}}>Booking Fee</span>
                   <span style={{color:"#2dd4a0",fontSize:18,fontWeight:900}}>$1.89</span>
                 </div>
@@ -461,14 +460,10 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
             </div>
           )}
 
-          {/* STEP 5 / STEP 3 RETURNING — Ready */}
+          {/* S5 / S3 RETURNING — Ready */}
           {((step===5&&!isReturning)||(step===3&&isReturning))&&(
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"12px 0 4px"}}>
-              <div style={{
-                width:44,height:44,borderRadius:"50%",
-                background:col.dim,border:`1px solid ${col.border}`,
-                display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,
-              }}>🔒</div>
+              <div style={{width:44,height:44,borderRadius:"50%",background:col.dim,border:`1px solid ${col.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🔒</div>
               <div style={{textAlign:"center"}}>
                 <div style={{fontSize:15,fontWeight:900,color:"#fff",marginBottom:4}}>Ready to Book</div>
                 <div style={{fontSize:12,color:"rgba(255,255,255,.4)",lineHeight:1.5}}>
@@ -478,14 +473,10 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
               </div>
             </div>
           )}
-
         </div>
 
-        {/* Bottom nav — always right below content */}
-        <div style={{
-          display:"flex",gap:8,padding:"12px 14px 14px",
-          borderTop:"1px solid rgba(255,255,255,.06)",marginTop:12,
-        }}>
+        {/* Nav */}
+        <div style={{display:"flex",gap:8,padding:"12px 14px 14px",borderTop:"1px solid rgba(255,255,255,.06)",marginTop:12}}>
           <button onClick={goBack} style={{
             flex:1,height:48,borderRadius:12,
             background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",
@@ -505,4 +496,7 @@ export default function BookingOverlay({visitType,onClose}:BookingOverlayProps){
       </div>
     </>
   );
+
+  // Portal renders directly into document.body — no parent stacking context
+  return createPortal(overlay, document.body);
 }
