@@ -250,14 +250,6 @@ export default function AssessmentPageContent() {
       <StateGate />
       <ChatWidget />
 
-      {/* BOOKING OVERLAY */}
-      {overlayOpen && (
-        <BookingOverlay
-          visitType={overlayVisitType}
-          onClose={() => setOverlayOpen(false)}
-        />
-      )}
-
       {/* SECTION 3: HERO */}
       <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(12px, 3vw, 32px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,rgba(20,184,166,0.12),transparent_60%)]" />
@@ -381,7 +373,10 @@ export default function AssessmentPageContent() {
                   <span className="block text-teal-400">RIGHT NOW</span>
                   <span className="block">TREATMENT OPTIONS</span>
                 </h2>
-                <VisitCards onCardClick={(type) => handleConditionClick(type)} />
+                {overlayOpen
+                  ? <BookingOverlay visitType={overlayVisitType} onClose={() => setOverlayOpen(false)} />
+                  : <VisitCards onCardClick={(type) => handleConditionClick(type)} />
+                }
               </div>
 
             </div>
