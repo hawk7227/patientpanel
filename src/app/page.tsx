@@ -45,8 +45,6 @@ function PairedCTABlock({
 }) {
   const [returningEmail, setReturningEmail] = useState("");
   const [searching, setSearching] = useState(false);
-  const [overlayOpen, setOverlayOpen] = useState(false);
-  const [overlayVisitType, setOverlayVisitType] = useState("async");
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const getBrowserInfo = () => {
@@ -169,6 +167,8 @@ export default function AssessmentPageContent() {
   const [showMore, setShowMore] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSteps, setShowSteps] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [overlayVisitType, setOverlayVisitType] = useState("async");
   const pillsRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
 
