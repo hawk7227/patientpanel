@@ -426,43 +426,31 @@ export default function AssessmentPageContent() {
                  </div>
 
                  <h4 className="text-xl font-bold font-serif text-center mb-4">Something Else?</h4>
-                 <div className="relative">
-                   <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
-                     <button onClick={() => handleConditionClick('skin')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Skin Issues</button>
-                     <button onClick={() => handleConditionClick('erectile-dysfunction')} className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Erectile Dysfunction</button>
-                     <button onClick={() => handleConditionClick('depression')} className="bg-violet-500/10 border border-violet-500/30 text-violet-300 hover:bg-violet-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Depression</button>
-                     <button onClick={() => handleConditionClick('birth-control')} className="bg-pink-500/10 border border-pink-500/30 text-pink-400 hover:bg-pink-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Birth Control</button>
-                     <button onClick={() => handleConditionClick('hair-loss')} className="bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Hair Loss</button>
-                     <button onClick={() => handleConditionClick('allergies')} className="bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Allergies</button>
-                     <button onClick={() => handleConditionClick('sinus')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Sinus Infections</button>
-                     <button onClick={() => handleConditionClick('rx-refill')} className="bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Rx Refills</button>
-                     <button onClick={() => handleConditionClick('insomnia')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Insomnia</button>
-                     <button onClick={() => handleConditionClick('yeast-infection')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Yeast Infection</button>
-                     <button onClick={() => handleConditionClick('bv')} className="bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">BV Treatment</button>
-                     <button onClick={() => handleConditionClick('acid-reflux')} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Acid Reflux</button>
-                     <button onClick={() => handleConditionClick('high-blood-pressure')} className="bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">High Blood Pressure</button>
-                     <button onClick={() => handleConditionClick('thyroid')} className="bg-teal-500/10 border border-teal-500/30 text-teal-300 hover:bg-teal-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Thyroid Issues</button>
-                     <button onClick={() => handleConditionClick('diabetes')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Diabetes Management</button>
-                     <button onClick={() => handleConditionClick('migraine')} className="bg-violet-500/10 border border-violet-500/30 text-violet-400 hover:bg-violet-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Migraines</button>
-                     <button onClick={() => handleConditionClick('eczema')} className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Eczema</button>
-                     <button onClick={() => handleConditionClick('asthma')} className="bg-blue-500/10 border border-blue-500/30 text-blue-300 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Asthma</button>
-                     <button onClick={() => handleConditionClick('ear-infection')} className="bg-orange-500/10 border border-orange-500/30 text-orange-300 hover:bg-orange-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Ear Infections</button>
-                     <button onClick={() => handleConditionClick('pink-eye')} className="bg-pink-500/10 border border-pink-500/30 text-pink-300 hover:bg-pink-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Pink Eye</button>
-                     <button onClick={() => handleConditionClick('bronchitis')} className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Bronchitis</button>
-                     <button onClick={() => handleConditionClick('gout')} className="bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Gout</button>
-                     <button onClick={() => handleConditionClick('strep-throat')} className="bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Strep Throat</button>
-                     <button onClick={() => handleConditionClick('smoking-cessation')} className="bg-green-500/10 border border-green-500/30 text-green-300 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Smoking Cessation</button>
-                     <button onClick={() => handleConditionClick('herpes')} className="bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Herpes Treatment</button>
-                     <button onClick={() => handleConditionClick('trichomoniasis')} className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Trichomoniasis</button>
-                     <button onClick={() => handleConditionClick('perimenopause')} className="bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Perimenopause</button>
-                     <button onClick={() => handleConditionClick('hpv')} className="bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">HPV</button>
-                     <button onClick={() => handleConditionClick('cholesterol')} className="bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">High Cholesterol</button>
-                     <button onClick={() => handleConditionClick('nausea')} className="bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Nausea & Vomiting</button>
-                     <button onClick={() => handleConditionClick('other')} className="bg-gray-500/10 border border-gray-500/30 text-gray-300 hover:bg-gray-500/20 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all shrink-0">Other</button>
-                     <div className="flex items-center shrink-0 pl-1">
-                       <ArrowRight size={18} className="text-gray-500" />
-                     </div>
-                   </div>
+                 <div className="flex flex-wrap justify-center gap-3">
+                   {CONDITIONS_LIST.map((c) => (
+                     <button
+                       key={c.id}
+                       onClick={() => handleConditionClick(c.id)}
+                       className={`${getPillColorClass(c.color)} border rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer hover:scale-105`}
+                     >
+                       {c.label}
+                     </button>
+                   ))}
+                   {showMore && EXPANDED_CONDITIONS.map((c) => (
+                     <button
+                       key={c.id}
+                       onClick={() => handleConditionClick(c.id)}
+                       className={`${getPillColorClass(c.color)} border rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer animate-in fade-in zoom-in-95 duration-300 hover:scale-105`}
+                     >
+                       {c.label}
+                     </button>
+                   ))}
+                   <button
+                     onClick={() => setShowMore(!showMore)}
+                     className="bg-white/10 border border-white/30 rounded-full px-4 py-2 text-sm text-white font-medium hover:bg-white/20 transition-all flex items-center gap-1"
+                   >
+                     {showMore ? 'Show Less' : '+ 40 more'}
+                   </button>
                  </div>
                  <p className="text-center text-sm text-gray-500 mb-6">Treated from home. Prescription to your pharmacy. No one has to know.</p>
                  <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
