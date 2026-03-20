@@ -735,8 +735,8 @@ function Step2PaymentForm({
             </div>
 
 
-            {/* Card form — always open for new patients, collapsed for returning */}
-            {showCardForm || isNewPatient ? (
+            {/* Card form — collapsed by default, expands on tap */}
+            {showCardForm ? (
               <>
                 {/* Field hint — shown when a specific field caused the decline */}
                 {declineState?.fieldHint && (
