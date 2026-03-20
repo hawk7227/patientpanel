@@ -38,9 +38,8 @@ const CONNECTED_ACCOUNT_ID = process.env.STRIPE_CONNECTED_ACCOUNT_ID || "acct_1S
 
 // Valid visit fee amounts in cents
 const VALID_VISIT_AMOUNTS = new Set([
-  18900,  // $189 — Instant/Refill business hours
-  19900,  // $199 — Video/Phone business hours
-  24900,  // $249 — All types after-hours/weekends/holidays
+  18900,  // $189 — all types business hours
+  24900,  // $249 — all types after-hours/weekends/holidays
 ]);
 
 const BOOKING_FEE = 189; // $1.89 in cents
@@ -116,13 +115,12 @@ export async function POST(request: Request) {
 
     console.log(`[Payment] Visit fee hold: ${visitIntent.id} for $${(visitAmountCents / 100).toFixed(2)} (split: $${(visitSplit / 100).toFixed(2)})`);
 
-    // 2️⃣ Booking fee — AUTOMATIC capture (charges immediately)
-    //    50/50 split
+    // 2️⃣ Booking fee — MANUAL capture (held, charged only after visit fee hold succeeds)
     const bookingSplit = Math.round(BOOKING_FEE * 0.5);
     const bookingIntent = await stripe.paymentIntents.create({
       amount: BOOKING_FEE,
       currency: "usd",
-      capture_method: "automatic",
+      capture_method: "manual",
       payment_method_types: ['card', 'link'],
       transfer_data: {
         amount: bookingSplit,
@@ -137,14 +135,13 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log(`[Payment] Booking fee: ${bookingIntent.id} for $1.89 (split: $${(bookingSplit / 100).toFixed(2)})`);
+    console.log(`[Payment] Booking fee hold: ${bookingIntent.id} for $1.89 (manual capture)`);
 
     return NextResponse.json({
-      // visitIntent clientSecret — PaymentElement confirms the $189 hold first
-      clientSecret: visitIntent.client_secret,
-      visitIntentId: visitIntent.id,
-      // bookingIntent — confirmed server-side after hold clears
+      // bookingIntent clientSecret — Elements shows $1.89 to patient
+      clientSecret: bookingIntent.client_secret,
       bookingIntentId: bookingIntent.id,
+      visitIntentId: visitIntent.id,
       transferGroup: transferGroup,
     });
   } catch (err: any) {

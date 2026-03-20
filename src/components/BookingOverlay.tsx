@@ -71,9 +71,9 @@ function getAZNowMins(){
   }catch{return new Date().getHours()*60+new Date().getMinutes();}
 }
 function getSlotBadge(t12:string,day:Date):{label:string;color:string}|null{
-  if(day.getDay()===0||day.getDay()===6)return{label:"Weekend · $249",color:"#f59e0b"};
+  if(day.getDay()===0||day.getDay()===6)return{label:"Weekend Rate",color:"#f59e0b"};
   const h=parseInt(to24(t12).split(":")[0]);
-  if(h>=17&&t12!=="5:00 PM")return{label:"After Hours · $249",color:"#f97316"};
+  if(h>=17&&t12!=="5:00 PM")return{label:"After Hours",color:"#f97316"};
   return null;
 }
 function filterSlotsForDay(day:Date,apiSlots:string[]){

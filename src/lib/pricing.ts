@@ -126,12 +126,8 @@ export function getPrice(visitType: VisitType, timezone?: string, atDate?: Date)
     return { amount: 24900, display: '$249', isAfterHours: true, isHoliday, isWeekend, label };
   }
 
-  if (visitType === 'instant' || visitType === 'refill') {
-    return { amount: 18900, display: '$189', isAfterHours: false, isHoliday, isWeekend, label };
-  }
-
-  // video or phone
-  return { amount: 19900, display: '$199', isAfterHours: false, isHoliday, isWeekend, label };
+  // All visit types — flat $189 during business hours
+  return { amount: 18900, display: '$189', isAfterHours: false, isHoliday, isWeekend, label };
 }
 
 // Booking reserve fee — flat $1.89 for express checkout

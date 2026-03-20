@@ -314,16 +314,14 @@ function Step2PaymentForm({
     try {
       const pd = getPatientData();
 
-      // PERF: elements.submit() + stripe.confirmPayment() moved BEFORE check-create-patient.
-      // Native wallet sheet (Apple Pay / Google Pay) opens IMMEDIATELY on tap — no DB waterfall
-      // before the biometric prompt. patientId is only needed for /api/create-appointment,
-      // which runs after the hold is confirmed. Prefetch result still used when available.
+      // PERF: wallet sheet opens IMMEDIATELY — no DB waterfall before biometric prompt
       if (!stripe || !elements) { setError("Payment not ready."); setPayInFlight(false); return; }
 
       const { error: submitError } = await elements.submit();
       if (submitError) { handleStripeError(submitError); return; }
 
-      // Step 1: Confirm $189 visit hold — verifies funds exist before charging booking fee
+      // Step 1: Hold $1.89 booking fee via Elements (capture_method: manual)
+      // Google/Apple Pay shows $1.89 — patient sees correct amount
       const result = await stripe.confirmPayment({
         elements, redirect: "if_required",
         confirmParams: {
@@ -334,16 +332,56 @@ function Step2PaymentForm({
 
       if (result.error) { handleStripeError(result.error); return; }
 
-      // requires_capture = hold cleared, funds verified
-      const holdCleared = result.paymentIntent?.status === "requires_capture" || result.paymentIntent?.status === "succeeded";
-      if (!holdCleared) {
+      const bookingHoldCleared = result.paymentIntent?.status === "requires_capture" || result.paymentIntent?.status === "succeeded";
+      if (!bookingHoldCleared) {
         setError("Payment hold could not be confirmed. Please try again.");
         setPayInFlight(false);
         return;
       }
 
-      // check-create-patient runs AFTER hold is confirmed — user has already completed
-      // biometric scan. DB round-trips no longer block the wallet sheet from opening.
+      const paymentMethodId = typeof result.paymentIntent?.payment_method === "string"
+        ? result.paymentIntent.payment_method
+        : result.paymentIntent?.payment_method?.id;
+
+      if (!paymentMethodId) {
+        setError("Could not retrieve payment method. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      setIsProcessing(true); setProgress(33); setStatusText("Verifying payment method...");
+
+      // Step 2: Attempt $189 visit fee hold server-side using same payment method
+      const visitHoldRes = await fetch("/api/confirm-visit-hold", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitIntentId, paymentMethodId }),
+      });
+      const visitHoldResult = await visitHoldRes.json();
+
+      if (!visitHoldRes.ok) {
+        // Visit hold failed — cancel $1.89 hold so patient owes nothing
+        await fetch("/api/cancel-booking-hold", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId: result.paymentIntent.id }),
+        }).catch(() => {});
+        setIsProcessing(false);
+        handleStripeError({ code: visitHoldResult.code, decline_code: visitHoldResult.decline_code, message: visitHoldResult.error });
+        return;
+      }
+
+      setProgress(66); setStatusText("Confirming booking...");
+
+      // Step 3: Visit hold succeeded — capture $1.89 now
+      const captureRes = await fetch("/api/capture-booking-fee", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIntentId: result.paymentIntent.id }),
+      });
+      if (!captureRes.ok) {
+        // Non-fatal — appointment still gets created, $1.89 capture retried by Stripe
+        console.error("[Payment] Booking fee capture failed — continuing");
+      }
+
+      // Step 4: create-patient (runs after biometric — no DB before wallet sheet)
       let patientId = patient.id || prefetchedPatientId;
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
@@ -360,71 +398,43 @@ function Step2PaymentForm({
         patientId = createResult.patientId;
       }
 
-      // Step 2: Charge $1.89 booking fee server-side using same payment method
-      const paymentMethodId = typeof result.paymentIntent?.payment_method === "string"
-        ? result.paymentIntent.payment_method
-        : result.paymentIntent?.payment_method?.id;
+      setProgress(80); setStatusText("Creating appointment...");
 
-      if (!paymentMethodId) {
-        setError("Could not retrieve payment method. Please try again.");
-        setPayInFlight(false);
-        return;
-      }
+      const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      let fullChiefComplaint = chiefComplaint || reason;
+      if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
+      if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
-      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
+      const appointmentPayload = {
+        payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
+        appointmentData: {
+          email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+          phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+          streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
+          visitType, appointmentDate: appointmentDate, appointmentTime: appointmentTime,
+          patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
+          pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
+          browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
+        },
+      };
 
-      const bookingRes = await fetch("/api/confirm-booking-fee", {
+      const appointmentRes = await fetch("/api/create-appointment", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingIntentId, paymentMethodId }),
+        body: JSON.stringify(appointmentPayload),
       });
-      const bookingResult = await bookingRes.json();
-      if (!bookingRes.ok) {
-        setIsProcessing(false);
-        handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
-        return;
-      }
+      const appointmentResult = await appointmentRes.json();
+      if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
-      setProgress(75); setStatusText("Creating appointment...");
-
-      if (holdCleared) {
-        const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const isAsync = visitType === "async";
-        let fullChiefComplaint = chiefComplaint || reason;
-        if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
-        if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
-
-        const appointmentPayload = {
-          payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
-          appointmentData: {
-            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
-            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
-            streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
-            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
-            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
-            browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
-          },
-        };
-
-        const appointmentRes = await fetch("/api/create-appointment", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(appointmentPayload),
-        });
-        const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
-
-        setProgress(100); setStatusText("Appointment booked!");
-        sessionStorage.setItem("appointmentData", JSON.stringify({
-          ...appointmentPayload.appointmentData,
-          appointmentId: appointmentResult.appointmentId,
-          accessToken: appointmentResult.accessToken,
-          payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
-        }));
-        clearAnswers();
-        await new Promise((r) => setTimeout(r, 800));
-        onSuccess();
-      }
+      setProgress(100); setStatusText("Appointment booked!");
+      sessionStorage.setItem("appointmentData", JSON.stringify({
+        ...appointmentPayload.appointmentData,
+        appointmentId: appointmentResult.appointmentId,
+        accessToken: appointmentResult.accessToken,
+        payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
+      }));
+      clearAnswers();
+      await new Promise((r) => setTimeout(r, 800));
+      onSuccess();
     } catch (err: any) {
       console.error("Express checkout error:", err);
       setError(err.message || "Something went wrong. Please try again.");
@@ -498,8 +508,85 @@ function Step2PaymentForm({
         return;
       }
 
-      // NORMAL MODE — real patient creation + real payment
+      // NORMAL MODE — real payment
       const pd = getPatientData();
+
+      let paymentIntent: any = null; let paymentError: any = null;
+
+      if (!stripe || !elements) { setError("Payment not ready. Please try again."); setPayInFlight(false); return; }
+
+      // Step 1: Hold $1.89 via Elements (card form) — patient sees $1.89
+      const submitResult = await elements.submit();
+      if (submitResult.error) { handleStripeError(submitResult.error); return; }
+
+      const result = await stripe.confirmPayment({
+        elements, redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}/success`,
+          payment_method_data: {
+            billing_details: {
+              name: `${pd.firstName} ${pd.lastName}`.trim(),
+              email: pd.email || undefined,
+              phone: pd.phone || undefined,
+            },
+          },
+        },
+      });
+      paymentError = result.error; paymentIntent = result.paymentIntent;
+
+      if (paymentError) { handleStripeError(paymentError); return; }
+
+      const bookingHoldCleared = paymentIntent?.status === "requires_capture" || paymentIntent?.status === "succeeded";
+      if (!bookingHoldCleared) {
+        setError("Payment hold could not be confirmed. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      const paymentMethodId = typeof paymentIntent?.payment_method === "string"
+        ? paymentIntent.payment_method
+        : paymentIntent?.payment_method?.id;
+
+      if (!paymentMethodId) {
+        setIsProcessing(false);
+        setError("Could not retrieve payment method. Please try again.");
+        setPayInFlight(false);
+        return;
+      }
+
+      // Hold cleared — safe to show progress
+      setIsProcessing(true); setProgress(33); setStatusText("Verifying payment method...");
+
+      // Step 2: Attempt $189 visit fee hold server-side
+      const visitHoldRes = await fetch("/api/confirm-visit-hold", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitIntentId, paymentMethodId }),
+      });
+      const visitHoldResult = await visitHoldRes.json();
+
+      if (!visitHoldRes.ok) {
+        // Visit hold failed — cancel $1.89 hold so patient owes nothing
+        await fetch("/api/cancel-booking-hold", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId: paymentIntent.id }),
+        }).catch(() => {});
+        setIsProcessing(false);
+        handleStripeError({ code: visitHoldResult.code, decline_code: visitHoldResult.decline_code, message: visitHoldResult.error });
+        return;
+      }
+
+      setProgress(66); setStatusText("Confirming booking...");
+
+      // Step 3: Visit hold succeeded — capture $1.89 now
+      const captureRes = await fetch("/api/capture-booking-fee", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingIntentId: paymentIntent.id }),
+      });
+      if (!captureRes.ok) {
+        console.error("[Payment] Booking fee capture failed — continuing");
+      }
+
+      // Step 4: Create patient record (after payment confirmed)
       if (!patientId) {
         const createRes = await fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -507,8 +594,7 @@ function Step2PaymentForm({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
             phone: pd.phone, dateOfBirth: pd.dateOfBirth,
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
-            pharmacyAddress: pharmacyAddress || "",
-            pharmacyPhone: pharmacyPhone || "",
+            pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
           }),
         });
         const createResult = await createRes.json();
@@ -516,117 +602,43 @@ function Step2PaymentForm({
         patientId = createResult.patientId;
       }
 
-      let paymentIntent: any = null; let paymentError: any = null;
+      setProgress(80); setStatusText("Creating appointment...");
 
-      if (isTestMode) {
-        setIsProcessing(true); setProgress(45); setStatusText("Test mode...");
-        paymentIntent = { id: `pi_test_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, status: "succeeded" };
-        await new Promise((r) => setTimeout(r, 500));
-      } else {
-        if (!stripe || !elements) { setError("Payment not ready. Please try again."); setPayInFlight(false); return; }
+      const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      let fullChiefComplaint = chiefComplaint || reason;
+      if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
+      if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
 
-        // Submit elements first — validates form and triggers wallet sheets (Google Pay, Apple Pay)
-        const submitResult = await elements.submit();
-        if (submitResult.error) {
-          handleStripeError(submitResult.error);
-          return;
-        }
+      const appointmentPayload = {
+        payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
+        appointmentData: {
+          email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
+          phone: pd.phone, dateOfBirth: pd.dateOfBirth,
+          streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
+          visitType, appointmentDate: appointmentDate, appointmentTime: appointmentTime,
+          patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
+          pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
+          browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
+        },
+      };
 
-        // NOW confirm — PaymentElement is still mounted because isProcessing is false
-        const result = await stripe.confirmPayment({
-          elements, redirect: "if_required",
-          confirmParams: {
-            return_url: `${window.location.origin}/success`,
-            payment_method_data: {
-              billing_details: {
-                name: `${pd.firstName} ${pd.lastName}`.trim(),
-                email: pd.email || undefined,
-                phone: pd.phone || undefined,
-              },
-            },
-          },
-        });
-        paymentError = result.error; paymentIntent = result.paymentIntent;
-      }
+      const appointmentRes = await fetch("/api/create-appointment", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(appointmentPayload),
+      });
+      const appointmentResult = await appointmentRes.json();
+      if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
 
-      if (paymentError) { handleStripeError(paymentError); return; }
-
-      // requires_capture = hold cleared, funds verified
-      const holdCleared = paymentIntent?.status === "requires_capture" || paymentIntent?.status === "succeeded";
-      if (!holdCleared) {
-        setError("Payment hold could not be confirmed. Please try again.");
-        setPayInFlight(false);
-        return;
-      }
-
-      // Step 2: Charge $1.89 booking fee server-side
-      const paymentMethodId = typeof paymentIntent?.payment_method === "string"
-        ? paymentIntent.payment_method
-        : paymentIntent?.payment_method?.id;
-
-      // Hold cleared — safe to show progress (PaymentElement no longer needed)
-      setIsProcessing(true); setProgress(50); setStatusText("Confirming booking fee...");
-
-      if (!isTestMode) {
-        if (!paymentMethodId) {
-          setIsProcessing(false);
-          setError("Could not retrieve payment method. Please try again.");
-          setPayInFlight(false);
-          return;
-        }
-        const bookingRes = await fetch("/api/confirm-booking-fee", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ bookingIntentId, paymentMethodId }),
-        });
-        const bookingResult = await bookingRes.json();
-        if (!bookingRes.ok) {
-          setIsProcessing(false);
-          handleStripeError({ code: bookingResult.code, decline_code: bookingResult.decline_code, message: bookingResult.error });
-          return;
-        }
-      }
-
-      setProgress(75); setStatusText("Creating appointment...");
-
-      if (holdCleared) {
-        const patientTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const isAsync = visitType === "async";
-        let fullChiefComplaint = chiefComplaint || reason;
-        if (selectedMedications.length > 0) fullChiefComplaint = `Rx Refill: ${selectedMedications.join(", ")}. ${fullChiefComplaint}`;
-        if (symptomsText) fullChiefComplaint = `${fullChiefComplaint}\n\nAdditional symptoms: ${symptomsText}`;
-
-        const appointmentPayload = {
-          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
-          appointmentData: {
-            email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
-            phone: pd.phone, dateOfBirth: pd.dateOfBirth,
-            streetAddress: pd.address, symptoms: reason, chief_complaint: fullChiefComplaint,
-            visitType, appointmentDate: appointmentDate,
-            appointmentTime: appointmentTime,
-            patientId, patientTimezone: patientTZ, skipIntake: true, isReturningPatient: !isNewPatient,
-            pharmacy: pharmacy || patient.pharmacy || "", pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
-            browserInfo: (() => { try { return sessionStorage.getItem("browserInfo") || ""; } catch { return ""; } })(),
-          },
-        };
-
-        const appointmentRes = await fetch("/api/create-appointment", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(appointmentPayload),
-        });
-        const appointmentResult = await appointmentRes.json();
-        if (!appointmentRes.ok) throw new Error(`${appointmentResult.error || "Failed to create appointment"}${appointmentResult.details ? ": " + appointmentResult.details : ""}`);
-
-        setProgress(100); setStatusText("Appointment booked!");
-        sessionStorage.setItem("appointmentData", JSON.stringify({
-          ...appointmentPayload.appointmentData,
-          appointmentId: appointmentResult.appointmentId,
-          accessToken: appointmentResult.accessToken,
-          payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
-        }));
-        clearAnswers();
-        await new Promise((r) => setTimeout(r, 800));
-        onSuccess();
-      }
+      setProgress(100); setStatusText("Appointment booked!");
+      sessionStorage.setItem("appointmentData", JSON.stringify({
+        ...appointmentPayload.appointmentData,
+        appointmentId: appointmentResult.appointmentId,
+        accessToken: appointmentResult.accessToken,
+        payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
+      }));
+      clearAnswers();
+      await new Promise((r) => setTimeout(r, 800));
+      onSuccess();
     } catch (err: any) {
       console.error("Express checkout error:", err);
       setError(err.message || "Something went wrong. Please try again.");
@@ -1127,10 +1139,18 @@ export default function ExpressCheckoutPage() {
   const paymentLoading = visitTypeChosen && !visitTypeConfirmed && !clientSecret;
 
   const currentPrice = useMemo(() => getBookingFee(), []);
-  const visitFeePrice = useMemo(
-    () => getPrice(visitType as VisitType),
-    [visitType]
-  );
+  const visitFeePrice = useMemo(() => {
+    // Use appointment date+time to determine $189 vs $249 (after-hours/weekend)
+    if (appointmentDate && appointmentTime) {
+      try {
+        const [y,mo,d] = appointmentDate.split("-").map(Number);
+        const [h,m] = appointmentTime.split(":").map(Number);
+        const apptDate = new Date(y, mo-1, d, h, m, 0);
+        return getPrice(visitType as VisitType, Intl.DateTimeFormat().resolvedOptions().timeZone, apptDate);
+      } catch {}
+    }
+    return getPrice(visitType as VisitType);
+  }, [visitType, appointmentDate, appointmentTime]);
   const [visitIntentId, setVisitIntentId] = useState("");
   const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
@@ -2578,11 +2598,11 @@ export default function ExpressCheckoutPage() {
         const getSlotBadge = (slot: string, day: Date): { label: string; color: string } | null => {
           const dow = day.getDay(); // 0=Sun, 6=Sat
           const isWeekendDay = dow === 0 || dow === 6;
-          if (isWeekendDay) return { label: "Weekend · $249", color: "#f59e0b" };
+          if (isWeekendDay) return { label: "Weekend Rate", color: "#f59e0b" };
           // After hours: 5:30 PM onward on weekdays
           const t24 = convertTo24(slot);
           const [h] = t24.split(":").map(Number);
-          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours · $249", color: "#f97316" };
+          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours", color: "#f97316" };
           return null;
         };
         // Convert HH:MM (API format) to display string "9:00 AM"
