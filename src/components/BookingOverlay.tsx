@@ -189,6 +189,18 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     return () => { document.body.style.overflow = ""; };
   }, []);
 
+  // ── visualViewport: shrink overlay when keyboard opens on iOS ──
+  const [vpHeight, setVpHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const vv = (window as Window & { visualViewport?: { height: number; addEventListener: (e: string, h: () => void) => void; removeEventListener: (e: string, h: () => void) => void } }).visualViewport;
+    if (!vv) return;
+    const update = () => setVpHeight(vv.height);
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); };
+  }, []);
+
   // ── Calendar day API fetch ──
   const fetchSlots = useCallback((day: string) => {
     setCalDay(day); setCalTime(""); setApiSlots([]); setApiLoading(true);
@@ -198,6 +210,14 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       .catch(() => {})
       .finally(() => setApiLoading(false));
   }, []);
+
+  // ── Auto-load today's slots when calendar step becomes active ──
+  const calStepActive = (step===3 && !isReturning) || (step===2 && isReturning);
+  useEffect(() => {
+    if (!calStepActive) return;
+    const todayIso = isoDate(today);
+    if (!calDay) fetchSlots(todayIso);
+  }, [calStepActive]);
 
   // ── Calendar days ──
   const today = new Date(); today.setHours(0,0,0,0);
@@ -292,6 +312,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         position:"fixed",inset:0,zIndex:200,
         background:"linear-gradient(180deg,#0b1218 0%,#070c10 100%)",
         display:"flex",flexDirection:"column",
+        height: vpHeight ? `${vpHeight}px` : "100dvh",
+        top: 0,
         animation:"overlayIn .22s cubic-bezier(.4,0,.2,1)",
       }}
     >
@@ -354,7 +376,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               onChange={(e: { target: { value: string } }) => setSymptoms(e.target.value)}
               placeholder="e.g., Burning during urination for 3 days..."
               style={{
-                flex:1,width:"100%",background:"#0a110d",
+                flex:1,width:"100%",background:"#0a110d",maxHeight:"40vh",
                 border:`2px solid ${symptoms.trim().length>=10?"rgba(45,212,160,.5)":col.cta}`,
                 borderRadius:12,padding:"13px 14px",color:"#fff",fontSize:15,
                 resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,minHeight:0,
@@ -379,7 +401,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               placeholder="e.g., Follow up for UTI, need prescription refill..."
               autoFocus
               style={{
-                flex:1,width:"100%",background:"#0a110d",
+                flex:1,width:"100%",background:"#0a110d",maxHeight:"40vh",
                 border:`2px solid ${reason.trim()?"rgba(45,212,160,.5)":col.cta}`,
                 borderRadius:12,padding:"13px 14px",color:"#fff",fontSize:15,
                 resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,minHeight:0,
