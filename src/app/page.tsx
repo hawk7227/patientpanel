@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import VisitCards from "@/components/home/VisitCards";
+import BookingOverlay from "@/components/BookingOverlay";
 import { CONDITIONS_LIST, EXPANDED_CONDITIONS } from "@/lib/assessment-data";
 
 const getPillColorClass = (color: string) => {
@@ -44,6 +45,8 @@ function PairedCTABlock({
 }) {
   const [returningEmail, setReturningEmail] = useState("");
   const [searching, setSearching] = useState(false);
+  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [overlayVisitType, setOverlayVisitType] = useState("async");
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const getBrowserInfo = () => {
@@ -223,13 +226,37 @@ export default function AssessmentPageContent() {
   }, [queuePosition]);
 
   const handleConditionClick = (condition: string) => {
-    // Disconnected for now — inert
+    // Map condition/visit-type to canonical visitType key
+    const typeMap: Record<string,string> = {
+      async:"async", sms:"sms", refill:"refill", "rx-refill":"refill",
+      video:"video", phone:"phone", instant:"instant",
+    };
+    const vt = typeMap[condition] || "async";
+    // Set patient as new if no session exists yet
+    try {
+      if (!sessionStorage.getItem("expressPatient")) {
+        sessionStorage.setItem("expressPatient", JSON.stringify({
+          id:null,firstName:"",lastName:"",email:"",phone:"",
+          dateOfBirth:"",address:"",source:"new",pharmacy:"",
+        }));
+      }
+    } catch {}
+    setOverlayVisitType(vt);
+    setOverlayOpen(true);
   };
 
   return (
     <main className="min-h-screen bg-[#040807] text-white font-sans selection:bg-teal-500/30">
       <StateGate />
       <ChatWidget />
+
+      {/* BOOKING OVERLAY */}
+      {overlayOpen && (
+        <BookingOverlay
+          visitType={overlayVisitType}
+          onClose={() => setOverlayOpen(false)}
+        />
+      )}
 
       {/* SECTION 3: HERO */}
       <section className="relative px-4 overflow-hidden" style={{ paddingTop: "clamp(12px, 3vw, 32px)", paddingBottom: "clamp(24px, 5vw, 64px)" }}>
