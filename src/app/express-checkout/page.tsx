@@ -134,10 +134,10 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
   if (uiStep === 2) return "Describe Your Symptoms";
   if (uiStep === 3) return "Select Pharmacy";
   if (uiStep === 4) return "Visit Type";
-  if (uiStep === 4.5 && !isReturning) return "Confirm";
-  if (uiStep === 4.5) return "Confirm & Pay";
-  if (uiStep === 4.75) return "Confirm & Pay";
-  return "Confirm & Pay";
+  if (uiStep === 4.5 && !isReturning) return "Book Your Visit";
+  if (uiStep === 4.5) return "Book Your Visit";
+  if (uiStep === 4.75) return "Book Your Visit";
+  return "Book Your Visit";
 }
 
 // ═══════════════════════════════════════════════════════════════
