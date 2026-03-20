@@ -38,11 +38,11 @@ const VISIT_COLORS: Record<string,{accent:string;border:string;cta:string;dim:st
 };
 
 // ─── Helpers ─────────────────────────────────────────────────
-function getTotalSteps(r:boolean){return r?3:5;}
+function getTotalSteps(r:boolean){return r?3:4;}
 function getStepTitle(s:number,r:boolean){
   if(r){if(s===1)return"Reason for Visit";if(s===2)return"Pick Date & Time";return"Complete Booking";}
   if(s===1)return"Describe Your Symptoms";if(s===2)return"Select Pharmacy";
-  if(s===3)return"Pick Date & Time";if(s===4)return"Confirm Your Visit";return"Complete Booking";
+  if(s===3)return"Pick Date & Time";return"Confirm Your Visit";
 }
 const DAY_ABBR=["SUN","MON","TUE","WED","THU","FRI","SAT"];
 const SHORT_MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -195,7 +195,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
     if(step===1){if(symptoms.trim().length<10){symRef.current?.focus();return;}setStep(2);return;}
     if(step===2){if(!pharmacy)return;setStep(3);return;}
     if(step===3){if(!calDay||!calTime)return;setStep(4);return;}
-    if(step===4){setStep(5);return;}
+    if(step===4){navigateToCheckout();return;}
     navigateToCheckout();
   };
   const navigateToCheckout=()=>{
@@ -204,7 +204,8 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
       localStorage.setItem("medazon_express_answers",JSON.stringify({
         reason:isReturning?reason:symptoms,chiefComplaint:isReturning?reason:symptoms,
         symptomsDone:true,pharmacy,visitType,visitTypeChosen:true,visitTypeConfirmed:true,
-        appointmentDate:calDay,appointmentTime:calTime,confirmReviewed:isReturning,
+        appointmentDate:calDay,appointmentTime:calTime,
+        confirmReviewed:true, // always true — user already confirmed in overlay
       }));
     }catch{}
     window.location.href="/express-checkout";
@@ -460,19 +461,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
             </div>
           )}
 
-          {/* S5 / S3 RETURNING — Ready */}
-          {((step===5&&!isReturning)||(step===3&&isReturning))&&(
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,padding:"12px 0 4px"}}>
-              <div style={{width:44,height:44,borderRadius:"50%",background:col.dim,border:`1px solid ${col.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🔒</div>
-              <div style={{textAlign:"center"}}>
-                <div style={{fontSize:15,fontWeight:900,color:"#fff",marginBottom:4}}>Ready to Book</div>
-                <div style={{fontSize:12,color:"rgba(255,255,255,.4)",lineHeight:1.5}}>
-                  {isReturning?"We have your info on file.":"Fill in your details and pay."}<br/>
-                  Tap Continue to complete your booking.
-                </div>
-              </div>
-            </div>
-          )}
+          {/* returning step 3 = navigate directly, no UI needed */}
         </div>
 
         {/* Nav */}
