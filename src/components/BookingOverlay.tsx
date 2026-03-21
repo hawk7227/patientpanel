@@ -19,11 +19,6 @@ interface BookingOverlayProps {
 }
 
 // ─── Constants ───────────────────────────────────────────────
-const PHARMAS = [
-  "CVS Pharmacy","Walgreens","Rite Aid","Walmart Pharmacy","Kroger Pharmacy",
-  "Publix Pharmacy","Costco Pharmacy","Sam's Club Pharmacy",
-  "Target Pharmacy (CVS)","Albertsons Pharmacy","Safeway Pharmacy","Fry's Pharmacy","HEB Pharmacy",
-];
 const VISIT_LABELS: Record<string,string> = {
   async:"📝 Async Visit", sms:"💬 SMS Visit", refill:"💊 Rx Refill",
   video:"📹 Video Visit", phone:"📞 Phone Visit", instant:"⚡ Instant Visit",
@@ -101,7 +96,11 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
   const [reason,setReason]=useState("");
   const [pharmaQuery,setPharmaQuery]=useState("");
   const [pharmacy,setPharmacy]=useState("");
+  const [pharmacyAddress,setPharmacyAddress]=useState("");
   const [showDrop,setShowDrop]=useState(false);
+  const [pharmaResults,setPharmaResults]=useState<{name:string;address:string}[]>([]);
+  const [pharmaLoading,setPharmaLoading]=useState(false);
+  const pharmaTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const [calOffset,setCalOffset]=useState(0);
   const [calDay,setCalDay]=useState("");
   const [calTime,setCalTime]=useState("");
@@ -203,7 +202,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
       localStorage.removeItem("medazon_express_answers");
       localStorage.setItem("medazon_express_answers",JSON.stringify({
         reason:isReturning?reason:symptoms,chiefComplaint:isReturning?reason:symptoms,
-        symptomsDone:true,pharmacy,visitType,visitTypeChosen:true,visitTypeConfirmed:true,
+        symptomsDone:true,pharmacy,pharmacyAddress,visitType,visitTypeChosen:true,visitTypeConfirmed:true,
         appointmentDate:calDay,appointmentTime:calTime,
         confirmReviewed:true, // always true — user already confirmed in overlay
       }));
@@ -211,9 +210,18 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
     window.location.href="/express-checkout";
   };
 
-  const filteredPharmas=pharmaQuery
-    ?PHARMAS.filter(p=>p.toLowerCase().includes(pharmaQuery.toLowerCase()))
-    :PHARMAS.slice(0,6);
+  const searchPharmas = useCallback((q: string) => {
+    if (pharmaTimer.current) clearTimeout(pharmaTimer.current);
+    if (!q || q.length < 2) { setPharmaResults([]); setPharmaLoading(false); return; }
+    setPharmaLoading(true);
+    pharmaTimer.current = setTimeout(() => {
+      fetch(`/api/pharmacy-search?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => { setPharmaResults(data.results || []); })
+        .catch(() => { setPharmaResults([]); })
+        .finally(() => setPharmaLoading(false));
+    }, 320);
+  }, []);
 
   const progressPct=Math.round((step/totalSteps)*100);
   const contDisabled=
@@ -331,9 +339,14 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
           {/* S2 NEW — Pharmacy */}
           {step===2&&!isReturning&&(
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              <input type="text" placeholder="Type pharmacy name..."
+              <input type="text"
+                placeholder="e.g. CVS near 5th Ave, Walgreens on Main..."
                 value={pharmaQuery} autoFocus
-                onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setPharmaQuery(e.target.value);setPharmacy("");setShowDrop(true);}}
+                onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{
+                  const v=e.target.value;
+                  setPharmaQuery(v);setPharmacy("");setPharmacyAddress("");setShowDrop(true);
+                  searchPharmas(v);
+                }}
                 onFocus={()=>{setShowDrop(true);scrollIntoView();}}
                 style={{
                   width:"100%",background:"rgba(255,255,255,.04)",
@@ -342,18 +355,35 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
                   outline:"none",fontFamily:"system-ui",
                 }}
               />
-              {showDrop&&!pharmacy&&filteredPharmas.length>0&&(
-                <div style={{background:"#111c14",border:`1px solid ${col.border}`,borderRadius:10,overflow:"hidden",maxHeight:200,overflowY:"auto"}}>
-                  {filteredPharmas.map(p=>(
-                    <div key={p}
-                      onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy(p);setPharmaQuery(p);setShowDrop(false);}}
-                      onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy(p);setPharmaQuery(p);setShowDrop(false);}}
-                      style={{padding:"11px 12px",fontSize:13,color:"rgba(255,255,255,.85)",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.05)"}}
-                    >{p}</div>
-                  ))}
+              {showDrop&&!pharmacy&&(
+                <div style={{background:"#0d1610",border:`1px solid ${col.border}`,borderRadius:10,overflow:"hidden",maxHeight:220,overflowY:"auto"}}>
+                  {pharmaLoading?(
+                    <div style={{padding:"14px 12px",fontSize:12,color:"rgba(255,255,255,.4)",textAlign:"center"}}>
+                      Searching…
+                    </div>
+                  ):pharmaResults.length>0?(
+                    pharmaResults.map((p,i)=>(
+                      <div key={i}
+                        onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
+                        onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
+                        style={{padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.05)"}}
+                      >
+                        <div style={{fontSize:13,color:"rgba(255,255,255,.9)",fontWeight:600}}>{p.name}</div>
+                        <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:2}}>{p.address}</div>
+                      </div>
+                    ))
+                  ):pharmaQuery.length>=2?(
+                    <div style={{padding:"14px 12px",fontSize:12,color:"rgba(255,255,255,.4)",textAlign:"center"}}>
+                      No pharmacies found — try a different name
+                    </div>
+                  ):null}
                 </div>
               )}
-              {pharmacy&&<div style={{fontSize:12,color:"#4ade80",fontWeight:700}}>✓ {pharmacy} selected</div>}
+              {pharmacy&&(
+                <div style={{fontSize:12,color:"#4ade80",fontWeight:700}}>
+                  ✓ {pharmacy}{pharmacyAddress?` — ${pharmacyAddress}`:""}
+                </div>
+              )}
             </div>
           )}
 
