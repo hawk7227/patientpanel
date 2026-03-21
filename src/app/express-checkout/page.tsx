@@ -224,14 +224,14 @@ function getDeclineState(err: { type?: string; code?: string; decline_code?: str
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient, onPulseForm,
+  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient, onPulseForm, onValidateFields,
   npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; pharmacyPhone: string; selectedMedications: string[];
   symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
-  isNewPatient: boolean; onPulseForm?: () => void;
+  isNewPatient: boolean; onPulseForm?: () => void; onValidateFields?: () => boolean;
   npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
   npDobMonth?: string; npDobDay?: string; npDobYear?: string;
 }) {
@@ -731,8 +731,9 @@ function Step2PaymentForm({
                 onClick={({ resolve }: any) => {
                   // Block sheet opening if new patient fields incomplete
                   if (isNewPatient && !newPatientFieldsComplete) {
-                    onPulseForm?.();
-                    return; // do NOT call resolve — sheet stays closed
+                    const valid = onValidateFields?.() ?? false;
+                    if (!valid) return; // do NOT call resolve — sheet stays closed
+                    return;
                   }
                   resolve({});
                 }}
@@ -833,7 +834,10 @@ function Step2PaymentForm({
                   </div>
                   <button onClick={() => {
                     if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
-                    if (isNewPatient && !newPatientFieldsComplete) { setPulseField(newDobComplete ? "fields" : "dob"); setTimeout(() => setPulseField(null), 1500); return; }
+                    if (isNewPatient && !newPatientFieldsComplete) {
+                      onValidateFields?.();
+                      return;
+                    }
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
                   }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
@@ -1167,6 +1171,36 @@ export default function ExpressCheckoutPage() {
   const npFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
     npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0 && npDobComplete;
   const [npFormPulse, setNpFormPulse] = useState(false);
+  // Per-field error state — shown after autofill scan or payment attempt
+  const [npErrors, setNpErrors] = useState<Record<string,string>>({});
+  // Refs for each np field — used for autofocus on first error
+  const npFirstNameRef = useRef<HTMLInputElement>(null);
+  const npLastNameRef  = useRef<HTMLInputElement>(null);
+  const npEmailRef     = useRef<HTMLInputElement>(null);
+  const npPhoneRef     = useRef<HTMLInputElement>(null);
+  const npAddressRef   = useRef<HTMLInputElement>(null);
+  const npDobRef       = useRef<HTMLInputElement>(null);
+  // Validate np fields — returns true if all valid, false + sets errors if not
+  // Safe to call at any time — only marks fields that are actually empty/invalid
+  const validateNpFields = (): boolean => {
+    const errs: Record<string,string> = {};
+    if (!npFirstName.trim())                        errs.firstName = "First name required";
+    if (!npLastName.trim())                         errs.lastName  = "Last name required";
+    if (!npEmail.includes("@"))                     errs.email     = "Valid email required";
+    if (npPhone.replace(/\D/g,"").length < 10)     errs.phone     = "10-digit phone required";
+    if (!npAddress.trim())                          errs.address   = "Street address required";
+    if (!npDobComplete)                             errs.dob       = "Date of birth required";
+    setNpErrors(errs);
+    // Auto-focus first error field
+    if (errs.firstName)  { npFirstNameRef.current?.focus(); }
+    else if (errs.lastName)  { npLastNameRef.current?.focus(); }
+    else if (errs.email)     { npEmailRef.current?.focus(); }
+    else if (errs.phone)     { npPhoneRef.current?.focus(); }
+    else if (errs.address)   { npAddressRef.current?.focus(); }
+    else if (errs.dob)       { npDobRef.current?.focus(); }
+    return Object.keys(errs).length === 0;
+  };
+
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [contactFirstName, setContactFirstName] = useState("");
@@ -1402,6 +1436,34 @@ export default function ExpressCheckoutPage() {
 
     return () => { controller.abort(); };
   }, [shouldPrefetch, currentPrice.amount, visitFeePrice.amount]);
+
+  // ── Autofill scan: runs 600ms after form step becomes visible ──
+  // Gives browser time to autofill, then marks any still-empty fields.
+  // Only marks fields empty — never overwrites a value the user has typed.
+  const formStepVisible = !isReturningPatient && confirmReviewed;
+  useEffect(() => {
+    if (!formStepVisible) return;
+    const timer = setTimeout(() => {
+      // Only mark errors for fields that are genuinely empty after autofill
+      const errs: Record<string,string> = {};
+      if (!npFirstName.trim())                     errs.firstName = "First name required";
+      if (!npLastName.trim())                      errs.lastName  = "Last name required";
+      if (!npEmail.includes("@"))                  errs.email     = "Valid email required";
+      if (npPhone.replace(/\D/g,"").length < 10)   errs.phone     = "10-digit phone required";
+      if (!npAddress.trim())                       errs.address   = "Street address required";
+      if (!npDobComplete)                          errs.dob       = "Date of birth required";
+      setNpErrors(errs);
+      // Auto-focus first empty field
+      if      (errs.firstName) npFirstNameRef.current?.focus();
+      else if (errs.lastName)  npLastNameRef.current?.focus();
+      else if (errs.email)     npEmailRef.current?.focus();
+      else if (errs.phone)     npPhoneRef.current?.focus();
+      else if (errs.address)   npAddressRef.current?.focus();
+      else if (errs.dob)       npDobRef.current?.focus();
+    }, 600);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formStepVisible]);
 
   // Retry handler for payment intent failures
   const retryPaymentIntent = useCallback(() => {
@@ -2537,79 +2599,111 @@ export default function ExpressCheckoutPage() {
                 <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
                   {/* Row 1: First + Last */}
                   <div className="flex gap-1">
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      {npErrors.firstName && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.firstName}</span>}
                     <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                       name="given-name"
+                      ref={npFirstNameRef}
                       placeholder="First name" value={npFirstName}
-                      onChange={(e) => setNpFirstName(e.target.value)}
-                      onInput={(e) => setNpFirstName((e.target as HTMLInputElement).value)}
+                      onChange={(e) => { setNpFirstName(e.target.value); if(npErrors.firstName) setNpErrors(p=>({...p,firstName:""})); }}
+                      onInput={(e) => { setNpFirstName((e.target as HTMLInputElement).value); if(npErrors.firstName) setNpErrors(p=>({...p,firstName:""})); }}
+                      aria-invalid={!!npErrors.firstName}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.firstName ? "1.5px solid #f97316" : npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.firstName ? "1.5px solid #f97316" : "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npErrors.firstName ? "1.5px solid #f97316" : npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      {npErrors.lastName && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.lastName}</span>}
                     <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                       name="family-name"
+                      ref={npLastNameRef}
                       placeholder="Last name" value={npLastName}
-                      onChange={(e) => setNpLastName(e.target.value)}
-                      onInput={(e) => setNpLastName((e.target as HTMLInputElement).value)}
+                      onChange={(e) => { setNpLastName(e.target.value); if(npErrors.lastName) setNpErrors(p=>({...p,lastName:""})); }}
+                      onInput={(e) => { setNpLastName((e.target as HTMLInputElement).value); if(npErrors.lastName) setNpErrors(p=>({...p,lastName:""})); }}
+                      aria-invalid={!!npErrors.lastName}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.lastName ? "1.5px solid #f97316" : npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.lastName ? "1.5px solid #f97316" : "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npErrors.lastName ? "1.5px solid #f97316" : npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
+                    </div>
                   </div>
                   {/* Row 2: Email + Phone */}
                   <div className="flex gap-1">
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      {npErrors.email && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.email}</span>}
                     <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
                       name="email"
+                      ref={npEmailRef}
                       placeholder="Email" value={npEmail}
-                      onChange={(e) => setNpEmail(e.target.value)}
-                      onInput={(e) => setNpEmail((e.target as HTMLInputElement).value)}
+                      onChange={(e) => { setNpEmail(e.target.value); if(npErrors.email) setNpErrors(p=>({...p,email:""})); }}
+                      onInput={(e) => { setNpEmail((e.target as HTMLInputElement).value); if(npErrors.email) setNpErrors(p=>({...p,email:""})); }}
+                      aria-invalid={!!npErrors.email}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.email ? "1.5px solid #f97316" : npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.email ? "1.5px solid #f97316" : "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npErrors.email ? "1.5px solid #f97316" : npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                      {npErrors.phone && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.phone}</span>}
                     <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
                       name="tel"
+                      ref={npPhoneRef}
                       placeholder="Phone" value={npPhone}
-                      onChange={(e) => setNpPhone(e.target.value)}
-                      onInput={(e) => setNpPhone((e.target as HTMLInputElement).value)}
+                      onChange={(e) => { setNpPhone(e.target.value); if(npErrors.phone) setNpErrors(p=>({...p,phone:""})); }}
+                      onInput={(e) => { setNpPhone((e.target as HTMLInputElement).value); if(npErrors.phone) setNpErrors(p=>({...p,phone:""})); }}
+                      aria-invalid={!!npErrors.phone}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.phone ? "1.5px solid #f97316" : npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.phone ? "1.5px solid #f97316" : "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npErrors.phone ? "1.5px solid #f97316" : npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
+                    </div>
                   </div>
                   {/* Row 3: Address (flex-3) + DOB single field (flex-2) */}
                   <div className="flex gap-1">
+                    <div style={{flex:3,minWidth:0}} className="flex flex-col gap-0.5">
+                      {npErrors.address && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.address}</span>}
                     <input type="text" autoComplete="street-address" autoCorrect="off" spellCheck={false}
                       name="street-address"
+                      ref={npAddressRef}
                       placeholder="Street address" value={npAddress}
-                      onChange={(e) => setNpAddress(e.target.value)}
-                      onInput={(e) => setNpAddress((e.target as HTMLInputElement).value)}
+                      onChange={(e) => { setNpAddress(e.target.value); if(npErrors.address) setNpErrors(p=>({...p,address:""})); }}
+                      onInput={(e) => { setNpAddress((e.target as HTMLInputElement).value); if(npErrors.address) setNpErrors(p=>({...p,address:""})); }}
+                      aria-invalid={!!npErrors.address}
                       className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npErrors.address ? "1.5px solid #f97316" : npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.address ? "1.5px solid #f97316" : "1.5px solid #2dd4a0"; }}
+                      onBlur={(e) => { e.target.style.border = npErrors.address ? "1.5px solid #f97316" : npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
+                    </div>
+                    <div style={{flex:2,minWidth:0}} className="flex flex-col gap-0.5">
+                      {npErrors.dob && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.dob}</span>}
                     <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
                       name="bday"
+                      ref={npDobRef}
                       placeholder="DOB MM/DD/YYYY"
                       value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
+                        if(npErrors.dob) setNpErrors(p=>({...p,dob:""}));
                       }}
                       onInput={(e) => {
                         const raw = (e.target as HTMLInputElement).value.replace(/\D/g,"").slice(0,8);
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
+                        if(npErrors.dob) setNpErrors(p=>({...p,dob:""}));
                       }}
                       className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
-                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
-                      onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
+                      aria-invalid={!!npErrors.dob}
+                      style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: npErrors.dob ? "1.5px solid #f97316" : npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #f97316" : "3px solid #2dd4a0"; e.target.style.boxShadow = npErrors.dob ? "none" : "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                      onBlur={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #f97316" : npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)"; e.target.style.boxShadow = "none"; }}
                     />
+                    </div>
                   </div>
                 </form>
 
@@ -2618,6 +2712,7 @@ export default function ExpressCheckoutPage() {
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
                       onPulseForm={() => { setNpFormPulse(true); setTimeout(() => setNpFormPulse(false), 1500); }}
+                      onValidateFields={() => validateNpFields()}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
                     />
                   </Elements>
