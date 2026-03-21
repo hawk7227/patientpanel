@@ -33,11 +33,11 @@ const VISIT_COLORS: Record<string,{accent:string;border:string;cta:string;dim:st
 };
 
 // ─── Helpers ─────────────────────────────────────────────────
-function getTotalSteps(r:boolean){return r?3:4;}
+function getTotalSteps(r:boolean){return 3;}
 function getStepTitle(s:number,r:boolean){
   if(r){if(s===1)return"Reason for Visit";if(s===2)return"Pick Date & Time";return"Complete Booking";}
   if(s===1)return"Describe Your Symptoms";if(s===2)return"Select Pharmacy";
-  if(s===3)return"Pick Date & Time";return"Confirm Your Visit";
+  return"Pick Date & Time";
 }
 const DAY_ABBR=["SUN","MON","TUE","WED","THU","FRI","SAT"];
 const SHORT_MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -193,8 +193,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
     }
     if(step===1){if(symptoms.trim().length<10){symRef.current?.focus();return;}setStep(2);return;}
     if(step===2){if(!pharmacy)return;setStep(3);return;}
-    if(step===3){if(!calDay||!calTime)return;setStep(4);return;}
-    if(step===4){navigateToCheckout();return;}
+    if(step===3){if(!calDay||!calTime)return;navigateToCheckout();return;}
     navigateToCheckout();
   };
   const navigateToCheckout=()=>{
@@ -464,34 +463,8 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
             </div>
           )}
 
-          {/* S4 NEW — Confirm */}
-          {step===4&&!isReturning&&(
-            <div style={{display:"flex",flexDirection:"column",gap:0}}>
-              <div style={{border:`1px solid ${col.border}`,borderRadius:10,overflow:"hidden",background:"rgba(255,255,255,.02)"}}>
-                {[
-                  ["Visit Type",VISIT_LABELS[visitType]],
-                  ["Symptoms",symptoms],
-                  ["Pharmacy",pharmacy],
-                  ["Date",calDay?(()=>{const d=new Date(calDay+"T12:00:00");return`${DAY_ABBR[d.getDay()]}, ${SHORT_MO[d.getMonth()]} ${d.getDate()}`;})():""],
-                  ["Time",calTime?(()=>{const[h,m]=calTime.split(":").map(Number);const p=h>=12?"PM":"AM";const h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,"0")} ${p}`;})():""],
-                ].map(([k,v],i,arr)=>(
-                  <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"9px 12px",borderBottom:i<arr.length-1?"1px solid rgba(255,255,255,.05)":"none",fontSize:12}}>
-                    <span style={{color:"rgba(255,255,255,.4)",fontWeight:600,flexShrink:0}}>{k}</span>
-                    <span style={{color:"#fff",fontWeight:700,textAlign:"right",maxWidth:"62%",wordBreak:"break-word",fontSize:12,...(k==="Symptoms"?{filter:"blur(4px)",userSelect:"none" as const}:{})}}>{v}</span>
-                  </div>
-                ))}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 12px",background:"rgba(45,212,160,.05)"}}>
-                  <span style={{color:"rgba(255,255,255,.5)",fontSize:12,fontWeight:700}}>Booking Fee</span>
-                  <span style={{color:"#2dd4a0",fontSize:18,fontWeight:900}}>$1.89</span>
-                </div>
-              </div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,.2)",textAlign:"center",marginTop:7}}>
-                $189 visit fee charged only after provider review
-              </div>
-            </div>
-          )}
+          {/* returning step 3 / new patient step 3 = navigate directly */}
 
-          {/* returning step 3 = navigate directly, no UI needed */}
         </div>
 
         {/* Nav */}

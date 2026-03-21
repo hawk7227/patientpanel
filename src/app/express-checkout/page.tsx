@@ -2091,24 +2091,52 @@ export default function ExpressCheckoutPage() {
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)" }}>
-          {/* Logo + Brand */}
-          <div className="flex items-center justify-center gap-1.5 mb-0.5">
-            <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
-              <Shield size={13} className="text-[#2dd4a0]" />
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", padding: "max(env(safe-area-inset-top, 10px), 10px) 16px 10px" }}>
+          {headerIsStep5 ? (
+            /* ── PAYMENT STEP HEADER — appointment context ── */
+            <div>
+              {/* Row 1: Confirm & Book Your [Visit Type] */}
+              <p className="text-white font-black text-center leading-tight" style={{ fontSize: "clamp(14px, 3.8vw, 17px)", marginBottom: 3 }}>
+                Confirm &amp; Book Your {({async:"Async Visit",sms:"SMS Visit",refill:"Rx Refill",video:"Video Visit",phone:"Phone Visit",instant:"Instant Visit"} as Record<string,string>)[visitType] || "Visit"}
+              </p>
+              {/* Row 2: Day, Month Date @ Time — only if date/time exist */}
+              {appointmentDate && appointmentTime && (() => {
+                const [year,month,day] = appointmentDate.split("-").map(Number);
+                const [hours,minutes] = appointmentTime.split(":").map(Number);
+                const date = new Date(year, month-1, day);
+                const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+                const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const h = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+                const ampm = hours >= 12 ? "pm" : "am";
+                return (
+                  <p className="text-center font-semibold" style={{ fontSize: 12, color: "#2dd4a0", marginBottom: 3 }}>
+                    {dayNames[date.getDay()]}, {monthNames[month-1]} {day} @ {h}:{String(minutes).padStart(2,"0")}{ampm}
+                  </p>
+                );
+              })()}
+              {/* Row 3: Your Provider */}
+              <p className="text-center" style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 0 }}>
+                Your Provider · LaMonica A. Hodges, MSN, APRN, FNP-C
+              </p>
             </div>
-            <span className="text-white font-bold text-[15px] tracking-tight">Medazon <span className="text-[#2dd4a0]">Health</span></span>
-          </div>
-          {/* Subtitle */}
-          <p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-[0.2em] mb-0.5 text-center">Private · Discreet</p>
-          {/* Heading — dynamic pill text */}
-          <h1 key={pillText} className="text-white font-black leading-tight text-center mb-1" style={{ fontSize: "clamp(20px, 5.5vw, 26px)" }}>
-            {pillText}
-          </h1>
-          {/* Progress bar */}
-          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
-          </div>
+          ) : (
+            /* ── REGULAR STEPS HEADER — logo + title + progress ── */
+            <div>
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
+                  <Shield size={13} className="text-[#2dd4a0]" />
+                </div>
+                <span className="text-white font-bold text-[15px] tracking-tight">Medazon <span className="text-[#2dd4a0]">Health</span></span>
+              </div>
+              <p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-[0.2em] mb-0.5 text-center">Private · Discreet</p>
+              <h1 key={pillText} className="text-white font-black leading-tight text-center mb-1" style={{ fontSize: "clamp(20px, 5.5vw, 26px)" }}>
+                {pillText}
+              </h1>
+              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ═══ SCROLLABLE GUIDED FORM ═══ */}
