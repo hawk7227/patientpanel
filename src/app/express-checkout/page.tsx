@@ -224,14 +224,14 @@ function getDeclineState(err: { type?: string; code?: string; decline_code?: str
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient,
+  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient, onPulseForm,
   npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; pharmacyPhone: string; selectedMedications: string[];
   symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
-  isNewPatient: boolean;
+  isNewPatient: boolean; onPulseForm?: () => void;
   npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
   npDobMonth?: string; npDobDay?: string; npDobYear?: string;
 }) {
@@ -731,8 +731,7 @@ function Step2PaymentForm({
                 onClick={({ resolve }: any) => {
                   // Block sheet opening if new patient fields incomplete
                   if (isNewPatient && !newPatientFieldsComplete) {
-                    setPulseField(newDobComplete ? "fields" : "dob");
-                    setTimeout(() => setPulseField(null), 1500);
+                    onPulseForm?.();
                     return; // do NOT call resolve — sheet stays closed
                   }
                   resolve({});
@@ -1167,6 +1166,7 @@ export default function ExpressCheckoutPage() {
   const npDobComplete = npDobMonth.length === 2 && npDobDay.length === 2 && npDobYear.length === 4;
   const npFieldsComplete = npFirstName.trim().length > 0 && npLastName.trim().length > 0 &&
     npEmail.includes("@") && npPhone.replace(/\D/g,"").length >= 10 && npAddress.trim().length > 0 && npDobComplete;
+  const [npFormPulse, setNpFormPulse] = useState(false);
   const [isTightViewport, setIsTightViewport] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [contactFirstName, setContactFirstName] = useState("");
@@ -2492,14 +2492,14 @@ export default function ExpressCheckoutPage() {
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
 
                 {/* ── NEW PATIENT INFO — outside Elements, no Stripe autofill contamination ── */}
-                <div className="space-y-1">
+                <div className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
                   {/* Row 1: First + Last */}
                   <div className="flex gap-1">
                     <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                       name="pt-fn-x7k2" data-lpignore="true" data-form-type="other"
                       placeholder="First name" value={npFirstName}
                       onChange={(e) => setNpFirstName(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2508,7 +2508,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-ln-m9p4" data-lpignore="true" data-form-type="other"
                       placeholder="Last name" value={npLastName}
                       onChange={(e) => setNpLastName(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2520,7 +2520,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-em-j3r8" data-lpignore="true" data-form-type="other"
                       placeholder="Email" value={npEmail}
                       onChange={(e) => setNpEmail(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2529,7 +2529,7 @@ export default function ExpressCheckoutPage() {
                       name="pt-ph-q5w1" data-lpignore="true" data-form-type="other"
                       placeholder="Phone" value={npPhone}
                       onChange={(e) => setNpPhone(e.target.value)}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
@@ -2541,21 +2541,21 @@ export default function ExpressCheckoutPage() {
                       name="pt-ad-h6n0" data-lpignore="true" data-form-type="other"
                       placeholder="Street address" value={npAddress}
                       onChange={(e) => setNpAddress(e.target.value)}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/40"
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
                     <input type="text" inputMode="numeric" autoComplete="new-password" autoCorrect="off" spellCheck={false}
                       name="pt-db-c2v9" data-lpignore="true" data-form-type="other"
-                      placeholder="MM/DD/YYYY"
+                      placeholder="DOB MM/DD/YYYY"
                       value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
                       }}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/40"
-                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "3px solid rgba(45,212,160,0.65)" }}
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
+                      style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
                       onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                     />
@@ -2566,6 +2566,7 @@ export default function ExpressCheckoutPage() {
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
+                      onPulseForm={() => { setNpFormPulse(true); setTimeout(() => setNpFormPulse(false), 1500); }}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
                     />
                   </Elements>

@@ -299,7 +299,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               <textarea ref={symRef} value={symptoms}
                 onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setSymptoms(e.target.value)}
-                onFocus={scrollIntoView}
+                onFocus={()=>{}}
                 placeholder="e.g., Burning during urination for 3 days..."
                 rows={5}
                 style={{
@@ -320,7 +320,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               <textarea value={reason}
                 onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setReason(e.target.value)}
-                onFocus={scrollIntoView}
+                onFocus={()=>{}}
                 placeholder="e.g., Follow up for UTI, need prescription refill..."
                 rows={5} autoFocus
                 style={{
@@ -347,7 +347,7 @@ export default function BookingOverlay({visitType,anchorId,onClose}:BookingOverl
                   setPharmaQuery(v);setPharmacy("");setPharmacyAddress("");setShowDrop(true);
                   searchPharmas(v);
                 }}
-                onFocus={()=>{setShowDrop(true);scrollIntoView();}}
+                onFocus={()=>{setShowDrop(true);}}
                 style={{
                   width:"100%",background:"rgba(255,255,255,.04)",
                   border:fieldBorder(!!pharmacy),
