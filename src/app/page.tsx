@@ -368,7 +368,7 @@ export default function AssessmentPageContent() {
               </div>
 
               {/* FAST TREATMENT NOW OPTIONS — visit cards grid */}
-              <div className="p-4" id="visit-cards-anchor" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
+              <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
                 <h2 className="text-white font-black text-center mb-6" style={{ fontSize: 'clamp(16px,3.5vw,22px)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
                   <span className="block text-teal-400">RIGHT NOW</span>
                   <span className="block">TREATMENT OPTIONS</span>
@@ -377,7 +377,6 @@ export default function AssessmentPageContent() {
                 {overlayOpen && (
                   <BookingOverlay
                     visitType={overlayVisitType}
-                    anchorId="visit-cards-anchor"
                     onClose={() => setOverlayOpen(false)}
                   />
                 )}
