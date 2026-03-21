@@ -1147,6 +1147,9 @@ export default function ExpressCheckoutPage() {
   const [calSelectedTime, setCalSelectedTime] = useState("");
   const [calApiSlots, setCalApiSlots] = useState<string[]>([]);   // HH:MM from API
   const [calApiLoading, setCalApiLoading] = useState(false);
+  const [calNextDaySlots, setCalNextDaySlots] = useState<string[]>([]);
+  const [calNextDayObj, setCalNextDayObj] = useState<Date|null>(null);
+  const [calNextDayLoading, setCalNextDayLoading] = useState(false);
 
   // Guided Sequence State
   const [visitTypePopup, setVisitTypePopup] = useState<VisitType | null>(null);
@@ -1464,6 +1467,49 @@ export default function ExpressCheckoutPage() {
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formStepVisible]);
+
+  // ── Next business day for calendar ──
+  useEffect(() => {
+    if (!calSelectedDay || calApiLoading || calApiSlots.length === 0) {
+      setCalNextDaySlots([]); setCalNextDayObj(null); return;
+    }
+    // Determine if all slots on selected day have a badge
+    const selDate = new Date(calSelectedDay + "T12:00:00");
+    const isWeekend = selDate.getDay() === 0 || selDate.getDay() === 6;
+    const slots12 = calApiSlots.map(t24 => {
+      const [h,m] = t24.split(":").map(Number);
+      const p = h>=12?"PM":"AM"; const h12 = h===0?12:h>12?h-12:h;
+      return `${h12}:${String(m).padStart(2,"0")} ${p}`;
+    });
+    const allBadged = slots12.length > 0 && slots12.every(slot => {
+      const h = parseInt(t24FromSlot(slot).split(":")[0]);
+      return selDate.getDay()===0 || selDate.getDay()===6 || (h>=17 && slot!=="5:00 PM");
+    });
+    if (!isWeekend && !allBadged) { setCalNextDaySlots([]); setCalNextDayObj(null); return; }
+    // Find next business day
+    const next = new Date(selDate);
+    do { next.setDate(next.getDate()+1); } while(next.getDay()===0||next.getDay()===6);
+    setCalNextDayObj(new Date(next)); setCalNextDaySlots([]); setCalNextDayLoading(true);
+    const iso = `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,"0")}-${String(next.getDate()).padStart(2,"0")}`;
+    fetch(`/api/get-doctor-availability?date=${iso}`)
+      .then(r=>r.json()).then(data=>{
+        if(data.availableSlots){
+          const s12 = data.availableSlots.slice(0,6).map((t24:string)=>{
+            const[h,m]=t24.split(":").map(Number);
+            const p=h>=12?"PM":"AM"; const h12=h===0?12:h>12?h-12:h;
+            return`${h12}:${String(m).padStart(2,"0")} ${p}`;
+          });
+          setCalNextDaySlots(s12);
+        }
+      }).catch(()=>{}).finally(()=>setCalNextDayLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calApiSlots, calApiLoading, calSelectedDay]);
+
+  function t24FromSlot(slot: string): string {
+    const [time, period] = slot.split(" "); let [h,m] = time.split(":").map(Number);
+    if(period==="PM"&&h!==12) h+=12; if(period==="AM"&&h===12) h=0;
+    return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+  }
 
   // Retry handler for payment intent failures
   const retryPaymentIntent = useCallback(() => {
@@ -2944,7 +2990,7 @@ export default function ExpressCheckoutPage() {
                           <button key={slot} onClick={() => setCalSelectedTime(t24)}
                             className="active:scale-95 transition-all"
                             style={{
-                              padding: badge ? "10px 12px 8px" : "14px 16px",
+                              padding: badge ? "6px 12px 6px" : "14px 16px",
                               borderRadius: 12,
                               border: isActive ? "2px solid rgba(45,212,160,0.5)" : badge ? "2px solid rgba(249,115,22,0.2)" : "2px solid rgba(255,255,255,0.1)",
                               background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : badge ? "rgba(249,115,22,0.04)" : "rgba(255,255,255,0.03)",
@@ -2959,15 +3005,63 @@ export default function ExpressCheckoutPage() {
                               display: "flex",
                               flexDirection: "column" as const,
                               alignItems: "center",
-                              gap: 3,
+                              gap: 2,
                             }}>
-                            <span>{slot}</span>
                             {badge && <span style={{ fontSize: 9, fontWeight: 700, color: isActive ? "#fed7aa" : badge.color, letterSpacing: "0.02em", lineHeight: 1 }}>{badge.label}</span>}
+                            <span>{slot}</span>
+                            {badge && <span style={{ fontSize: 9, fontWeight: 600, color: "#4ade80", lineHeight: 1 }}>I&apos;m available</span>}
                           </button>
                         );
                       });
                     })()}
                   </div>
+                  {/* Next business day suggestion row */}
+                  {(calNextDaySlots.length > 0 || calNextDayLoading) && calNextDayObj && (
+                    <div style={{ marginTop: 14 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.4)", marginBottom: 6 }}>
+                        ☀️ {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][calNextDayObj.getDay()]}, {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][calNextDayObj.getMonth()]} {calNextDayObj.getDate()}
+                      </p>
+                      {calNextDayLoading ? (
+                        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Loading…</p>
+                      ) : (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                          {calNextDaySlots.map((slot, i) => {
+                            const t24n = t24FromSlot(slot);
+                            const nextIso = `${calNextDayObj!.getFullYear()}-${String(calNextDayObj!.getMonth()+1).padStart(2,"0")}-${String(calNextDayObj!.getDate()).padStart(2,"0")}`;
+                            const isActN = calSelectedTime === t24n && calSelectedDay === nextIso;
+                            return (
+                              <button key={slot}
+                                className="active:scale-95 transition-all"
+                                onClick={() => {
+                                  setCalSelectedDay(nextIso);
+                                  setCalSelectedTime(t24n);
+                                  setCalApiSlots([]);
+                                  setCalApiLoading(true);
+                                  fetch(`/api/get-doctor-availability?date=${nextIso}`)
+                                    .then(r=>r.json()).then(data=>{ if(data.availableSlots) setCalApiSlots(data.availableSlots); })
+                                    .catch(()=>{}).finally(()=>setCalApiLoading(false));
+                                }}
+                                style={{
+                                  padding: "14px 16px", borderRadius: 12,
+                                  border: isActN ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.1)",
+                                  background: isActN ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "rgba(255,255,255,0.03)",
+                                  color: isActN ? "#ffffff" : "#e2e8f0",
+                                  fontSize: 15, fontWeight: 700, cursor: "pointer",
+                                  textAlign: "center" as const,
+                                  boxShadow: isActN ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                                  animation: "slotFadeIn 0.3s ease both",
+                                  animationDelay: `${i * 0.05}s`,
+                                  display: "flex", flexDirection: "column" as const,
+                                  alignItems: "center", gap: 2,
+                                }}>
+                                <span>{slot}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <p className="text-center mt-3" style={{ fontSize: 10, color: "#475569" }}>{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
                   </>
                   )}

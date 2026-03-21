@@ -59,6 +59,11 @@ function to24(t:string): string {
 function isoDate(d:Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
+function nextBusinessDay(from:Date): Date {
+  const d = new Date(from); d.setHours(0,0,0,0);
+  do { d.setDate(d.getDate()+1); } while(d.getDay()===0||d.getDay()===6);
+  return d;
+}
 function isSameDay(a:Date,b:Date): boolean {
   return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
 }
@@ -120,6 +125,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [calTime, setCalTime]     = useState("");
   const [apiSlots, setApiSlots]   = useState<string[]>([]);
   const [apiLoading, setApiLoading] = useState(false);
+  const [nextDaySlots, setNextDaySlots]   = useState<string[]>([]);
+  const [nextDayObj, setNextDayObj]       = useState<Date|null>(null);
+  const [nextDayLoading, setNextDayLoading] = useState(false);
 
   const symRef = useRef<HTMLTextAreaElement>(null);
   const symRem = Math.max(0, 10 - symptoms.trim().length);
@@ -153,6 +161,25 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   }, [step, isReturning]);
 
   // ── Calendar auto-load today ──
+  // Fetch next business day slots when all current slots have badges (after-hours/weekend)
+  const fetchNextDay = useCallback((fromDay: Date) => {
+    const next = nextBusinessDay(fromDay);
+    setNextDayObj(next); setNextDaySlots([]); setNextDayLoading(true);
+    fetch(`/api/get-doctor-availability?date=${isoDate(next)}`)
+      .then(r=>r.json()).then(data=>{
+        if(data.availableSlots && data.availableSlots.length>0){
+          // Convert to 12h and take first 6
+          const slots12 = data.availableSlots.slice(0,6).map((t24:string)=>{
+            const[h,m]=t24.split(":").map(Number);
+            const p=h>=12?"PM":"AM"; const h12=h===0?12:h>12?h-12:h;
+            return`${h12}:${String(m).padStart(2,"0")} ${p}`;
+          });
+          setNextDaySlots(slots12);
+        }
+      })
+      .catch(()=>{}).finally(()=>setNextDayLoading(false));
+  }, []);
+
   const isCalStep = (step===3 && !isReturning) || (step===2 && isReturning);
   const fetchSlots = useCallback((day:string) => {
     setCalDay(day); setCalTime(""); setApiSlots([]); setApiLoading(true);
@@ -165,6 +192,19 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     if(!calDay) fetchSlots(isoDate(today));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCalStep]);
+
+  // When slots load, check if all are after-hours/weekend → fetch next business day
+  useEffect(() => {
+    if(!selectedDayObj || apiLoading || apiSlots.length===0) return;
+    const allBadged = slots.length>0 && slots.every(s=>getSlotBadge(s, selectedDayObj)!==null);
+    const isWeekend = selectedDayObj.getDay()===0 || selectedDayObj.getDay()===6;
+    if(allBadged || isWeekend){
+      fetchNextDay(selectedDayObj);
+    } else {
+      setNextDaySlots([]); setNextDayObj(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiSlots, apiLoading, calDay]);
 
   // ── Pharmacy search ──
   const searchPharmas = useCallback((q:string, lat?:number, lng?:number) => {
@@ -634,25 +674,66 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                       No slots available — try another day
                     </div>
                   ) : (
+                    <>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                       {slots.map((slot,i)=>{
                         const isAct  = calTime===to24(slot);
                         const badge  = selectedDayObj ? getSlotBadge(slot,selectedDayObj) : null;
                         return (
                           <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
-                            padding:badge?"6px 3px 4px":"8px 3px",borderRadius:9,cursor:"pointer",
+                            padding:badge?"4px 3px":"8px 3px",borderRadius:9,cursor:"pointer",
                             border:isAct?`2px solid ${col.accent}`:badge?"2px solid rgba(249,115,22,.25)":"2px solid rgba(255,255,255,.1)",
                             background:isAct?col.cta:badge?"rgba(249,115,22,.04)":"rgba(255,255,255,.03)",
                             color:isAct?"#fff":"#e2e8f0",fontSize:12,fontWeight:700,
-                            display:"flex",flexDirection:"column",alignItems:"center",gap:2,
+                            display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            <span>{slot}</span>
                             {badge && <span style={{fontSize:7,fontWeight:700,color:isAct?"#fed7aa":badge.color,lineHeight:1}}>{badge.label}</span>}
+                            <span>{slot}</span>
+                            {badge && <span style={{fontSize:7,fontWeight:600,color:"#4ade80",lineHeight:1}}>I&apos;m available</span>}
                           </button>
                         );
                       })}
                     </div>
+
+                    {/* Next business day suggestion row */}
+                    {(nextDaySlots.length>0 || nextDayLoading) && nextDayObj && (
+                      <div style={{marginTop:10}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",marginBottom:4,paddingLeft:2}}>
+                          ☀️ {FULL_DAYS[nextDayObj.getDay()]}, {SHORT_MO[nextDayObj.getMonth()]} {nextDayObj.getDate()}
+                        </div>
+                        {nextDayLoading ? (
+                          <div style={{fontSize:11,color:"rgba(255,255,255,.3)",padding:"6px 2px"}}>Loading…</div>
+                        ) : (
+                          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+                            {nextDaySlots.map((slot,i)=>{
+                              const t24n = to24(slot);
+                              const isActN = calTime===t24n && calDay===isoDate(nextDayObj!);
+                              return (
+                                <button key={slot} onClick={()=>{
+                                  // Jump calendar to next day and select time
+                                  fetchSlots(isoDate(nextDayObj!));
+                                  setCalTime(t24n);
+                                  // Make sure next day is visible — update offset if needed
+                                  const nextIdx = allDays.findIndex(d=>isoDate(d)===isoDate(nextDayObj!));
+                                  if(nextIdx>=0) setCalOffset(Math.floor(nextIdx/VISIBLE)*VISIBLE);
+                                }} style={{
+                                  padding:"8px 3px",borderRadius:9,cursor:"pointer",
+                                  border:isActN?`2px solid ${col.accent}`:"2px solid rgba(255,255,255,.1)",
+                                  background:isActN?col.cta:"rgba(255,255,255,.03)",
+                                  color:isActN?"#fff":"#e2e8f0",fontSize:12,fontWeight:700,
+                                  display:"flex",flexDirection:"column",alignItems:"center",gap:1,
+                                  animation:`slotIn .2s ease ${i*0.025}s both`,
+                                }}>
+                                  <span>{slot}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    </>
                   )}
                 </div>
 
