@@ -2579,8 +2579,8 @@ export default function ExpressCheckoutPage() {
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
-                    <input type="text" inputMode="numeric" autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                      name="pt-db-c2v9" data-lpignore="true" data-form-type="other"
+                    <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
+                      name="bday"
                       placeholder="DOB MM/DD/YYYY"
                       value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
                       onChange={(e) => {
