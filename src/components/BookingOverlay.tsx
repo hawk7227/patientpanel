@@ -332,7 +332,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         animation:"overlayFadeIn .18s ease",
         overflow:"hidden",
         // Full dim behind everything
-        background:"rgba(4,8,7,.82)",
+        background:"rgba(0,0,0,0.45)",
       }}>
 
         {/* ── TOP GAP — safe area clearance, tappable to close ── */}
@@ -349,9 +349,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
         {/* ── FORM CARD — starts near top ── */}
         <div style={{
-          background:"#090e0b",
-          border:`2px solid ${col.border}`,
-          borderRadius:"16px 16px 0 0",
+          background:"#FFFFFF",
+          border:"none",
+          borderRadius:"20px 20px 0 0",
+          boxShadow:"0 -4px 32px rgba(0,0,0,0.18)",
           overflowY:"auto",
           overflowX:"hidden",
           scrollbarWidth:"none",
@@ -363,28 +364,28 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           <div style={{
             display:"flex",alignItems:"flex-start",justifyContent:"space-between",
             padding:"14px 16px 0",position:"sticky",top:0,
-            background:"#090e0b",zIndex:2,
+            background:"#FFFFFF",zIndex:2,
           }}>
             <div style={{flex:1,marginRight:10}}>
-              <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:"#fff",lineHeight:1.1}}
+              <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:"#111827",lineHeight:1.1}}
                    key={step}>
                 {getStepTitle(step, isReturning)}
               </div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,.35)",marginTop:3,fontWeight:600}}>
+              <div style={{fontSize:11,color:"#6B7280",marginTop:3,fontWeight:500}}>
                 {VISIT_LABELS[visitType]} · Step {step} of {totalSteps}
               </div>
             </div>
             <button onClick={onClose} style={{
-              width:28,height:28,borderRadius:"50%",
-              border:`1px solid ${col.border}`,background:col.dim,
-              color:"#fff",fontSize:13,cursor:"pointer",
+              width:30,height:30,borderRadius:"50%",
+              border:"1.5px solid #E5E7EB",background:"#F9FAFB",
+              color:"#6B7280",fontSize:13,cursor:"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
             }}>✕</button>
           </div>
 
           {/* Progress bar */}
-          <div style={{height:3,background:"rgba(255,255,255,.08)",margin:"10px 16px 0",borderRadius:2}}>
-            <div style={{height:"100%",background:col.cta,borderRadius:2,width:`${progressPct}%`,transition:"width .35s"}}/>
+          <div style={{height:3,background:"#E5E7EB",margin:"10px 16px 0",borderRadius:2}}>
+            <div style={{height:"100%",background:"#16A34A",borderRadius:2,width:`${progressPct}%`,transition:"width .35s"}}/>
           </div>
 
           {/* Step content */}
@@ -399,15 +400,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setSymptoms(e.target.value)}
                   placeholder="e.g., Burning during urination for 3 days..."
                   style={{
-                    width:"100%",height:120,background:"rgba(255,255,255,.04)",
-                    border:fieldBorder(symptoms.trim().length>=10),
-                    borderRadius:10,padding:"11px 12px",color:"#fff",fontSize:14,
+                    width:"100%",height:120,background:"#F0FDF4",
+                    border:symptoms.trim().length>=10?"2px solid #16A34A":"1.5px solid #BBF7D0",
+                    borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                     resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
                   }}
                 />
-                <div style={{fontSize:12,color:symRem>0?"rgba(255,255,255,.45)":"#4ade80",fontWeight:symRem===0?700:400}}>
+                <div style={{fontSize:12,color:symRem>0?"#6B7280":"#16A34A",fontWeight:symRem===0?700:400}}>
                   {symRem>0
-                    ? <><b style={{color:col.accent,fontSize:14}}>{symRem}</b> more characters needed</>
+                    ? <><b style={{color:"#16A34A",fontSize:14}}>{symRem}</b> more characters needed</>
                     : "✓ Ready to continue"
                   }
                 </div>
@@ -423,13 +424,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   placeholder="e.g., Follow up for UTI, need prescription refill..."
                   autoFocus
                   style={{
-                    width:"100%",height:120,background:"rgba(255,255,255,.04)",
-                    border:fieldBorder(reason.trim().length>0),
-                    borderRadius:10,padding:"11px 12px",color:"#fff",fontSize:14,
+                    width:"100%",height:120,background:"#F0FDF4",
+                    border:reason.trim().length>0?"2px solid #16A34A":"1.5px solid #BBF7D0",
+                    borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                     resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
                   }}
                 />
-                <div style={{fontSize:12,color:reason.trim()?"#4ade80":"rgba(255,255,255,.4)",fontWeight:reason.trim()?700:400}}>
+                <div style={{fontSize:12,color:reason.trim()?"#16A34A":"#9CA3AF",fontWeight:reason.trim()?700:400}}>
                   {reason.trim() ? "✓ Ready to continue" : "Describe why you're booking today"}
                 </div>
               </div>
@@ -451,30 +452,31 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   }}
                   onFocus={()=>setShowDrop(true)}
                   style={{
-                    width:"100%",background:"rgba(255,255,255,.04)",
-                    border:fieldBorder(!!pharmacy),
-                    borderRadius:10,padding:"11px 12px",color:"#fff",fontSize:14,
+                    width:"100%",background:"#F9FAFB",
+                    border:pharmacy?"2px solid #16A34A":"1.5px solid #D1D5DB",
+                    borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                     outline:"none",fontFamily:"system-ui",
                   }}
                 />
                 {/* Dropdown — flips above input when keyboard is open */}
                 {showDrop && !pharmacy && (
                   <div style={{
-                    background:"#0d1610",
-                    border:`1px solid ${col.border}`,
+                    background:"#FFFFFF",
+                    border:"1px solid #E5E7EB",
                     borderRadius:10,overflow:"hidden",
                     maxHeight:dropUp ? 160 : 220,
                     overflowY:"auto",
                     position:"absolute",
                     left:0, right:0,
                     zIndex:10,
+                    boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
                     ...(dropUp
                       ? { bottom:"calc(100% + 4px)" }
                       : { top:"calc(100% + 4px)" }
                     ),
                   }}>
                     {pharmaLoading ? (
-                      <div style={{padding:"14px 12px",fontSize:12,color:"rgba(255,255,255,.4)",textAlign:"center"}}>
+                      <div style={{padding:"14px 12px",fontSize:12,color:"#9CA3AF",textAlign:"center"}}>
                         Searching…
                       </div>
                     ) : pharmaResults.length > 0 ? (
@@ -482,16 +484,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         <div key={i}
                           onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
                           onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
-                          style={{padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.05)"}}
+                          style={{padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid #F3F4F6"}}
                         >
-                          <div style={{fontSize:13,color:"rgba(255,255,255,.9)",fontWeight:600}}>{p.name}</div>
-                          <div style={{fontSize:11,color:"rgba(255,255,255,.4)",marginTop:2}}>
+                          <div style={{fontSize:13,color:"#111827",fontWeight:600}}>{p.name}</div>
+                          <div style={{fontSize:11,color:"#6B7280",marginTop:2}}>
                             {p.address.length > 40 ? p.address.slice(0,40)+"…" : p.address}
                           </div>
                         </div>
                       ))
                     ) : pharmaQuery.length >= 2 ? (
-                      <div style={{padding:"14px 12px",fontSize:12,color:"rgba(255,255,255,.4)",textAlign:"center"}}>
+                      <div style={{padding:"14px 12px",fontSize:12,color:"#9CA3AF",textAlign:"center"}}>
                         No pharmacies found — try a different name
                       </div>
                     ) : null}
@@ -506,20 +508,20 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     style={{
                       display:"flex",alignItems:"center",gap:8,
                       padding:"10px 12px",borderRadius:10,cursor:"pointer",
-                      background:"rgba(255,255,255,.04)",
-                      border:`1px solid ${col.border}`,
-                      color:"#fff",fontSize:13,fontWeight:600,textAlign:"left",
+                      background:"#F0FDF4",
+                      border:"1px solid #BBF7D0",
+                      color:"#15803D",fontSize:13,fontWeight:600,textAlign:"left",
                       width:"100%",
                     }}
                   >
                     {gpsLoading
-                      ? <><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.2)",borderTop:`2px solid ${col.accent}`,borderRadius:"50%",animation:"spin 1s linear infinite",flexShrink:0}}/> Getting your location…</>
-                      : <><span style={{fontSize:16,flexShrink:0}}>📍</span><div><div>Use my exact location</div><div style={{fontSize:11,color:"rgba(255,255,255,.4)",fontWeight:400,marginTop:1}}>Get pharmacies closest to you</div></div></>
+                      ? <><div style={{width:14,height:14,border:"2px solid #BBF7D0",borderTop:"2px solid #16A34A",borderRadius:"50%",animation:"spin 1s linear infinite",flexShrink:0}}/> Getting your location…</>
+                      : <><span style={{fontSize:16,flexShrink:0}}>📍</span><div><div>Use my exact location</div><div style={{fontSize:11,color:"#6B7280",fontWeight:400,marginTop:1}}>Get pharmacies closest to you</div></div></>
                     }
                   </button>
                 )}
                 {gpsError && (
-                  <div style={{fontSize:11,color:"#f97316",padding:"0 2px"}}>{gpsError}</div>
+                  <div style={{fontSize:11,color:"#DC2626",padding:"0 2px"}}>{gpsError}</div>
                 )}
 
                 {/* Manual entry toggle */}
@@ -530,16 +532,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     style={{
                       display:"flex",alignItems:"center",gap:8,
                       padding:"10px 12px",borderRadius:10,cursor:"pointer",
-                      background:"rgba(255,255,255,.04)",
-                      border:"1px solid rgba(255,255,255,.1)",
-                      color:"rgba(255,255,255,.6)",fontSize:13,textAlign:"left",
+                      background:"#F9FAFB",
+                      border:"1px solid #E5E7EB",
+                      color:"#6B7280",fontSize:13,textAlign:"left",
                       width:"100%",
                     }}
                   >
                     <span style={{fontSize:16,flexShrink:0}}>🔍</span>
                     <div>
-                      <div style={{fontWeight:600}}>Can&apos;t find yours? Enter manually</div>
-                      <div style={{fontSize:11,color:"rgba(255,255,255,.35)",fontWeight:400,marginTop:1}}>Type any pharmacy name or address</div>
+                      <div style={{fontWeight:600,color:"#374151"}}>Can&apos;t find yours? Enter manually</div>
+                      <div style={{fontSize:11,color:"#9CA3AF",fontWeight:400,marginTop:1}}>Type any pharmacy name or address</div>
                     </div>
                   </button>
                 )}
@@ -547,7 +549,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 {/* Manual entry mode */}
                 {manualMode && !pharmacy && (
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                    <div style={{fontSize:11,color:"rgba(255,255,255,.4)"}}>Enter your pharmacy name &amp; address:</div>
+                    <div style={{fontSize:11,color:"#6B7280"}}>Enter your pharmacy name &amp; address:</div>
                     <input
                       type="text"
                       placeholder="e.g. Smith's Pharmacy, 123 Oak St"
@@ -559,9 +561,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         }
                       }}
                       style={{
-                        width:"100%",background:"rgba(255,255,255,.04)",
-                        border:fieldBorder(false),
-                        borderRadius:10,padding:"11px 12px",color:"#fff",fontSize:14,
+                        width:"100%",background:"#F9FAFB",
+                        border:"1.5px solid #D1D5DB",
+                        borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                         outline:"none",fontFamily:"system-ui",
                       }}
                     />
@@ -575,12 +577,12 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                           const inp = e.currentTarget.closest("div")?.previousElementSibling as HTMLInputElement;
                           if(inp?.value?.trim()){setPharmacy(inp.value.trim());setPharmacyAddress("");setPharmaQuery(inp.value.trim());}
                         }}
-                        style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:col.cta,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}
+                        style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:"linear-gradient(135deg,#16A34A,#15803D)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}
                       >Confirm</button>
                       <button
                         onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setManualMode(false);}}
                         onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setManualMode(false);}}
-                        style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid rgba(255,255,255,.15)",background:"transparent",color:"rgba(255,255,255,.5)",fontSize:13,cursor:"pointer"}}
+                        style={{flex:1,padding:"9px",borderRadius:9,border:"1.5px solid #E5E7EB",background:"#FFFFFF",color:"#6B7280",fontSize:13,cursor:"pointer"}}
                       >Back</button>
                     </div>
                   </div>
@@ -588,15 +590,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                 {pharmacy && (
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-                    padding:"8px 10px",background:"rgba(45,212,160,.06)",
-                    borderRadius:8,border:"1px solid rgba(45,212,160,.2)"}}>
-                    <div style={{fontSize:12,color:"#4ade80",fontWeight:700,flex:1,minWidth:0}}>
+                    padding:"8px 10px",background:"#F0FDF4",
+                    borderRadius:8,border:"1px solid #BBF7D0"}}>
+                    <div style={{fontSize:12,color:"#15803D",fontWeight:700,flex:1,minWidth:0}}>
                       ✓ {pharmacy}{pharmacyAddress ? ` — ${pharmacyAddress.length>35?pharmacyAddress.slice(0,35)+"…":pharmacyAddress}` : ""}
                     </div>
                     <button
                       onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy("");setPharmacyAddress("");setPharmaQuery("");setManualMode(false);setShowDrop(false);}}
                       onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy("");setPharmacyAddress("");setPharmaQuery("");setManualMode(false);setShowDrop(false);}}
-                      style={{fontSize:11,color:"rgba(255,255,255,.4)",background:"none",border:"none",cursor:"pointer",padding:"0 4px",flexShrink:0}}
+                      style={{fontSize:11,color:"#16A34A",background:"none",border:"none",cursor:"pointer",padding:"0 4px",flexShrink:0,textDecoration:"underline"}}
                     >change</button>
                   </div>
                 )}
@@ -612,7 +614,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     onClick={()=>{setCalOffset(Math.max(0,calOffset-VISIBLE));setCalDay("");setCalTime("");}}
                     disabled={calOffset===0}
                     style={{width:24,height:24,background:"none",border:"none",
-                      color:calOffset===0?"rgba(255,255,255,.15)":col.accent,
+                      color:calOffset===0?"#D1D5DB":"#16A34A",
                       cursor:calOffset===0?"default":"pointer",flexShrink:0,
                       display:"flex",alignItems:"center",justifyContent:"center"}}
                   ><ChevronLeft size={16}/></button>
@@ -627,16 +629,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         <button key={iso} onClick={()=>fetchSlots(iso)} style={{
                           flex:1,display:"flex",flexDirection:"column",alignItems:"center",
                           justifyContent:"center",padding:"6px 1px 5px",borderRadius:9,cursor:"pointer",
-                          border:isSel?`2px solid ${col.accent}`:isToday?"2px solid rgba(45,212,160,.2)":"2px solid transparent",
-                          background:isSel?col.cta:"transparent",gap:1,minWidth:0,
+                          border:isSel?"2px solid #16A34A":isToday?"2px solid #BBF7D0":"2px solid transparent",
+                          background:isSel?"#16A34A":"transparent",gap:1,minWidth:0,
                         }}>
-                          <span style={{fontSize:9,fontWeight:700,color:isSel?"#fff":"#64748b",letterSpacing:".04em",lineHeight:1}}>
+                          <span style={{fontSize:9,fontWeight:700,color:isSel?"#fff":"#9CA3AF",letterSpacing:".04em",lineHeight:1}}>
                             {DAY_ABBR[day.getDay()]}
                           </span>
-                          <span style={{fontSize:18,fontWeight:700,color:isSel?"#fff":"#cbd5e1",lineHeight:1.2}}>
+                          <span style={{fontSize:18,fontWeight:700,color:isSel?"#fff":"#111827",lineHeight:1.2}}>
                             {day.getDate()}
                           </span>
-                          <span style={{fontSize:8,fontWeight:600,color:isSel?"#fff":col.accent,lineHeight:1,marginTop:1}}>
+                          <span style={{fontSize:8,fontWeight:600,color:isSel?"#fff":"#16A34A",lineHeight:1,marginTop:1}}>
                             {isToday?"Today":isTom?"Tmrw":SHORT_MO[day.getMonth()]}
                           </span>
                         </button>
@@ -648,29 +650,29 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     onClick={()=>{setCalOffset(Math.min(calOffset+VISIBLE,TOTAL-VISIBLE));setCalDay("");setCalTime("");}}
                     disabled={calOffset+VISIBLE>=TOTAL}
                     style={{width:24,height:24,background:"none",border:"none",
-                      color:calOffset+VISIBLE>=TOTAL?"rgba(255,255,255,.15)":col.accent,
+                      color:calOffset+VISIBLE>=TOTAL?"#D1D5DB":"#16A34A",
                       cursor:calOffset+VISIBLE>=TOTAL?"default":"pointer",flexShrink:0,
                       display:"flex",alignItems:"center",justifyContent:"center",transform:"rotate(180deg)"}}
                   ><ChevronLeft size={16}/></button>
                 </div>
 
-                <div style={{height:1,background:"rgba(255,255,255,.07)",marginBottom:8}}/>
+                <div style={{height:1,background:"#E5E7EB",marginBottom:8}}/>
 
                 {/* Time grid */}
                 <div style={{minHeight:100,maxHeight:180,overflowY:"auto",scrollbarWidth:"none"}}>
                   {!calDay ? (
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",
-                      height:100,color:"rgba(255,255,255,.3)",fontSize:13}}>
+                      height:100,color:"#9CA3AF",fontSize:13}}>
                       Select a day above
                     </div>
                   ) : apiLoading ? (
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:100,gap:8}}>
-                      <div style={{width:18,height:18,border:"2px solid rgba(45,212,160,.2)",
-                        borderTop:`2px solid ${col.accent}`,borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
-                      <span style={{color:"rgba(255,255,255,.4)",fontSize:12}}>Loading times…</span>
+                      <div style={{width:18,height:18,border:"2px solid #BBF7D0",
+                        borderTop:"2px solid #16A34A",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+                      <span style={{color:"#9CA3AF",fontSize:12}}>Loading times…</span>
                     </div>
                   ) : slots.length === 0 ? (
-                    <div style={{textAlign:"center",color:"rgba(255,255,255,.3)",fontSize:13,paddingTop:20}}>
+                    <div style={{textAlign:"center",color:"#9CA3AF",fontSize:13,paddingTop:20}}>
                       No slots available — try another day
                     </div>
                   ) : (
@@ -682,15 +684,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         return (
                           <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
                             padding:badge?"4px 3px":"8px 3px",borderRadius:9,cursor:"pointer",
-                            border:isAct?`2px solid ${col.accent}`:badge?"2px solid rgba(249,115,22,.25)":"2px solid rgba(255,255,255,.1)",
-                            background:isAct?col.cta:badge?"rgba(249,115,22,.04)":"rgba(255,255,255,.03)",
-                            color:isAct?"#fff":"#e2e8f0",fontSize:12,fontWeight:700,
+                            border:isAct?"2px solid #16A34A":badge?"2px solid rgba(245,158,11,.4)":"1.5px solid #E5E7EB",
+                            background:isAct?"#16A34A":badge?"#FFFBEB":"#FFFFFF",
+                            color:isAct?"#fff":badge?"#92400E":"#111827",fontSize:12,fontWeight:700,
                             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            {badge && <span style={{fontSize:7,fontWeight:700,color:isAct?"#fed7aa":badge.color,lineHeight:1}}>{badge.label}</span>}
+                            {badge && <span style={{fontSize:7,fontWeight:700,color:isAct?"#d1fae5":badge.color,lineHeight:1}}>{badge.label}</span>}
                             <span>{slot}</span>
-                            {badge && <span style={{fontSize:7,fontWeight:600,color:"#4ade80",lineHeight:1}}>I&apos;m available</span>}
+                            {badge && <span style={{fontSize:7,fontWeight:600,color:isAct?"#d1fae5":"#15803D",lineHeight:1}}>I&apos;m available</span>}
                           </button>
                         );
                       })}
@@ -699,11 +701,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     {/* Next business day suggestion row */}
                     {(nextDaySlots.length>0 || nextDayLoading) && nextDayObj && (
                       <div style={{marginTop:10}}>
-                        <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",marginBottom:4,paddingLeft:2}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#6B7280",marginBottom:4,paddingLeft:2}}>
                           ☀️ {FULL_DAYS[nextDayObj.getDay()]}, {SHORT_MO[nextDayObj.getMonth()]} {nextDayObj.getDate()}
                         </div>
                         {nextDayLoading ? (
-                          <div style={{fontSize:11,color:"rgba(255,255,255,.3)",padding:"6px 2px"}}>Loading…</div>
+                          <div style={{fontSize:11,color:"#9CA3AF",padding:"6px 2px"}}>Loading…</div>
                         ) : (
                           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                             {nextDaySlots.map((slot,i)=>{
@@ -719,9 +721,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                                   if(nextIdx>=0) setCalOffset(Math.floor(nextIdx/VISIBLE)*VISIBLE);
                                 }} style={{
                                   padding:"8px 3px",borderRadius:9,cursor:"pointer",
-                                  border:isActN?`2px solid ${col.accent}`:"2px solid rgba(255,255,255,.1)",
-                                  background:isActN?col.cta:"rgba(255,255,255,.03)",
-                                  color:isActN?"#fff":"#e2e8f0",fontSize:12,fontWeight:700,
+                                  border:isActN?"2px solid #16A34A":"1.5px solid #E5E7EB",
+                                  background:isActN?"#16A34A":"#FFFFFF",
+                                  color:isActN?"#fff":"#111827",fontSize:12,fontWeight:700,
                                   display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                                   animation:`slotIn .2s ease ${i*0.025}s both`,
                                 }}>
@@ -739,9 +741,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                 {/* Selected summary */}
                 {calDay && calTime && (
-                  <div style={{marginTop:8,padding:"8px 10px",background:"rgba(45,212,160,.06)",
-                    borderRadius:8,border:"1px solid rgba(45,212,160,.2)"}}>
-                    <span style={{fontSize:12,color:"#2dd4a0",fontWeight:700}}>
+                  <div style={{marginTop:8,padding:"8px 10px",background:"#F0FDF4",
+                    borderRadius:8,border:"1px solid #BBF7D0"}}>
+                    <span style={{fontSize:12,color:"#15803D",fontWeight:700}}>
                       ✓ {FULL_DAYS[new Date(calDay+"T12:00:00").getDay()]}, {SHORT_MO[new Date(calDay+"T12:00:00").getMonth()]} {new Date(calDay+"T12:00:00").getDate()} @ {formatTime(calTime)}
                     </span>
                   </div>
@@ -755,26 +757,33 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           <div style={{
             display:"flex",gap:8,padding:"12px 16px 16px",
             paddingBottom:"max(16px,env(safe-area-inset-bottom))",
-            borderTop:"1px solid rgba(255,255,255,.06)",marginTop:12,
-            background:"#090e0b",
+            borderTop:"1px solid #F3F4F6",marginTop:12,
+            background:"#FFFFFF",
             position:"sticky",bottom:0,zIndex:2,
           }}>
             <button onClick={goBack} style={{
               flex:1,height:48,borderRadius:12,
-              background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",
-              color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
+              background:"#FFFFFF",border:"1.5px solid #E5E7EB",
+              color:"#374151",fontSize:14,fontWeight:700,cursor:"pointer",
             }}>← Back</button>
             <button onClick={goContinue} disabled={contDisabled} style={{
               flex:2,height:48,borderRadius:12,border:"none",
-              background:contDisabled?"rgba(255,255,255,.07)":col.cta,
-              color:contDisabled?"rgba(255,255,255,.25)":"#fff",
+              background:contDisabled?"#F3F4F6":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
+              color:contDisabled?"#9CA3AF":"#fff",
               fontSize:14,fontWeight:900,
               cursor:contDisabled?"default":"pointer",
-              boxShadow:contDisabled?"none":`0 3px 12px ${col.border}`,
+              boxShadow:contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)",
               transition:"all .2s",
             }}>
               {step===totalSteps ? "Book My Visit →" : "Continue →"}
             </button>
+          </div>
+
+          {/* Trust footer */}
+          <div style={{textAlign:"center",paddingBottom:"max(12px,env(safe-area-inset-bottom))",paddingTop:6,background:"#FFFFFF"}}>
+            <span style={{fontSize:10,color:"#9CA3AF",letterSpacing:".02em"}}>
+              HIPAA Secure · Licensed Providers · No subscription
+            </span>
           </div>
 
         </div>
