@@ -1206,7 +1206,10 @@ export default function ExpressCheckoutPage() {
     if (!em.includes("@")) errs.email     = "Valid email required";
     if (ph.length < 10)    errs.phone     = "10-digit phone required";
     if (!ad)               errs.address   = "Street address required";
-    if (!npDobComplete)    errs.dob       = "Date of birth required";
+    // Check DOB from ref directly (uncontrolled) — fallback to state
+    const dobRaw = npDobRef.current?.value?.replace(/\D/g,"") || "";
+    const dobComplete = dobRaw.length >= 8 || npDobComplete;
+    if (!dobComplete) errs.dob = "Date of birth required";
     setNpErrors(errs);
     // Auto-focus first error field
     if (errs.firstName)  { npFirstNameRef.current?.focus(); }
@@ -1479,7 +1482,10 @@ export default function ExpressCheckoutPage() {
       if (!em.includes("@")) errs.email     = "Valid email required";
       if (ph.length < 10)    errs.phone     = "10-digit phone required";
       if (!ad)               errs.address   = "Street address required";
-      if (!npDobComplete)    errs.dob       = "Date of birth required";
+      // Check DOB from ref directly (uncontrolled) — fallback to state
+    const dobRaw = npDobRef.current?.value?.replace(/\D/g,"") || "";
+    const dobComplete = dobRaw.length >= 8 || npDobComplete;
+    if (!dobComplete) errs.dob = "Date of birth required";
       setNpErrors(errs);
       // Auto-focus first empty field
       if      (errs.firstName) npFirstNameRef.current?.focus();
@@ -2736,22 +2742,24 @@ export default function ExpressCheckoutPage() {
                       name="bday"
                       ref={npDobRef}
                       placeholder="DOB MM/DD/YYYY"
-                      value={npDobMonth + (npDobMonth.length === 2 && (npDobDay || npDobYear) ? "/" : "") + npDobDay + (npDobDay.length === 2 && npDobYear ? "/" : "") + npDobYear}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g,"").slice(0,8);
-                        setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
-                        if(npErrors.dob) setNpErrors(p=>({...p,dob:""}));
-                      }}
-                      onInput={(e) => {
-                        const raw = (e.target as HTMLInputElement).value.replace(/\D/g,"").slice(0,8);
-                        setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
-                        if(npErrors.dob) setNpErrors(p=>({...p,dob:""}));
-                      }}
+                      defaultValue=""
                       className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
                       aria-invalid={!!npErrors.dob}
-                      style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: npErrors.dob ? "1.5px solid #f97316" : npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)" }}
+                      style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: npErrors.dob ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #f97316" : "3px solid #2dd4a0"; e.target.style.boxShadow = npErrors.dob ? "none" : "0 0 0 2px rgba(45,212,160,0.25)"; }}
-                      onBlur={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #f97316" : npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)"; e.target.style.boxShadow = "none"; }}
+                      onBlur={(e) => {
+                        const raw = e.target.value.replace(/\D/g,"").slice(0,8);
+                        const mm = raw.slice(0,2); const dd = raw.slice(2,4); const yyyy = raw.slice(4,8);
+                        setNpDobMonth(mm); setNpDobDay(dd); setNpDobYear(yyyy);
+                        const complete = mm.length===2 && dd.length===2 && yyyy.length===4;
+                        if (complete) setNpErrors(p=>({...p,dob:""}));
+                        e.target.style.border = npErrors.dob && !complete ? "1.5px solid #f97316" : complete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)";
+                        e.target.style.boxShadow = "none";
+                        // Auto-format display: insert slashes
+                        if (raw.length >= 4) {
+                          e.target.value = mm + "/" + dd + (yyyy ? "/" + yyyy : "");
+                        }
+                      }}
                     />
                     </div>
                   </div>
