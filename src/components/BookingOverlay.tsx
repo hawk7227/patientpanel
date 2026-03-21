@@ -108,6 +108,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [pharmaResults, setPharmaResults]     = useState<{name:string;address:string}[]>([]);
   const [pharmaLoading, setPharmaLoading]     = useState(false);
   const [dropUp, setDropUp]                   = useState(false);
+  const [gpsLoading, setGpsLoading]           = useState(false);
+  const [gpsError, setGpsError]               = useState("");
+  const [manualMode, setManualMode]           = useState(false);
   const pharmaTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
   const inputRef    = useRef<HTMLInputElement>(null);
 
@@ -164,17 +167,43 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   }, [isCalStep]);
 
   // ── Pharmacy search ──
-  const searchPharmas = useCallback((q:string) => {
+  const searchPharmas = useCallback((q:string, lat?:number, lng?:number) => {
     if(pharmaTimer.current) clearTimeout(pharmaTimer.current);
     if(!q || q.length < 2) { setPharmaResults([]); setPharmaLoading(false); return; }
     setPharmaLoading(true);
+    const url = lat && lng
+      ? `/api/pharmacy-search?q=${encodeURIComponent(q)}&lat=${lat}&lng=${lng}`
+      : `/api/pharmacy-search?q=${encodeURIComponent(q)}`;
     pharmaTimer.current = setTimeout(() => {
-      fetch(`/api/pharmacy-search?q=${encodeURIComponent(q)}`)
+      fetch(url)
         .then(r=>r.json()).then(data=>{ setPharmaResults(data.results || []); })
         .catch(()=>{ setPharmaResults([]); })
         .finally(()=>setPharmaLoading(false));
     }, 320);
   }, []);
+
+  // ── GPS precise search ──
+  const searchWithGPS = useCallback(() => {
+    if(!navigator.geolocation) { setGpsError("GPS not available on this device"); return; }
+    setGpsLoading(true); setGpsError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const q = pharmaQuery.trim() || "pharmacy";
+        setPharmaLoading(true); setShowDrop(true);
+        fetch(`/api/pharmacy-search?q=${encodeURIComponent(q)}&lat=${lat}&lng=${lng}`)
+          .then(r=>r.json()).then(data=>{ setPharmaResults(data.results || []); })
+          .catch(()=>{ setPharmaResults([]); })
+          .finally(()=>{ setPharmaLoading(false); setGpsLoading(false); });
+      },
+      (err) => {
+        setGpsLoading(false);
+        if(err.code===1) setGpsError("Location permission denied");
+        else setGpsError("Could not get location — try typing your pharmacy");
+      },
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  }, [pharmaQuery]);
 
   // ── Dropdown flip detection (keyboard open = drop up) ──
   useEffect(() => {
@@ -394,12 +423,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     background:"#0d1610",
                     border:`1px solid ${col.border}`,
                     borderRadius:10,overflow:"hidden",
-                    maxHeight:dropUp ? 160 : 200,
+                    maxHeight:dropUp ? 160 : 220,
                     overflowY:"auto",
                     position:"absolute",
                     left:0, right:0,
                     zIndex:10,
-                    // Flip above or below input based on keyboard state
                     ...(dropUp
                       ? { bottom:"calc(100% + 4px)" }
                       : { top:"calc(100% + 4px)" }
@@ -429,9 +457,107 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     ) : null}
                   </div>
                 )}
+
+                {/* GPS button */}
+                {!pharmacy && !manualMode && (
+                  <button
+                    onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();searchWithGPS();}}
+                    onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();searchWithGPS();}}
+                    style={{
+                      display:"flex",alignItems:"center",gap:8,
+                      padding:"10px 12px",borderRadius:10,cursor:"pointer",
+                      background:"rgba(255,255,255,.04)",
+                      border:`1px solid ${col.border}`,
+                      color:"#fff",fontSize:13,fontWeight:600,textAlign:"left",
+                      width:"100%",
+                    }}
+                  >
+                    {gpsLoading
+                      ? <><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.2)",borderTop:`2px solid ${col.accent}`,borderRadius:"50%",animation:"spin 1s linear infinite",flexShrink:0}}/> Getting your location…</>
+                      : <><span style={{fontSize:16,flexShrink:0}}>📍</span><div><div>Use my exact location</div><div style={{fontSize:11,color:"rgba(255,255,255,.4)",fontWeight:400,marginTop:1}}>Get pharmacies closest to you</div></div></>
+                    }
+                  </button>
+                )}
+                {gpsError && (
+                  <div style={{fontSize:11,color:"#f97316",padding:"0 2px"}}>{gpsError}</div>
+                )}
+
+                {/* Manual entry toggle */}
+                {!pharmacy && !manualMode && (
+                  <button
+                    onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setManualMode(true);setShowDrop(false);setPharmaQuery("");}}
+                    onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setManualMode(true);setShowDrop(false);setPharmaQuery("");}}
+                    style={{
+                      display:"flex",alignItems:"center",gap:8,
+                      padding:"10px 12px",borderRadius:10,cursor:"pointer",
+                      background:"rgba(255,255,255,.04)",
+                      border:"1px solid rgba(255,255,255,.1)",
+                      color:"rgba(255,255,255,.6)",fontSize:13,textAlign:"left",
+                      width:"100%",
+                    }}
+                  >
+                    <span style={{fontSize:16,flexShrink:0}}>🔍</span>
+                    <div>
+                      <div style={{fontWeight:600}}>Can&apos;t find yours? Enter manually</div>
+                      <div style={{fontSize:11,color:"rgba(255,255,255,.35)",fontWeight:400,marginTop:1}}>Type any pharmacy name or address</div>
+                    </div>
+                  </button>
+                )}
+
+                {/* Manual entry mode */}
+                {manualMode && !pharmacy && (
+                  <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,.4)"}}>Enter your pharmacy name &amp; address:</div>
+                    <input
+                      type="text"
+                      placeholder="e.g. Smith's Pharmacy, 123 Oak St"
+                      autoFocus
+                      onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>)=>{
+                        if(e.key==="Enter" && (e.target as HTMLInputElement).value.trim()) {
+                          const v = (e.target as HTMLInputElement).value.trim();
+                          setPharmacy(v); setPharmacyAddress(""); setPharmaQuery(v);
+                        }
+                      }}
+                      style={{
+                        width:"100%",background:"rgba(255,255,255,.04)",
+                        border:fieldBorder(false),
+                        borderRadius:10,padding:"11px 12px",color:"#fff",fontSize:14,
+                        outline:"none",fontFamily:"system-ui",
+                      }}
+                    />
+                    <div style={{display:"flex",gap:6}}>
+                      <button
+                        onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();
+                          const inp = e.currentTarget.closest("div")?.previousElementSibling as HTMLInputElement;
+                          if(inp?.value?.trim()){setPharmacy(inp.value.trim());setPharmacyAddress("");setPharmaQuery(inp.value.trim());}
+                        }}
+                        onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();
+                          const inp = e.currentTarget.closest("div")?.previousElementSibling as HTMLInputElement;
+                          if(inp?.value?.trim()){setPharmacy(inp.value.trim());setPharmacyAddress("");setPharmaQuery(inp.value.trim());}
+                        }}
+                        style={{flex:2,padding:"9px",borderRadius:9,border:"none",background:col.cta,color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}}
+                      >Confirm</button>
+                      <button
+                        onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setManualMode(false);}}
+                        onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setManualMode(false);}}
+                        style={{flex:1,padding:"9px",borderRadius:9,border:"1px solid rgba(255,255,255,.15)",background:"transparent",color:"rgba(255,255,255,.5)",fontSize:13,cursor:"pointer"}}
+                      >Back</button>
+                    </div>
+                  </div>
+                )}
+
                 {pharmacy && (
-                  <div style={{fontSize:12,color:"#4ade80",fontWeight:700}}>
-                    ✓ {pharmacy}{pharmacyAddress ? ` — ${pharmacyAddress.length>35?pharmacyAddress.slice(0,35)+"…":pharmacyAddress}` : ""}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+                    padding:"8px 10px",background:"rgba(45,212,160,.06)",
+                    borderRadius:8,border:"1px solid rgba(45,212,160,.2)"}}>
+                    <div style={{fontSize:12,color:"#4ade80",fontWeight:700,flex:1,minWidth:0}}>
+                      ✓ {pharmacy}{pharmacyAddress ? ` — ${pharmacyAddress.length>35?pharmacyAddress.slice(0,35)+"…":pharmacyAddress}` : ""}
+                    </div>
+                    <button
+                      onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy("");setPharmacyAddress("");setPharmaQuery("");setManualMode(false);setShowDrop(false);}}
+                      onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy("");setPharmacyAddress("");setPharmaQuery("");setManualMode(false);setShowDrop(false);}}
+                      style={{fontSize:11,color:"rgba(255,255,255,.4)",background:"none",border:"none",cursor:"pointer",padding:"0 4px",flexShrink:0}}
+                    >change</button>
                   </div>
                 )}
               </div>
