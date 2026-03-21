@@ -2519,23 +2519,25 @@ export default function ExpressCheckoutPage() {
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
 
-                {/* ── NEW PATIENT INFO — outside Elements, no Stripe autofill contamination ── */}
-                <div className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
+                {/* ── NEW PATIENT INFO — form tag enables browser autofill on page load ── */}
+                <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
                   {/* Row 1: First + Last */}
                   <div className="flex gap-1">
-                    <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                      name="pt-fn-x7k2" data-lpignore="true" data-form-type="other"
+                    <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                      name="given-name"
                       placeholder="First name" value={npFirstName}
                       onChange={(e) => setNpFirstName(e.target.value)}
+                      onInput={(e) => setNpFirstName((e.target as HTMLInputElement).value)}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npFirstName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
-                    <input type="text" autoComplete="new-password" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                      name="pt-ln-m9p4" data-lpignore="true" data-form-type="other"
+                    <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                      name="family-name"
                       placeholder="Last name" value={npLastName}
                       onChange={(e) => setNpLastName(e.target.value)}
+                      onInput={(e) => setNpLastName((e.target as HTMLInputElement).value)}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npLastName.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
@@ -2544,19 +2546,21 @@ export default function ExpressCheckoutPage() {
                   </div>
                   {/* Row 2: Email + Phone */}
                   <div className="flex gap-1">
-                    <input type="text" inputMode="email" autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                      name="pt-em-j3r8" data-lpignore="true" data-form-type="other"
+                    <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
+                      name="email"
                       placeholder="Email" value={npEmail}
                       onChange={(e) => setNpEmail(e.target.value)}
+                      onInput={(e) => setNpEmail((e.target as HTMLInputElement).value)}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
                       onBlur={(e) => { e.target.style.border = npEmail.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
                     />
-                    <input type="text" inputMode="tel" autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                      name="pt-ph-q5w1" data-lpignore="true" data-form-type="other"
+                    <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
+                      name="tel"
                       placeholder="Phone" value={npPhone}
                       onChange={(e) => setNpPhone(e.target.value)}
+                      onInput={(e) => setNpPhone((e.target as HTMLInputElement).value)}
                       className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ background: "rgba(0,0,0,0.3)", border: npPhone.replace(/\D/g,"").length >= 10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
@@ -2565,10 +2569,11 @@ export default function ExpressCheckoutPage() {
                   </div>
                   {/* Row 3: Address (flex-3) + DOB single field (flex-2) */}
                   <div className="flex gap-1">
-                    <input type="text" autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                      name="pt-ad-h6n0" data-lpignore="true" data-form-type="other"
+                    <input type="text" autoComplete="street-address" autoCorrect="off" spellCheck={false}
+                      name="street-address"
                       placeholder="Street address" value={npAddress}
                       onChange={(e) => setNpAddress(e.target.value)}
+                      onInput={(e) => setNpAddress((e.target as HTMLInputElement).value)}
                       className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
                       style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npAddress.trim() ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
@@ -2582,13 +2587,17 @@ export default function ExpressCheckoutPage() {
                         const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                         setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
                       }}
+                      onInput={(e) => {
+                        const raw = (e.target as HTMLInputElement).value.replace(/\D/g,"").slice(0,8);
+                        setNpDobMonth(raw.slice(0,2)); setNpDobDay(raw.slice(2,4)); setNpDobYear(raw.slice(4,8));
+                      }}
                       className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
                       style={{ flex: 2, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npDobComplete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)" }}
                       onFocus={(e) => { e.target.style.border = "3px solid #2dd4a0"; e.target.style.boxShadow = "0 0 0 2px rgba(45,212,160,0.25)"; }}
                       onBlur={(e) => { e.target.style.border = "3px solid rgba(45,212,160,0.65)"; e.target.style.boxShadow = "none"; }}
                     />
                   </div>
-                </div>
+                </form>
 
                 {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
                 {clientSecret && stripeOptions ? (
