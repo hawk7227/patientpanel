@@ -2141,6 +2141,19 @@ export default function ExpressCheckoutPage() {
 
         {/* ═══ SCROLLABLE GUIDED FORM ═══ */}
 
+        {/* Hidden pre-render: browser scans this form on page load and autofills fields.
+            display:none prevents layout impact. Fields sync to state via onInput. */}
+        {!isReturningPatient && (
+          <form autoComplete="on" onSubmit={e=>e.preventDefault()} aria-hidden="true" style={{display:"none"}}>
+            <input autoComplete="given-name"     name="given-name"     tabIndex={-1} readOnly value={npFirstName} onInput={e=>setNpFirstName((e.target as HTMLInputElement).value)} onChange={e=>setNpFirstName(e.target.value)} />
+            <input autoComplete="family-name"    name="family-name"    tabIndex={-1} readOnly value={npLastName}  onInput={e=>setNpLastName((e.target as HTMLInputElement).value)}  onChange={e=>setNpLastName(e.target.value)} />
+            <input autoComplete="email"          name="email"          tabIndex={-1} readOnly value={npEmail}     onInput={e=>setNpEmail((e.target as HTMLInputElement).value)}     onChange={e=>setNpEmail(e.target.value)} />
+            <input autoComplete="tel"            name="tel"            tabIndex={-1} readOnly value={npPhone}     onInput={e=>setNpPhone((e.target as HTMLInputElement).value)}     onChange={e=>setNpPhone(e.target.value)} />
+            <input autoComplete="street-address" name="street-address" tabIndex={-1} readOnly value={npAddress}   onInput={e=>setNpAddress((e.target as HTMLInputElement).value)}   onChange={e=>setNpAddress(e.target.value)} />
+            <input autoComplete="bday"           name="bday"           tabIndex={-1} readOnly />
+          </form>
+        )}
+
         <div className="flex-1 overflow-y-auto overflow-x-hidden pb-1 space-y-2 min-h-0 overscroll-contain" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
 
           {/* STEP 1: Reason for Visit — hidden when answered */}
@@ -2515,7 +2528,8 @@ export default function ExpressCheckoutPage() {
           ) : null}
 
           {/* STEP 4.75: New Patient Payment Form (after CONTINUE from confirm) */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? (
+          {/* Form is pre-rendered hidden so browser autofills on page load — revealed when step is active */}
+          <div style={{ display: reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? "block" : "none" }}>
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
 
@@ -2625,7 +2639,7 @@ export default function ExpressCheckoutPage() {
                 <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
             </div>
-          ) : null}
+          </div>
 
 
         </div>
