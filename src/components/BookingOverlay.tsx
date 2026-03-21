@@ -193,7 +193,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   // ── Nav ──
   const goBack = () => {
     if(step===1) { onClose(); return; }
-    setStep(s=>s-1);
+    setStep((s:number)=>s-1);
   };
   const goContinue = () => {
     if(isReturning) {
@@ -261,35 +261,33 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         display:"flex",
         flexDirection:"column",
         animation:"overlayFadeIn .18s ease",
-        // Overflow hidden — nothing can scroll or overflow this container
         overflow:"hidden",
+        // Full dim behind everything
+        background:"rgba(4,8,7,.82)",
       }}>
 
-        {/* ── DIM AREA (top) — tappable to close ── */}
+        {/* ── TOP GAP — safe area clearance, tappable to close ── */}
         <div
           onClick={onClose}
           style={{
-            flex:1,
-            background:"rgba(4,8,7,.82)",
+            height:"env(safe-area-inset-top, 16px)",
+            minHeight:16,
+            maxHeight:24,
+            flexShrink:0,
             cursor:"pointer",
-            // Minimum tap target — always show some dim above card
-            minHeight:40,
           }}
         />
 
-        {/* ── FORM CARD ── */}
+        {/* ── FORM CARD — starts near top ── */}
         <div style={{
           background:"#090e0b",
           border:`2px solid ${col.border}`,
           borderRadius:"16px 16px 0 0",
-          // Card content scrollable only if needed (calendar step is tallest)
           overflowY:"auto",
           overflowX:"hidden",
           scrollbarWidth:"none",
-          flexShrink:0,
+          flex:1,
           animation:"cardSlideUp .25s cubic-bezier(.4,0,.2,1)",
-          // Max height — card cannot take more than 90% of viewport
-          maxHeight:"calc(100dvh - 40px)",
         }}>
 
           {/* Header */}
@@ -329,7 +327,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <textarea
                   ref={symRef}
                   value={symptoms}
-                  onChange={e=>setSymptoms(e.target.value)}
+                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setSymptoms(e.target.value)}
                   placeholder="e.g., Burning during urination for 3 days..."
                   style={{
                     width:"100%",height:120,background:"rgba(255,255,255,.04)",
@@ -352,7 +350,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
                 <textarea
                   value={reason}
-                  onChange={e=>setReason(e.target.value)}
+                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setReason(e.target.value)}
                   placeholder="e.g., Follow up for UTI, need prescription refill..."
                   autoFocus
                   style={{
@@ -377,7 +375,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   placeholder="e.g. CVS near 5th Ave, Walgreens on Main..."
                   value={pharmaQuery}
                   autoFocus
-                  onChange={e=>{
+                  onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{
                     const v = e.target.value;
                     setPharmaQuery(v); setPharmacy(""); setPharmacyAddress(""); setShowDrop(true);
                     searchPharmas(v);
@@ -410,10 +408,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         Searching…
                       </div>
                     ) : pharmaResults.length > 0 ? (
-                      pharmaResults.map((p,i) => (
+                      pharmaResults.map((p:{name:string;address:string},i:number) => (
                         <div key={i}
-                          onMouseDown={e=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
-                          onTouchEnd={e=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
+                          onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
+                          onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
                           style={{padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid rgba(255,255,255,.05)"}}
                         >
                           <div style={{fontSize:13,color:"rgba(255,255,255,.9)",fontWeight:600}}>{p.name}</div>
