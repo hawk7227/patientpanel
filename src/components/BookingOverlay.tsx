@@ -396,12 +396,14 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     borderRadius:10,overflow:"hidden",
                     maxHeight:dropUp ? 160 : 200,
                     overflowY:"auto",
-                    // Flip above input when keyboard open
-                    ...(dropUp ? {
-                      position:"absolute",
-                      bottom:"calc(100% + 4px)",
-                      left:0,right:0,
-                    } : {}),
+                    position:"absolute",
+                    left:0, right:0,
+                    zIndex:10,
+                    // Flip above or below input based on keyboard state
+                    ...(dropUp
+                      ? { bottom:"calc(100% + 4px)" }
+                      : { top:"calc(100% + 4px)" }
+                    ),
                   }}>
                     {pharmaLoading ? (
                       <div style={{padding:"14px 12px",fontSize:12,color:"rgba(255,255,255,.4)",textAlign:"center"}}>
