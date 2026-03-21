@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
@@ -1183,6 +1183,66 @@ export default function ExpressCheckoutPage() {
   const npPhoneRef     = useRef<HTMLInputElement>(null);
   const npAddressRef   = useRef<HTMLInputElement>(null);
   const npDobRef       = useRef<HTMLInputElement>(null);
+
+  // ── autocomplete event listeners ──
+  // Fires when browser fills a field via AutoFill Contact / saved passwords.
+  // React's onChange/onInput miss this — autocomplete event is the only reliable catch.
+  useEffect(() => {
+    const fields: [RefObject<HTMLInputElement>, (v:string)=>void][] = [
+      [npFirstNameRef, setNpFirstName],
+      [npLastNameRef,  setNpLastName],
+      [npEmailRef,     setNpEmail],
+      [npPhoneRef,     setNpPhone],
+      [npAddressRef,   setNpAddress],
+    ];
+    const handlers: [HTMLInputElement, EventListener][] = [];
+    fields.forEach(([ref, setter]) => {
+      const el = ref.current;
+      if (!el) return;
+      const handler: EventListener = () => {
+        const v = el.value;
+        setter(v);
+        setNpErrors(p => {
+          const key = Object.keys(p).find(k =>
+            (k==="firstName"&&ref===npFirstNameRef)||
+            (k==="lastName" &&ref===npLastNameRef)||
+            (k==="email"    &&ref===npEmailRef)||
+            (k==="phone"    &&ref===npPhoneRef)||
+            (k==="address"  &&ref===npAddressRef)
+          );
+          if (!key) return p;
+          const next = {...p}; delete next[key]; return next;
+        });
+      };
+      el.addEventListener("autocomplete", handler);
+      // Also listen to animationstart — iOS Safari fires a CSS animation
+      // on autofilled fields (:-webkit-autofill) which we can detect
+      el.addEventListener("animationstart", handler);
+      handlers.push([el, handler]);
+    });
+    // DOB — parse the filled value into month/day/year
+    const dobEl = npDobRef.current;
+    if (dobEl) {
+      const dobHandler: EventListener = () => {
+        const raw = dobEl.value.replace(/\D/g,"").slice(0,8);
+        setNpDobMonth(raw.slice(0,2));
+        setNpDobDay(raw.slice(2,4));
+        setNpDobYear(raw.slice(4,8));
+        if (raw.length >= 8) setNpErrors(p => { const next={...p}; delete next.dob; return next; });
+      };
+      dobEl.addEventListener("autocomplete", dobHandler);
+      dobEl.addEventListener("animationstart", dobHandler);
+      handlers.push([dobEl, dobHandler]);
+    }
+    return () => {
+      handlers.forEach(([el, handler]) => {
+        el.removeEventListener("autocomplete", handler);
+        el.removeEventListener("animationstart", handler);
+      });
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Validate np fields — returns true if all valid, false + sets errors if not
   // Safe to call at any time — only marks fields that are actually empty/invalid
   const validateNpFields = (): boolean => {
@@ -2017,6 +2077,8 @@ export default function ExpressCheckoutPage() {
         <style>{`
           @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+          @keyframes onAutofill { from {} to {} }
+          input:-webkit-autofill { animation-name: onAutofill; animation-duration: 1ms; }
         `}</style>
         <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
 
