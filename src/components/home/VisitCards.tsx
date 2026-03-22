@@ -176,8 +176,8 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
           scrollSnapType: "y mandatory",
           scrollbarWidth: "none",
           WebkitOverflowScrolling: "touch",
-          /* height = first row natural height + peek — set by JS in page.tsx */
-          maxHeight: "76vh",
+          overscrollBehavior: "contain",
+          height: "72vh",
         }}
       >
         <div style={{ scrollSnapAlign: "start", paddingBottom: 8 }}>
