@@ -213,6 +213,30 @@ function getDeclineState(err: { type?: string; code?: string; decline_code?: str
       body: "Your bank flagged this as unusual, which is common for new or online purchases. Your card wasn't charged. Try once more or use a different card — your information is saved.",
       fieldHint: null };
   }
+  if (code === "authentication_required") {
+    return { category: "card_data", code, retryable: true, showBnpl: true,
+      headline: "One quick security step.",
+      body: "Your bank needs to verify this purchase. No charge was made. Tap Try Again and complete the verification prompt from your bank.",
+      fieldHint: null };
+  }
+  if (code === "card_not_supported") {
+    return { category: "permanent", code, retryable: false, showBnpl: true,
+      headline: "This card type isn\'t supported.",
+      body: "We accept Visa, Mastercard, Amex, and Discover. Try a different card — your information is saved.",
+      fieldHint: null };
+  }
+  if (["currency_not_supported"].includes(code)) {
+    return { category: "permanent", code, retryable: false, showBnpl: true,
+      headline: "This card can\'t be used for this transaction.",
+      body: "Your card doesn\'t support USD transactions. Please use a different card — your information is saved.",
+      fieldHint: null };
+  }
+  if (code === "duplicate_transaction") {
+    return { category: "processing", code, retryable: false, showBnpl: false,
+      headline: "Looks like this was already submitted.",
+      body: "We received your payment — please don\'t tap again. Your appointment is being confirmed. If you don\'t see a confirmation in 30 seconds, contact us.",
+      fieldHint: null };
+  }
   return { category: "generic", code, retryable: true, showBnpl: false,
     headline: "Something went wrong with payment.",
     body: err.message || "Your card was not charged. Please try again.",
@@ -369,22 +393,31 @@ function Step2PaymentForm({
         return;
       }
 
-      setProgress(66); setStatusText("Confirming booking...");
-
-      // Step 3: Visit hold succeeded — capture $1.89 now
-      const captureRes = await fetch("/api/capture-booking-fee", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingIntentId: result.paymentIntent.id }),
-      });
-      if (!captureRes.ok) {
-        // Non-fatal — appointment still gets created, $1.89 capture retried by Stripe
-        console.error("[Payment] Booking fee capture failed — continuing");
+      // 3DS: bank requires authentication before hold can complete
+      if (visitHoldResult.requiresAction && visitHoldResult.clientSecret) {
+        setStatusText("Completing bank verification...");
+        const { error: actionError } = await stripe!.handleNextAction({ clientSecret: visitHoldResult.clientSecret });
+        if (actionError) {
+          await fetch("/api/cancel-booking-hold", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingIntentId: result.paymentIntent.id }),
+          }).catch(() => {});
+          setIsProcessing(false);
+          handleStripeError({ code: "authentication_required", message: actionError.message });
+          return;
+        }
       }
 
-      // Step 4: create-patient (runs after biometric — no DB before wallet sheet)
+      setProgress(66); setStatusText("Confirming booking...");
+
+      // Step 3 + 4 in parallel: capture $1.89 AND create/fetch patient record simultaneously
       let patientId = patient.id || prefetchedPatientId;
-      if (!patientId) {
-        const createRes = await fetch("/api/check-create-patient", {
+      const [captureRes, patientResult] = await Promise.all([
+        fetch("/api/capture-booking-fee", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId: result.paymentIntent.id }),
+        }),
+        patientId ? Promise.resolve(null) : fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
@@ -392,9 +425,12 @@ function Step2PaymentForm({
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
           }),
-        });
-        const createResult = await createRes.json();
-        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
+        }),
+      ]);
+      if (!captureRes.ok) console.error("[Payment] Booking fee capture failed — continuing");
+      if (patientResult) {
+        const createResult = await patientResult.json();
+        if (!patientResult.ok) throw new Error(createResult.error || "Failed to create patient");
         patientId = createResult.patientId;
       }
 
@@ -433,7 +469,7 @@ function Step2PaymentForm({
         payment_intent_id: result.paymentIntent.id, payment_intent_status: result.paymentIntent.status, visit_intent_id: visitIntentId,
       }));
       clearAnswers();
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 200));
       onSuccess();
     } catch (err: any) {
       console.error("Express checkout error:", err);
@@ -503,7 +539,7 @@ function Step2PaymentForm({
           payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
         }));
         clearAnswers();
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 200));
         onSuccess();
         return;
       }
@@ -575,20 +611,30 @@ function Step2PaymentForm({
         return;
       }
 
-      setProgress(66); setStatusText("Confirming booking...");
-
-      // Step 3: Visit hold succeeded — capture $1.89 now
-      const captureRes = await fetch("/api/capture-booking-fee", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingIntentId: paymentIntent.id }),
-      });
-      if (!captureRes.ok) {
-        console.error("[Payment] Booking fee capture failed — continuing");
+      // 3DS: bank requires authentication before hold can complete
+      if (visitHoldResult.requiresAction && visitHoldResult.clientSecret) {
+        setStatusText("Completing bank verification...");
+        const { error: actionError } = await stripe!.handleNextAction({ clientSecret: visitHoldResult.clientSecret });
+        if (actionError) {
+          await fetch("/api/cancel-booking-hold", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingIntentId: paymentIntent.id }),
+          }).catch(() => {});
+          setIsProcessing(false);
+          handleStripeError({ code: "authentication_required", message: actionError.message });
+          return;
+        }
       }
 
-      // Step 4: Create patient record (after payment confirmed)
-      if (!patientId) {
-        const createRes = await fetch("/api/check-create-patient", {
+      setProgress(66); setStatusText("Confirming booking...");
+
+      // Step 3 + 4 in parallel: capture $1.89 AND create/fetch patient record simultaneously
+      const [captureRes, patientResult] = await Promise.all([
+        fetch("/api/capture-booking-fee", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookingIntentId: paymentIntent.id }),
+        }),
+        patientId ? Promise.resolve(null) : fetch("/api/check-create-patient", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: pd.email, firstName: pd.firstName, lastName: pd.lastName,
@@ -596,9 +642,12 @@ function Step2PaymentForm({
             address: pd.address, pharmacy: pharmacy || patient.pharmacy || "",
             pharmacyAddress: pharmacyAddress || "", pharmacyPhone: pharmacyPhone || "",
           }),
-        });
-        const createResult = await createRes.json();
-        if (!createRes.ok) throw new Error(createResult.error || "Failed to create patient");
+        }),
+      ]);
+      if (!captureRes.ok) console.error("[Payment] Booking fee capture failed — continuing");
+      if (patientResult) {
+        const createResult = await patientResult.json();
+        if (!patientResult.ok) throw new Error(createResult.error || "Failed to create patient");
         patientId = createResult.patientId;
       }
 
@@ -637,7 +686,7 @@ function Step2PaymentForm({
         payment_intent_id: paymentIntent.id, payment_intent_status: paymentIntent.status, visit_intent_id: visitIntentId,
       }));
       clearAnswers();
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 200));
       onSuccess();
     } catch (err: any) {
       console.error("Express checkout error:", err);
