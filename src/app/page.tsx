@@ -173,6 +173,49 @@ export default function AssessmentPageContent() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [carouselRow, setCarouselRow] = useState(0);
   const lastCarouselRow = useRef(0);
+  const audioCtxRef = useRef<AudioContext|null>(null);
+
+  // Unlock AudioContext on first touch — iOS Safari requires user gesture
+  const unlockAudio = () => {
+    if (audioCtxRef.current) return;
+    try {
+      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      // Play silent buffer to unlock
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+      audioCtxRef.current = ctx;
+    } catch {}
+  };
+
+  const playSnapSound = () => {
+    try {
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.08);
+    } catch {}
+  };
+
+  const triggerHaptic = () => {
+    try {
+      if (navigator.vibrate) navigator.vibrate(8);
+    } catch {}
+  };
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
 
   const [queuePosition, setQueuePosition] = useState(() => {
@@ -228,7 +271,7 @@ export default function AssessmentPageContent() {
     return () => clearTimeout(t);
   }, [queuePosition]);
 
-  // Carousel scroll tracking + click sound
+  // Carousel scroll tracking + snap sound + haptic
   useEffect(() => {
     const el = carouselRef.current;
     if (!el) return;
@@ -239,26 +282,16 @@ export default function AssessmentPageContent() {
       if (clamped !== lastCarouselRow.current) {
         lastCarouselRow.current = clamped;
         setCarouselRow(clamped);
-        // Web Audio API click sound — short tick
-        try {
-          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(880, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.04);
-          gain.gain.setValueAtTime(0.08, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.06);
-          osc.onended = () => ctx.close();
-        } catch {}
+        playSnapSound();
+        triggerHaptic();
       }
     };
+    // Unlock audio on first touchstart on the carousel
+    el.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
     el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
   const handleConditionClick = (condition: string) => {
