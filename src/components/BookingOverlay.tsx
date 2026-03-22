@@ -693,17 +693,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   <button
                     onClick={()=>{setCalOffset(Math.min(calOffset+VISIBLE,TOTAL-VISIBLE));setCalDay("");setCalTime("");}}
                     disabled={calOffset+VISIBLE>=TOTAL}
-                    style={{width:24,height:24,background:"none",border:"none",
+                    style={{background:"none",border:"none",
                       color:calOffset+VISIBLE>=TOTAL?"rgba(255,255,255,.2)":"rgba(45,212,160,.8)",
                       cursor:calOffset+VISIBLE>=TOTAL?"default":"pointer",flexShrink:0,
-                      display:"flex",alignItems:"center",justifyContent:"center",transform:"rotate(180deg)"}}
-                  ><ChevronLeft size={16}/></button>
+                      fontSize:11,fontWeight:700,letterSpacing:".02em",paddingRight:2}}>Next&nbsp;&gt;</button>
                 </div>
 
                 <div style={{height:1,background:"rgba(255,255,255,.08)",marginBottom:8}}/>
 
                 {/* Time grid */}
-                <div style={{minHeight:100,maxHeight:180,overflowY:"auto",scrollbarWidth:"none"}}>
+                <div style={{minHeight:100,maxHeight:260,overflowY:"auto",scrollbarWidth:"none"}}>
                   {!calDay ? (
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",
                       height:100,color:"rgba(255,255,255,.3)",fontSize:13}}>
@@ -728,13 +727,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         return (
                           <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
                             padding:badge?"6px 4px":"10px 4px",borderRadius:9,cursor:"pointer",
-                            border:isAct?"2px solid #16A34A":badge?"2px solid rgba(249,115,22,.5)":"1.5px solid rgba(255,255,255,.1)",
+                            border:isAct?"2px solid #16A34A":badge?`2px solid ${badge.color}60`:"1.5px solid rgba(255,255,255,.1)",
                             background:isAct?"#16A34A":badge?"rgba(26,17,8,.9)":"rgba(255,255,255,.05)",
                             color:isAct?"#fff":badge?"#fff":"#e2e8f0",fontSize:13,fontWeight:700,
                             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            {badge && <span style={{fontSize:8,fontWeight:800,color:isAct?"#d1fae5":"#f97316",lineHeight:1,letterSpacing:".02em"}}>{badge.label}</span>}
+                            {badge && <span style={{fontSize:8,fontWeight:800,color:isAct?"#fff":badge.color,lineHeight:1,letterSpacing:".02em"}}>{badge.label}</span>}
                             <span>{slot}</span>
                             {badge && <span style={{fontSize:8,fontWeight:700,color:isAct?"#d1fae5":"#4ade80",lineHeight:1}}>I'm available</span>}
                           </button>
@@ -764,10 +763,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                                   const nextIdx = allDays.findIndex(d=>isoDate(d)===isoDate(nextDayObj!));
                                   if(nextIdx>=0) setCalOffset(Math.floor(nextIdx/VISIBLE)*VISIBLE);
                                 }} style={{
-                                  padding:"8px 3px",borderRadius:9,cursor:"pointer",
-                                  border:isActN?"2px solid rgba(45,212,160,.8)":"1.5px solid rgba(255,255,255,.12)",
-                                  background:isActN?"rgba(45,212,160,.2)":"rgba(255,255,255,.04)",
-                                  color:isActN?"#2dd4a0":"#e2e8f0",fontSize:12,fontWeight:700,
+                                  padding:"10px 4px",borderRadius:9,cursor:"pointer",
+                                  border:isActN?"2px solid #16A34A":"1.5px solid rgba(255,255,255,.1)",
+                                  background:isActN?"#16A34A":"rgba(255,255,255,.05)",
+                                  color:isActN?"#fff":"#e2e8f0",fontSize:13,fontWeight:700,
                                   display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                                   animation:`slotIn .2s ease ${i*0.025}s both`,
                                 }}>
