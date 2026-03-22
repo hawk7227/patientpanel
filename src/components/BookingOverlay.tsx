@@ -652,7 +652,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     onClick={()=>{setCalOffset(Math.max(0,calOffset-VISIBLE));setCalDay("");setCalTime("");}}
                     disabled={calOffset===0}
                     style={{width:24,height:24,background:"none",border:"none",
-                      color:calOffset===0?"#D1D5DB":"#16A34A",
+                      color:calOffset===0?"rgba(255,255,255,.2)":"rgba(45,212,160,.8)",
                       cursor:calOffset===0?"default":"pointer",flexShrink:0,
                       display:"flex",alignItems:"center",justifyContent:"center"}}
                   ><ChevronLeft size={16}/></button>
@@ -667,16 +667,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         <button key={iso} onClick={()=>fetchSlots(iso)} style={{
                           flex:1,display:"flex",flexDirection:"column",alignItems:"center",
                           justifyContent:"center",padding:"6px 1px 5px",borderRadius:9,cursor:"pointer",
-                          border:isSel?"2px solid #16A34A":isToday?"2px solid #BBF7D0":"2px solid transparent",
-                          background:isSel?"#16A34A":"transparent",gap:1,minWidth:0,
+                          border:isSel?"2px solid rgba(45,212,160,.8)":isToday?"2px solid rgba(45,212,160,.2)":"2px solid transparent",
+                          background:isSel?"rgba(45,212,160,.15)":"transparent",gap:1,minWidth:0,
                         }}>
-                          <span style={{fontSize:9,fontWeight:700,color:isSel?"#fff":"#9CA3AF",letterSpacing:".04em",lineHeight:1}}>
+                          <span style={{fontSize:9,fontWeight:700,color:isSel?"#2dd4a0":"rgba(255,255,255,.4)",letterSpacing:".04em",lineHeight:1}}>
                             {DAY_ABBR[day.getDay()]}
                           </span>
-                          <span style={{fontSize:18,fontWeight:700,color:isSel?"#fff":"#111827",lineHeight:1.2}}>
+                          <span style={{fontSize:18,fontWeight:700,color:"#fff",lineHeight:1.2}}>
                             {day.getDate()}
                           </span>
-                          <span style={{fontSize:8,fontWeight:600,color:isSel?"#fff":"#16A34A",lineHeight:1,marginTop:1}}>
+                          <span style={{fontSize:8,fontWeight:600,color:isSel?"#2dd4a0":"rgba(255,255,255,.4)",lineHeight:1,marginTop:1}}>
                             {isToday?"Today":isTom?"Tmrw":SHORT_MO[day.getMonth()]}
                           </span>
                         </button>
@@ -688,29 +688,29 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     onClick={()=>{setCalOffset(Math.min(calOffset+VISIBLE,TOTAL-VISIBLE));setCalDay("");setCalTime("");}}
                     disabled={calOffset+VISIBLE>=TOTAL}
                     style={{width:24,height:24,background:"none",border:"none",
-                      color:calOffset+VISIBLE>=TOTAL?"#D1D5DB":"#16A34A",
+                      color:calOffset+VISIBLE>=TOTAL?"rgba(255,255,255,.2)":"rgba(45,212,160,.8)",
                       cursor:calOffset+VISIBLE>=TOTAL?"default":"pointer",flexShrink:0,
                       display:"flex",alignItems:"center",justifyContent:"center",transform:"rotate(180deg)"}}
                   ><ChevronLeft size={16}/></button>
                 </div>
 
-                <div style={{height:1,background:"#E5E7EB",marginBottom:8}}/>
+                <div style={{height:1,background:"rgba(255,255,255,.08)",marginBottom:8}}/>
 
                 {/* Time grid */}
                 <div style={{minHeight:100,maxHeight:180,overflowY:"auto",scrollbarWidth:"none"}}>
                   {!calDay ? (
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",
-                      height:100,color:"#9CA3AF",fontSize:13}}>
+                      height:100,color:"rgba(255,255,255,.3)",fontSize:13}}>
                       Select a day above
                     </div>
                   ) : apiLoading ? (
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:100,gap:8}}>
-                      <div style={{width:18,height:18,border:"2px solid #BBF7D0",
-                        borderTop:"2px solid #16A34A",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
-                      <span style={{color:"#9CA3AF",fontSize:12}}>Loading times…</span>
+                      <div style={{width:18,height:18,border:"2px solid rgba(45,212,160,.2)",
+                        borderTop:"2px solid #2dd4a0",borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+                      <span style={{color:"rgba(255,255,255,.4)",fontSize:12}}>Loading times…</span>
                     </div>
                   ) : slots.length === 0 ? (
-                    <div style={{textAlign:"center",color:"#9CA3AF",fontSize:13,paddingTop:20}}>
+                    <div style={{textAlign:"center",color:"rgba(255,255,255,.3)",fontSize:13,paddingTop:20}}>
                       No slots available — try another day
                     </div>
                   ) : (
@@ -722,15 +722,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         return (
                           <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
                             padding:badge?"4px 3px":"8px 3px",borderRadius:9,cursor:"pointer",
-                            border:isAct?"2px solid #16A34A":badge?"2px solid rgba(245,158,11,.4)":"1.5px solid #E5E7EB",
-                            background:isAct?"#16A34A":badge?"#FFFBEB":"#FFFFFF",
-                            color:isAct?"#fff":badge?"#92400E":"#111827",fontSize:12,fontWeight:700,
+                            border:isAct?"2px solid rgba(45,212,160,.8)":badge?"2px solid rgba(249,115,22,.4)":"1.5px solid rgba(255,255,255,.12)",
+                            background:isAct?"rgba(45,212,160,.2)":badge?"rgba(249,115,22,.08)":"rgba(255,255,255,.04)",
+                            color:isAct?"#2dd4a0":badge?"#fb923c":"#e2e8f0",fontSize:12,fontWeight:700,
                             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            {badge && <span style={{fontSize:7,fontWeight:700,color:isAct?"#d1fae5":badge.color,lineHeight:1}}>{badge.label}</span>}
+                            {badge && <span style={{fontSize:7,fontWeight:700,color:isAct?"#2dd4a0":badge.color,lineHeight:1}}>{badge.label}</span>}
                             <span>{slot}</span>
-                            {badge && <span style={{fontSize:7,fontWeight:600,color:isAct?"#d1fae5":"#15803D",lineHeight:1}}>I&apos;m available</span>}
+                            {badge && <span style={{fontSize:7,fontWeight:600,color:isAct?"#2dd4a0":"#4ade80",lineHeight:1}}>I&apos;m available</span>}
                           </button>
                         );
                       })}
@@ -739,11 +739,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     {/* Next business day suggestion row */}
                     {(nextDaySlots.length>0 || nextDayLoading) && nextDayObj && (
                       <div style={{marginTop:10}}>
-                        <div style={{fontSize:10,fontWeight:700,color:"#6B7280",marginBottom:4,paddingLeft:2}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",marginBottom:4,paddingLeft:2}}>
                           ☀️ {FULL_DAYS[nextDayObj.getDay()]}, {SHORT_MO[nextDayObj.getMonth()]} {nextDayObj.getDate()}
                         </div>
                         {nextDayLoading ? (
-                          <div style={{fontSize:11,color:"#9CA3AF",padding:"6px 2px"}}>Loading…</div>
+                          <div style={{fontSize:11,color:"rgba(255,255,255,.3)",padding:"6px 2px"}}>Loading…</div>
                         ) : (
                           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                             {nextDaySlots.map((slot:string,i:number)=>{
@@ -759,9 +759,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                                   if(nextIdx>=0) setCalOffset(Math.floor(nextIdx/VISIBLE)*VISIBLE);
                                 }} style={{
                                   padding:"8px 3px",borderRadius:9,cursor:"pointer",
-                                  border:isActN?"2px solid #16A34A":"1.5px solid #E5E7EB",
-                                  background:isActN?"#16A34A":"#FFFFFF",
-                                  color:isActN?"#fff":"#111827",fontSize:12,fontWeight:700,
+                                  border:isActN?"2px solid rgba(45,212,160,.8)":"1.5px solid rgba(255,255,255,.12)",
+                                  background:isActN?"rgba(45,212,160,.2)":"rgba(255,255,255,.04)",
+                                  color:isActN?"#2dd4a0":"#e2e8f0",fontSize:12,fontWeight:700,
                                   display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                                   animation:`slotIn .2s ease ${i*0.025}s both`,
                                 }}>
@@ -779,9 +779,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                 {/* Selected summary */}
                 {calDay && calTime && (
-                  <div style={{marginTop:8,padding:"8px 10px",background:"#F0FDF4",
-                    borderRadius:8,border:"1px solid #BBF7D0"}}>
-                    <span style={{fontSize:12,color:"#15803D",fontWeight:700}}>
+                  <div style={{marginTop:8,padding:"8px 10px",background:"rgba(45,212,160,.08)",
+                    borderRadius:8,border:"1px solid rgba(45,212,160,.25)"}}>
+                    <span style={{fontSize:12,color:"#2dd4a0",fontWeight:700}}>
                       ✓ {FULL_DAYS[new Date(calDay+"T12:00:00").getDay()]}, {SHORT_MO[new Date(calDay+"T12:00:00").getMonth()]} {new Date(calDay+"T12:00:00").getDate()} @ {formatTime(calTime)}
                     </span>
                   </div>
