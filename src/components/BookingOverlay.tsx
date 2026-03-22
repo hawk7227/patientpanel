@@ -275,6 +275,23 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     }
     if(step===1) { if(symptoms.trim().length<3 || !selectedVisitType) return; setStep(2); return; }
     if(step===2) { if(!pharmacy) return; setStep(3); return; }
+    // Cal step — pulse missing items instead of silently blocking
+    if(!calDay && !calTime) {
+      setCalMissingMsg("Please select a date and time");
+      setCalPulseDay(true); setTimeout(()=>setCalPulseDay(false), 900);
+      return;
+    }
+    if(!calDay) {
+      setCalMissingMsg("Please select a date first");
+      setCalPulseDay(true); setTimeout(()=>setCalPulseDay(false), 900);
+      return;
+    }
+    if(!calTime) {
+      setCalMissingMsg("Please select a time slot");
+      setCalPulseTime(true); setTimeout(()=>setCalPulseTime(false), 900);
+      return;
+    }
+    setCalMissingMsg("");
     navigateToCheckout();
   };
 
