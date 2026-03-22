@@ -22,24 +22,46 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function POST(request: Request) {
   try {
-    const { visitIntentId, paymentMethodId } = await request.json();
+    const { visitIntentId, paymentMethodId, confirmAfter3DS } = await request.json();
 
-    if (!visitIntentId || !paymentMethodId) {
+    if (!visitIntentId) {
       return NextResponse.json(
-        { error: "visitIntentId and paymentMethodId are required" },
+        { error: "visitIntentId is required" },
+        { status: 400 }
+      );
+    }
+
+    // After 3DS completes on client, verify the intent reached requires_capture
+    if (confirmAfter3DS) {
+      const verified = await stripe.paymentIntents.retrieve(visitIntentId);
+      console.log(`[ConfirmVisitHold] post-3DS verify ${visitIntentId} → ${verified.status}`);
+      if (verified.status === "requires_capture" || verified.status === "succeeded") {
+        return NextResponse.json({ success: true, visitIntentId, status: verified.status });
+      }
+      return NextResponse.json(
+        { error: `3DS completed but hold not placed. Status: ${verified.status}`, code: "authentication_required" },
+        { status: 402 }
+      );
+    }
+
+    if (!paymentMethodId) {
+      return NextResponse.json(
+        { error: "paymentMethodId is required" },
         { status: 400 }
       );
     }
 
     // Confirm the visit fee hold using the same payment method
+    // use_stripe_sdk: true enables embedded 3DS flow (handleNextAction on client)
     const visitIntent = await stripe.paymentIntents.confirm(visitIntentId, {
       payment_method: paymentMethodId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://patient.medazonhealth.com"}/success`,
+      use_stripe_sdk: true,
     });
 
     console.log(`[ConfirmVisitHold] ${visitIntentId} → status: ${visitIntent.status}`);
 
-    // requires_capture = hold placed successfully, funds verified
+    // SUCCESS: hold placed, funds verified
     if (visitIntent.status === "requires_capture") {
       return NextResponse.json({ success: true, visitIntentId, status: visitIntent.status });
     }
@@ -48,13 +70,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, visitIntentId, status: visitIntent.status });
     }
 
-    // Requires action (3DS etc.)
+    // 3DS REQUIRED: return clientSecret so client can call stripe.handleNextAction()
+    // After client completes 3DS, it must call this endpoint again with confirmAfter3DS: true
     if (visitIntent.status === "requires_action") {
       return NextResponse.json({
         success: false,
         requiresAction: true,
         clientSecret: visitIntent.client_secret,
-      });
+        visitIntentId,
+      }, { status: 200 }); // 200 so client reads body — not a failure, just an action needed
+    }
+
+    // requires_payment_method = card declined during confirm
+    if (visitIntent.status === "requires_payment_method") {
+      return NextResponse.json(
+        { error: "Payment declined. Please try a different card.", code: "card_declined" },
+        { status: 402 }
+      );
     }
 
     return NextResponse.json(

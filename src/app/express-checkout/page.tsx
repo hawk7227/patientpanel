@@ -406,6 +406,21 @@ function Step2PaymentForm({
           handleStripeError({ code: "authentication_required", message: actionError.message });
           return;
         }
+        // 3DS passed — re-verify hold actually landed on server
+        const verifyRes = await fetch("/api/confirm-visit-hold", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitIntentId, confirmAfter3DS: true }),
+        });
+        const verifyResult = await verifyRes.json();
+        if (!verifyRes.ok || !verifyResult.success) {
+          await fetch("/api/cancel-booking-hold", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingIntentId: result.paymentIntent.id }),
+          }).catch(() => {});
+          setIsProcessing(false);
+          handleStripeError({ code: verifyResult.code || "authentication_required", message: verifyResult.error });
+          return;
+        }
       }
 
       setProgress(66); setStatusText("Confirming booking...");
@@ -622,6 +637,21 @@ function Step2PaymentForm({
           }).catch(() => {});
           setIsProcessing(false);
           handleStripeError({ code: "authentication_required", message: actionError.message });
+          return;
+        }
+        // 3DS passed — re-verify hold actually landed on server
+        const verifyRes = await fetch("/api/confirm-visit-hold", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visitIntentId, confirmAfter3DS: true }),
+        });
+        const verifyResult = await verifyRes.json();
+        if (!verifyRes.ok || !verifyResult.success) {
+          await fetch("/api/cancel-booking-hold", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingIntentId: paymentIntent.id }),
+          }).catch(() => {});
+          setIsProcessing(false);
+          handleStripeError({ code: verifyResult.code || "authentication_required", message: verifyResult.error });
           return;
         }
       }
