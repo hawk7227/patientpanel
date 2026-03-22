@@ -395,7 +395,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('cold-flu')} className="group flex flex-col items-center justify-start bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <BarChart2 className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">General Illness</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Just not feeling well</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Fatigue</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Body aches</span></div>
@@ -404,7 +404,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('weight-loss')} className="group flex flex-col items-center justify-start bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Zap className="w-5 h-5 text-teal-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Weight Management</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Semaglutide</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Tirzepatide</span></div>
                        </div>
@@ -412,7 +412,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('anxiety')} className="group flex flex-col items-center justify-start bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Heart className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Mental Health</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>ADHD</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Anxiety</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Stress</span></div>
@@ -423,7 +423,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('uti')} className="group flex flex-col items-center justify-start bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Zap className="w-5 h-5 text-red-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">UTI & Urinary Care</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>UTI</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Bladder infection</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Frequent urination</span></div>
@@ -432,7 +432,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-start bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Heart className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Women&apos;s Intimate Health</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>BV</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Yeast infection</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Vaginal concerns</span></div>
@@ -441,7 +441,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('std')} className="group flex flex-col items-center justify-start bg-rose-500/10 hover:bg-white/5 border border-rose-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Shield className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">STD Testing & Treatment</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>All STD-related concerns</span></div>
                        </div>
                      </button>
@@ -450,7 +450,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('skin')} className="group flex flex-col items-center justify-start bg-orange-500/10 hover:bg-white/5 border border-orange-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Zap className="w-5 h-5 text-orange-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Skin & Dermatology</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Acne</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Rashes</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Irritation</span></div>
@@ -459,7 +459,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('mens-health')} className="group flex flex-col items-center justify-start bg-cyan-500/10 hover:bg-white/5 border border-cyan-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Shield className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Men&apos;s Health</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>ED</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Hair loss</span></div>
                        </div>
@@ -467,7 +467,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('refill')} className="group flex flex-col items-center justify-start bg-green-500/10 hover:bg-white/5 border border-green-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Lightbulb className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Prescription & Refills</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Rx refill</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Medication continuation</span></div>
                        </div>
@@ -477,7 +477,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('cold-flu')} className="group flex flex-col items-center justify-start bg-sky-500/10 hover:bg-white/5 border border-sky-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <BarChart2 className="w-5 h-5 text-sky-400 group-hover:scale-110 transition-transform flex-shrink-0 rotate-90" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Respiratory</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Cough</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Sore throat</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Congestion</span></div>
@@ -487,7 +487,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('other')} className="group flex flex-col items-center justify-start bg-violet-500/10 hover:bg-white/5 border border-violet-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Lightbulb className="w-5 h-5 text-violet-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Not Sure?</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Uncertainty</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Symptom confusion</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Anxiety-driven</span></div>
@@ -496,7 +496,7 @@ export default function AssessmentPageContent() {
                      <button onClick={() => handleConditionClick('followup')} className="group flex flex-col items-center justify-start bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <Heart className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">Follow-Up Care</div>
-                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-center w-full">
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] items-start w-full">
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Ongoing symptoms</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Previous visit</span></div>
                          <div className="flex items-start gap-0.5 text-left justify-start"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Treatment adjustments</span></div>
