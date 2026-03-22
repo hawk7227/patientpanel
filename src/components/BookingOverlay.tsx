@@ -75,7 +75,7 @@ function getAZNowMins(): number {
   } catch { return new Date().getHours()*60+new Date().getMinutes(); }
 }
 function getSlotBadge(t12:string, day:Date): {label:string;color:string}|null {
-  if(day.getDay()===0||day.getDay()===6) return {label:"Weekend Rate",color:"#f59e0b"};
+  if(day.getDay()===0||day.getDay()===6) return {label:"Weekend Rate",color:"#f97316"};
   const h = parseInt(to24(t12).split(":")[0]);
   if(h>=17&&t12!=="5:00 PM") return {label:"After Hours",color:"#f97316"};
   return null;
@@ -727,13 +727,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         return (
                           <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
                             padding:badge?"6px 4px":"10px 4px",borderRadius:9,cursor:"pointer",
-                            border:isAct?"2px solid #16A34A":badge?`2px solid ${badge.color}60`:"1.5px solid rgba(255,255,255,.1)",
-                            background:isAct?"#16A34A":badge?"rgba(26,17,8,.9)":"rgba(255,255,255,.05)",
+                            border:isAct?"2px solid #16A34A":badge?"2px solid rgba(249,115,22,.55)":"1.5px solid rgba(255,255,255,.1)",
+                            background:isAct?"#16A34A":badge?"rgba(22,13,4,.95)":"rgba(255,255,255,.05)",
                             color:isAct?"#fff":badge?"#fff":"#e2e8f0",fontSize:13,fontWeight:700,
                             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            {badge && <span style={{fontSize:8,fontWeight:800,color:isAct?"#fff":badge.color,lineHeight:1,letterSpacing:".02em"}}>{badge.label}</span>}
+                            {badge && <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"#f97316",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>{badge.label}</span>}
                             <span>{slot}</span>
                             {badge && <span style={{fontSize:8,fontWeight:700,color:isAct?"#d1fae5":"#4ade80",lineHeight:1}}>I'm available</span>}
                           </button>
