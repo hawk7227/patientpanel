@@ -779,9 +779,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                 {/* Selected summary */}
                 {calDay && calTime && (
-                  <div style={{marginTop:8,padding:"8px 10px",background:"rgba(45,212,160,.08)",
-                    borderRadius:8,border:"1px solid rgba(45,212,160,.25)"}}>
-                    <span style={{fontSize:12,color:"#2dd4a0",fontWeight:700}}>
+                  <div style={{marginTop:8,padding:"10px 12px",background:"rgba(45,212,160,.08)",
+                    borderRadius:8,border:"1px solid rgba(45,212,160,.25)",overflow:"hidden"}}>
+                    <span style={{
+                      fontSize:"clamp(13px,4vw,18px)",
+                      color:"#2dd4a0",fontWeight:800,
+                      whiteSpace:"nowrap",
+                      display:"block",
+                      letterSpacing:"-0.01em",
+                    }}>
                       ✓ {FULL_DAYS[new Date(calDay+"T12:00:00").getDay()]}, {SHORT_MO[new Date(calDay+"T12:00:00").getMonth()]} {new Date(calDay+"T12:00:00").getDate()} @ {formatTime(calTime)}
                     </span>
                   </div>
