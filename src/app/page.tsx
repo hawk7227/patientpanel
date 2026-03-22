@@ -367,56 +367,8 @@ export default function AssessmentPageContent() {
                 </div>
               </div>
 
-              {/* FAST TREATMENT NOW OPTIONS — visit cards grid */}
-              <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
-                <h2 className="text-white font-black text-center mb-6" style={{ fontSize: 'clamp(16px,3.5vw,22px)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  <span className="block text-teal-400">RIGHT NOW</span>
-                  <span className="block">TREATMENT OPTIONS</span>
-                </h2>
-                <VisitCards onCardClick={(type) => handleConditionClick(type)} />
-                {overlayOpen && (
-                  <BookingOverlay
-                    visitType={overlayVisitType}
-                    onClose={() => setOverlayOpen(false)}
-                  />
-                )}
-              </div>
-
-            </div>
-          </div>
-
-          {/* CTA + Email + Return Patient */}
-          <div className="mb-4">
-            <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
-          </div>
-
-          {/* Trust bar */}
-          <div className="flex items-center justify-center text-gray-400" style={{ fontSize: "clamp(11px,3vw,13px)" }}>
-            <span className="flex items-center gap-1.5"><Users size={13} className="text-teal-400 flex-shrink-0" /> Same Provider Every Visit</span>
-          </div>
-
-        </div>
-      </section>
-
-      {/* SECTION 4+: STATS + CONDITIONS + REST — unchanged from original */}
-      <section className="relative px-4 pb-16 overflow-hidden">
-        <div className="max-w-5xl mx-auto text-center">
-
-           <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-8">
-             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
-               <p className="text-teal-400 font-black text-lg">2 min</p>
-               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Avg. Intake</p>
-             </div>
-             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
-               <p className="text-orange-400 font-black text-lg">1-2 hr</p>
-               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Rx to Pharmacy</p>
-             </div>
-             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
-               <p className="text-white font-black text-lg">$0</p>
-               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Hidden Fees</p>
-             </div>
-           </div>
-
+              {/* WHAT WE TREAT — moved above visit cards */}
+              <div className="px-4 pb-4">
            <div className="relative max-w-4xl mx-auto">
               <div className="absolute -inset-1 bg-gradient-to-b from-teal-500/20 to-teal-500/5 rounded-[35px] blur-lg opacity-60" />
               <div className="relative bg-[#0a0f0d] border border-teal-500/40 rounded-[30px] p-6 md:p-10 shadow-2xl">
@@ -480,6 +432,57 @@ export default function AssessmentPageContent() {
                  <p className="text-center text-sm text-gray-500 mb-6">Treated from home. Prescription to your pharmacy. No one has to know.</p>
                  <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
               </div>
+              </div>
+              </div>
+
+              {/* FAST TREATMENT NOW OPTIONS — visit cards grid */}
+              <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
+                <h2 className="text-white font-black text-center mb-6" style={{ fontSize: 'clamp(16px,3.5vw,22px)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                  <span className="block text-teal-400">RIGHT NOW</span>
+                  <span className="block">TREATMENT OPTIONS</span>
+                </h2>
+                <VisitCards onCardClick={(type) => handleConditionClick(type)} />
+                {overlayOpen && (
+                  <BookingOverlay
+                    visitType={overlayVisitType}
+                    onClose={() => setOverlayOpen(false)}
+                  />
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* CTA + Email + Return Patient */}
+          <div className="mb-4">
+            <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
+          </div>
+
+          {/* Trust bar */}
+          <div className="flex items-center justify-center text-gray-400" style={{ fontSize: "clamp(11px,3vw,13px)" }}>
+            <span className="flex items-center gap-1.5"><Users size={13} className="text-teal-400 flex-shrink-0" /> Same Provider Every Visit</span>
+          </div>
+
+        </div>
+      </section>
+
+      {/* SECTION 4+: STATS + CONDITIONS + REST — unchanged from original */}
+      <section className="relative px-4 pb-16 overflow-hidden">
+        <div className="max-w-5xl mx-auto text-center">
+
+           <div className="grid grid-cols-3 gap-3 max-w-md mx-auto mb-8">
+             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
+               <p className="text-teal-400 font-black text-lg">2 min</p>
+               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Avg. Intake</p>
+             </div>
+             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
+               <p className="text-orange-400 font-black text-lg">1-2 hr</p>
+               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Rx to Pharmacy</p>
+             </div>
+             <div className="bg-white/[0.02] rounded-xl py-3 px-2 border border-white/5 text-center">
+               <p className="text-white font-black text-lg">$0</p>
+               <p className="text-gray-500 text-[9px] uppercase tracking-wide font-medium">Hidden Fees</p>
+             </div>
            </div>
 
            <div className="flex flex-wrap justify-center gap-6 mt-8 text-xs text-gray-400">
