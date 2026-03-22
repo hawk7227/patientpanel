@@ -806,22 +806,23 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           <div style={{
             display:"flex",gap:8,padding:"12px 16px 16px",
             paddingBottom:"max(16px,env(safe-area-inset-bottom))",
-            borderTop:"1px solid #F3F4F6",marginTop:12,
-            background:"#FFFFFF",
+            borderTop:isCalStep?"1px solid rgba(255,255,255,.06)":"1px solid #F3F4F6",marginTop:12,
+            background:isCalStep?"#0d1117":"#FFFFFF",
             position:"sticky",bottom:0,zIndex:2,
           }}>
             <button onClick={goBack} style={{
               flex:1,height:48,borderRadius:12,
-              background:"#FFFFFF",border:"1.5px solid #E5E7EB",
-              color:"#374151",fontSize:14,fontWeight:700,cursor:"pointer",
+              background:isCalStep?"#16A34A":"#FFFFFF",
+              border:isCalStep?"none":"1.5px solid #E5E7EB",
+              color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
             }}>← Back</button>
             <button onClick={goContinue} disabled={contDisabled} style={{
               flex:2,height:48,borderRadius:12,border:"none",
               background:contDisabled?(isCalStep?"rgba(255,255,255,.08)":"#F3F4F6"):isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
-              color:contDisabled?"#9CA3AF":"#fff",
+              color:contDisabled?(isCalStep?"rgba(255,255,255,.3)":"#9CA3AF"):"#fff",
               fontSize:14,fontWeight:900,
               cursor:contDisabled?"default":"pointer",
-              boxShadow:contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)",
+              boxShadow:contDisabled?"none":isCalStep?"0 4px 16px rgba(249,115,22,0.35)":"0 4px 12px rgba(22,163,74,0.3)",
               transition:"all .2s",
             }}>
               {step===totalSteps ? "Book My Visit →" : "Continue →"}
@@ -829,8 +830,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           </div>
 
           {/* Trust footer */}
-          <div style={{textAlign:"center",paddingBottom:"max(12px,env(safe-area-inset-bottom))",paddingTop:6,background:"#FFFFFF"}}>
-            <span style={{fontSize:10,color:"#9CA3AF",letterSpacing:".02em"}}>
+          <div style={{textAlign:"center",paddingBottom:"max(12px,env(safe-area-inset-bottom))",paddingTop:6,background:isCalStep?"#0d1117":"#FFFFFF"}}>
+            <span style={{fontSize:10,color:isCalStep?"rgba(255,255,255,.25)":"#9CA3AF",letterSpacing:".02em"}}>
               HIPAA Secure · Licensed Providers · No subscription
             </span>
           </div>
