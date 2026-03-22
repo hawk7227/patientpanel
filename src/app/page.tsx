@@ -376,9 +376,9 @@ export default function AssessmentPageContent() {
                    What We Treat — <span className="text-teal-400">Privately and Discreetly</span>
                  </h3>
 
-                 {/* 12-panel carousel — 3 across, vertical snap scroll, peek of next row */}
+                 {/* 12-panel carousel — 3 across, 4 rows, vertical snap scroll */}
                  <div style={{
-                   height: "calc(var(--card-h, 140px) + 28px)",
+                   height: "calc(var(--card-h, 160px) + 24px)",
                    overflowY: "scroll",
                    overflowX: "hidden",
                    scrollSnapType: "y mandatory",
@@ -388,97 +388,126 @@ export default function AssessmentPageContent() {
                    marginBottom: 16,
                  }}>
                    <style>{`
-                     .snap-carousel::-webkit-scrollbar { display: none; }
-                     :root { --card-h: 140px; }
-                     @media (max-width: 380px) { :root { --card-h: 128px; } }
+                     :root { --card-h: 160px; }
+                     @media (max-width: 380px) { :root { --card-h: 144px; } }
                    `}</style>
-                   {/* Row 1 — default visible */}
-                   <div className="snap-carousel" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, scrollSnapAlign: "start", paddingBottom: 8 }}>
-                     {/* 1 — General Illness */}
-                     <button onClick={() => handleConditionClick('cold-flu')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, scrollSnapAlign: "start", paddingBottom: 8, }}>
+                     <button onClick={() => handleConditionClick('cold-flu')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <BarChart2 className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">General Illness</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">• Just not feeling well<br/>• Fatigue<br/>• Body aches</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">General Illness</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Just not feeling well</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Fatigue</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Body aches</span></div>
+                       </div>
                      </button>
-                     {/* 2 — Weight Management */}
-                     <button onClick={() => handleConditionClick('weight-loss')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('weight-loss')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-teal-500/10 hover:bg-white/5 border border-teal-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Zap className="w-5 h-5 text-teal-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Weight Management</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">Semaglutide, tirzepatide</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Weight Management</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Semaglutide</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Tirzepatide</span></div>
+                       </div>
                      </button>
-                     {/* 3 — Mental Health */}
-                     <button onClick={() => handleConditionClick('anxiety')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('anxiety')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-purple-500/10 hover:bg-white/5 border border-purple-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Heart className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Mental Health</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">ADHD, anxiety, stress</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Mental Health</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>ADHD</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Anxiety</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Stress</span></div>
+                       </div>
                      </button>
                    </div>
-                   {/* Row 2 */}
-                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, scrollSnapAlign: "start", paddingBottom: 8 }}>
-                     {/* 4 — UTI & Urinary Care */}
-                     <button onClick={() => handleConditionClick('uti')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, scrollSnapAlign: "start", paddingBottom: 8, }}>
+                     <button onClick={() => handleConditionClick('uti')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-red-500/10 hover:bg-white/5 border border-red-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Zap className="w-5 h-5 text-red-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">UTI & Urinary Care</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">UTI, bladder infection, frequent urination</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">UTI & Urinary Care</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>UTI</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Bladder infection</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Frequent urination</span></div>
+                       </div>
                      </button>
-                     {/* 5 — Women's Intimate Health */}
-                     <button onClick={() => handleConditionClick('std')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('std')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-pink-500/10 hover:bg-white/5 border border-pink-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Heart className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Women&apos;s Intimate Health</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">BV, yeast infection, vaginal concerns</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Women&apos;s Intimate Health</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>BV</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Yeast infection</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Vaginal concerns</span></div>
+                       </div>
                      </button>
-                     {/* 6 — STD Testing & Treatment */}
-                     <button onClick={() => handleConditionClick('std')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-rose-500/10 hover:bg-white/5 border border-rose-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('std')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-rose-500/10 hover:bg-white/5 border border-rose-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Shield className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">STD Testing & Treatment</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">All STD-related concerns</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">STD Testing & Treatment</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>All STD-related concerns</span></div>
+                       </div>
                      </button>
                    </div>
-                   {/* Row 3 */}
-                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, scrollSnapAlign: "start", paddingBottom: 8 }}>
-                     {/* 7 — Skin & Dermatology */}
-                     <button onClick={() => handleConditionClick('skin')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-orange-500/10 hover:bg-white/5 border border-orange-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, scrollSnapAlign: "start", paddingBottom: 8, }}>
+                     <button onClick={() => handleConditionClick('skin')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-orange-500/10 hover:bg-white/5 border border-orange-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Zap className="w-5 h-5 text-orange-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Skin & Dermatology</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">Acne, rashes, irritation</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Skin & Dermatology</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Acne</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Rashes</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Irritation</span></div>
+                       </div>
                      </button>
-                     {/* 8 — Men's Health */}
-                     <button onClick={() => handleConditionClick('mens-health')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-cyan-500/10 hover:bg-white/5 border border-cyan-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('mens-health')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-cyan-500/10 hover:bg-white/5 border border-cyan-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Shield className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Men&apos;s Health</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">ED, hair loss</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Men&apos;s Health</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>ED</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Hair loss</span></div>
+                       </div>
                      </button>
-                     {/* 9 — Prescription & Refills */}
-                     <button onClick={() => handleConditionClick('refill')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-green-500/10 hover:bg-white/5 border border-green-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('refill')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-green-500/10 hover:bg-white/5 border border-green-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Lightbulb className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Prescription & Refills</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">Rx refill, medication continuation</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Prescription & Refills</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Rx refill</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Medication continuation</span></div>
+                       </div>
                      </button>
                    </div>
-                   {/* Row 4 */}
-                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, scrollSnapAlign: "start" }}>
-                     {/* 10 — Respiratory / Mild Illness */}
-                     <button onClick={() => handleConditionClick('cold-flu')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-sky-500/10 hover:bg-white/5 border border-sky-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
-                       <BarChart2 className="w-5 h-5 text-sky-400 group-hover:scale-110 transition-transform rotate-90 flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Respiratory / Mild Illness</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">Cough, sore throat, congestion, sinus pressure</div>
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, scrollSnapAlign: "start",  }}>
+                     <button onClick={() => handleConditionClick('cold-flu')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-sky-500/10 hover:bg-white/5 border border-sky-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
+                       <BarChart2 className="w-5 h-5 text-sky-400 group-hover:scale-110 transition-transform flex-shrink-0 rotate-90" />
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Respiratory</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Cough</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Sore throat</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Congestion</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Sinus pressure</span></div>
+                       </div>
                      </button>
-                     {/* 11 — Not Sure What This Is */}
-                     <button onClick={() => handleConditionClick('other')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-violet-500/10 hover:bg-white/5 border border-violet-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('other')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-violet-500/10 hover:bg-white/5 border border-violet-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Lightbulb className="w-5 h-5 text-violet-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Not Sure What This Is?</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">Uncertainty, symptom confusion, anxiety-driven</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Not Sure?</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Uncertainty</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Symptom confusion</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Anxiety-driven</span></div>
+                       </div>
                      </button>
-                     {/* 12 — Follow-Up Care */}
-                     <button onClick={() => handleConditionClick('followup')} style={{ height: "var(--card-h, 140px)" }} className="group flex flex-col items-center justify-center gap-1.5 bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl px-2 py-3 transition-all text-center">
+                     <button onClick={() => handleConditionClick('followup')} style={{ height: "var(--card-h, 160px)" }} className="group flex flex-col items-start justify-start bg-indigo-500/10 hover:bg-white/5 border border-indigo-500/30 hover:border-white/20 rounded-xl px-2 pt-2.5 pb-2 transition-all text-left w-full overflow-hidden">
                        <Heart className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform flex-shrink-0" />
-                       <div className="text-white font-semibold text-[11px] leading-tight">Follow-Up Care</div>
-                       <div className="text-[9px] text-gray-500 leading-tight">Ongoing symptoms, previous visit follow-up, treatment adjustments</div>
+                       <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 w-full">Follow-Up Care</div>
+                       <div className="text-[8px] text-gray-300 font-semibold leading-tight flex flex-col gap-[2px] w-full">
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Ongoing symptoms</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Previous visit</span></div>
+                         <div className="flex items-start gap-0.5 text-left"><span className="text-teal-400 font-black text-[8px] flex-shrink-0 mt-[2px]">✦</span><span>Treatment adjustments</span></div>
+                       </div>
                      </button>
                    </div>
                  </div>
 
                  {/* Scroll indicator dots */}
+                                  {/* Scroll indicator dots */}
+                                  {/* Scroll indicator dots */}
                  <div className="flex justify-center gap-1.5 mb-4">
                    {[0,1,2,3].map(i => (
                      <div key={i} className={`rounded-full transition-all ${i===0 ? "w-4 h-1.5 bg-teal-400" : "w-1.5 h-1.5 bg-white/20"}`} />
