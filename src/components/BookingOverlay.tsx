@@ -92,7 +92,6 @@ function filterSlotsForDay(day:Date, apiSlots:string[]): string[] {
 
 // ─── Main component ───────────────────────────────────────────
 export default function BookingOverlay({ visitType, onClose }: BookingOverlayProps) {
-  const col = VISIT_COLORS[visitType] || VISIT_COLORS.async;
   const [mounted, setMounted] = useState(false);
 
   // Step state
@@ -105,6 +104,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
   // Answers
   const [symptoms, setSymptoms]               = useState("");
+  const [selectedVisitType, setSelectedVisitType] = useState<string|null>(null);
+  const col = VISIT_COLORS[selectedVisitType || visitType] || VISIT_COLORS.async;
   const [reason, setReason]                   = useState("");
   const [pharmaQuery, setPharmaQuery]          = useState("");
   const [pharmacy, setPharmacy]               = useState("");
@@ -269,7 +270,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       if(step===1) { if(!reason.trim()) return; setStep(2); return; }
       navigateToCheckout(); return;
     }
-    if(step===1) { if(symptoms.trim().length<10) { symRef.current?.focus(); return; } setStep(2); return; }
+    if(step===1) { if(symptoms.trim().length<3 || !selectedVisitType) return; setStep(2); return; }
     if(step===2) { if(!pharmacy) return; setStep(3); return; }
     navigateToCheckout();
   };
@@ -281,7 +282,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         reason: isReturning ? reason : symptoms,
         chiefComplaint: isReturning ? reason : symptoms,
         symptomsDone: true, pharmacy, pharmacyAddress,
-        visitType, visitTypeChosen: true, visitTypeConfirmed: true,
+        visitType: selectedVisitType || visitType, visitTypeChosen: true, visitTypeConfirmed: true,
         appointmentDate: calDay, appointmentTime: calTime,
         confirmReviewed: true,
       }));
@@ -292,7 +293,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const progressPct = Math.round((step / totalSteps) * 100);
   const fieldBorder = (valid:boolean) => `2px solid ${valid ? "rgba(45,212,160,.55)" : col.border}`;
   const contDisabled =
-    (step===1 && !isReturning && symptoms.trim().length < 10) ||
+    (step===1 && !isReturning && (symptoms.trim().length < 3 || !selectedVisitType)) ||
     (step===1 && isReturning  && !reason.trim()) ||
     (step===2 && !isReturning && !pharmacy) ||
     (isCalStep && (!calDay || !calTime));
@@ -401,17 +402,54 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   placeholder="e.g., Burning during urination for 3 days..."
                   style={{
                     width:"100%",height:120,background:"#F0FDF4",
-                    border:symptoms.trim().length>=10?"2px solid #16A34A":"1.5px solid #BBF7D0",
+                    border:symptoms.trim().length>=3?"2px solid #16A34A":"1.5px solid #BBF7D0",
                     borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                     resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
                   }}
                 />
-                <div style={{fontSize:12,color:symRem>0?"#6B7280":"#16A34A",fontWeight:symRem===0?700:400}}>
-                  {symRem>0
-                    ? <><b style={{color:"#16A34A",fontSize:14}}>{symRem}</b> more characters needed</>
-                    : "✓ Ready to continue"
-                  }
-                </div>
+                {/* Line 1+2: char counter below 3 chars, visit type selector at 3+ */}
+                {symptoms.trim().length < 3 ? (
+                  <div style={{fontSize:12,color:"#6B7280"}}>
+                    <b style={{color:"#16A34A",fontSize:14}}>{Math.max(0,3-symptoms.trim().length)}</b> more characters needed
+                  </div>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:6,animation:"stepFade .15s ease"}}>
+                    <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>Select visit type</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+                      {(["async","sms","refill","video","phone","instant"] as const).map((vt) => {
+                        const vtColors: Record<string,{bg:string;border:string;text:string;activeBg:string}> = {
+                          async:   {bg:"transparent",border:"rgba(236,72,153,0.3)",  text:"#f472b6", activeBg:"#ec4899"},
+                          sms:     {bg:"transparent",border:"rgba(168,85,247,0.3)",  text:"#c084fc", activeBg:"#a855f7"},
+                          refill:  {bg:"transparent",border:"rgba(34,197,94,0.3)",   text:"#4ade80", activeBg:"#22c55e"},
+                          video:   {bg:"transparent",border:"rgba(59,130,246,0.3)",  text:"#60a5fa", activeBg:"#3b82f6"},
+                          phone:   {bg:"transparent",border:"rgba(6,182,212,0.3)",   text:"#22d3ee", activeBg:"#0891b2"},
+                          instant: {bg:"transparent",border:"rgba(249,115,22,0.3)",  text:"#fb923c", activeBg:"#f97316"},
+                        };
+                        const vtLabels: Record<string,string> = {
+                          async:"Async", sms:"SMS", refill:"Rx Refill",
+                          video:"Video", phone:"Phone", instant:"Instant",
+                        };
+                        const isSelected = selectedVisitType === vt;
+                        const c = vtColors[vt];
+                        return (
+                          <button key={vt} onClick={()=>setSelectedVisitType(vt)} style={{
+                            padding:"7px 4px",
+                            borderRadius:8,
+                            border:`1.5px solid ${isSelected ? c.activeBg : c.border}`,
+                            background:isSelected ? c.activeBg : "rgba(255,255,255,0.05)",
+                            color:isSelected ? "#fff" : c.text,
+                            fontSize:11,fontWeight:700,
+                            cursor:"pointer",
+                            transition:"all .15s",
+                            boxShadow:isSelected ? `0 2px 8px ${c.border}` : "none",
+                          }}>
+                            {vtLabels[vt]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -708,7 +746,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                           <div style={{fontSize:11,color:"#9CA3AF",padding:"6px 2px"}}>Loading…</div>
                         ) : (
                           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                            {nextDaySlots.map((slot,i)=>{
+                            {nextDaySlots.map((slot:string,i:number)=>{
                               const t24n = to24(slot);
                               const isActN = calTime===t24n && calDay===isoDate(nextDayObj!);
                               return (
