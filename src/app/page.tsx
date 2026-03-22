@@ -481,7 +481,7 @@ export default function AssessmentPageContent() {
                      :root { --row-h: 148px; }
                      @media (max-width: 380px) { :root { --row-h: 134px; } }
                    `}</style>
-                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, scrollSnapAlign: "start", paddingBottom: 8, }}>
+                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, scrollSnapAlign: "start", paddingBottom: 8, marginTop: -30 }}>
                      <button onClick={() => handleConditionClick('cold-flu')} className="group flex flex-col items-center justify-start bg-blue-500/10 hover:bg-white/5 border border-blue-500/30 hover:border-white/20 rounded-xl px-2 py-2.5 transition-all text-center w-full overflow-hidden">
                        <BarChart2 className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform flex-shrink-0" />
                        <div className="text-white font-bold text-[10px] leading-tight mt-1 mb-1 text-center w-full">General Illness</div>
