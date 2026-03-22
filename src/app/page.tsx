@@ -136,10 +136,10 @@ function PairedCTABlock({
       <Link
         href="/express-checkout"
         onClick={handleCTAClick}
-        className="bg-orange-500 text-white font-bold px-8 py-3.5 rounded-xl md:text-xl md:px-10 md:py-5 hover:bg-orange-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center whitespace-nowrap"
-        style={{ fontSize: 'clamp(13px, 3.8vw, 20px)' }}
+        className="bg-orange-500 text-white font-bold px-6 py-4 rounded-xl hover:bg-orange-400 transition-all flex items-center gap-2 w-full justify-center text-center leading-tight"
+        style={{ fontSize: 'clamp(15px, 4.2vw, 20px)', letterSpacing: '-0.01em' }}
       >
-        {showSteps ? "Book Now — $1.89 Reserve Fee" : "Book My 1st Visit — $1.89 Reserve Fee"} <ArrowRight size={20} />
+        {showSteps ? "Book Now — $1.89 Reserve Fee →" : "Book My 1st Visit — $1.89 Reserve Fee →"} <ArrowRight size={20} className="flex-shrink-0" />
       </Link>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
@@ -622,7 +622,6 @@ export default function AssessmentPageContent() {
                    </div>
                  </div>
 
-                 <p className="text-center text-sm text-gray-500 mb-6">Treated from home. Prescription to your pharmacy. No one has to know.</p>
                  <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
               </div>
               </div>
