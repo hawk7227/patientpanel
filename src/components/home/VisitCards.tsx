@@ -152,13 +152,26 @@ function MobilePair({ left, right, onLeft, onRight }: {
 export default function VisitCards({ onCardClick }: { onCardClick: (type: string) => void }) {
   const go = (href: string) => onCardClick(href.split("type=")[1] || "async");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pillsRef  = useRef<HTMLDivElement>(null);
   const [activeRow, setActiveRow] = useState(0);
+  const [scrollActive, setScrollActive] = useState(false);
   const lastRow = useRef(0);
+
+  // Activate scroll only when pills strip is fully visible in viewport
+  useEffect(() => {
+    const pills = pillsRef.current;
+    if (!pills) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrollActive(entry.isIntersecting),
+      { threshold: 0.9 }
+    );
+    observer.observe(pills);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    // Also expose via id for page.tsx indicator
     el.id = "visit-cards-scroll";
     const onScroll = () => {
       const rowH = el.scrollHeight / 3;
@@ -191,7 +204,7 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
         <div
           ref={scrollRef}
           style={{
-            overflowY: "scroll",
+            overflowY: scrollActive ? "scroll" : "hidden",
             overflowX: "hidden",
             scrollSnapType: "y mandatory",
             scrollbarWidth: "none",
@@ -211,7 +224,7 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
         </div>
 
         {/* Title strip — below the scroll container */}
-        <div style={{
+        <div ref={pillsRef} style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
