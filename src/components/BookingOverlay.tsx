@@ -350,7 +350,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
         {/* ── FORM CARD — starts near top ── */}
         <div style={{
-          background:"#FFFFFF",
+          background:isCalStep?"#0B0F14":"#FFFFFF",
           border:"none",
           borderRadius:"20px 20px 0 0",
           boxShadow:"0 -4px 32px rgba(0,0,0,0.18)",
@@ -365,14 +365,14 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           <div style={{
             display:"flex",alignItems:"flex-start",justifyContent:"space-between",
             padding:"14px 16px 0",position:"sticky",top:0,
-            background:"#FFFFFF",zIndex:2,
+            background:isCalStep?"#0B0F14":"#FFFFFF",zIndex:2,
           }}>
             <div style={{flex:1,marginRight:10}}>
-              <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:"#111827",lineHeight:1.1}}
+              <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:isCalStep?"#FFFFFF":"#111827",lineHeight:1.1}}
                    key={step}>
                 {getStepTitle(step, isReturning)}
               </div>
-              <div style={{fontSize:11,color:"#6B7280",marginTop:3,fontWeight:500}}>
+              <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#6B7280",marginTop:3,fontWeight:500}}>
                 {VISIT_LABELS[visitType]} · Step {step} of {totalSteps}
               </div>
             </div>
@@ -385,7 +385,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           </div>
 
           {/* Progress bar */}
-          <div style={{height:3,background:"#E5E7EB",margin:"10px 16px 0",borderRadius:2}}>
+          <div style={{height:3,background:isCalStep?"rgba(255,255,255,.08)":"#E5E7EB",margin:"10px 16px 0",borderRadius:2}}>
             <div style={{height:"100%",background:"#16A34A",borderRadius:2,width:`${progressPct}%`,transition:"width .35s"}}/>
           </div>
 
@@ -499,7 +499,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 {/* Dropdown — flips above input when keyboard is open */}
                 {showDrop && !pharmacy && (
                   <div style={{
-                    background:"#FFFFFF",
+                    background:isCalStep?"#0B0F14":"#FFFFFF",
                     border:"1px solid #E5E7EB",
                     borderRadius:10,overflow:"hidden",
                     maxHeight:dropUp ? 160 : 220,
@@ -645,7 +645,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
             {/* Calendar (S3 new / S2 returning) */}
             {isCalStep && (
-              <div style={{display:"flex",flexDirection:"column",gap:0,animation:"stepFade .2s ease"}}>
+              <div style={{
+                display:"flex",flexDirection:"column",gap:0,animation:"stepFade .2s ease",
+                background:"#0B0F14",
+                borderRadius:12,
+                padding:"12px 10px",
+                margin:"0 -4px",
+              }}>
                 {/* Day strip */}
                 <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:8}}>
                   <button
@@ -812,7 +818,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
             }}>← Back</button>
             <button onClick={goContinue} disabled={contDisabled} style={{
               flex:2,height:48,borderRadius:12,border:"none",
-              background:contDisabled?"#F3F4F6":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
+              background:contDisabled?(isCalStep?"rgba(255,255,255,.08)":"#F3F4F6"):"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
               color:contDisabled?"#9CA3AF":"#fff",
               fontSize:14,fontWeight:900,
               cursor:contDisabled?"default":"pointer",
