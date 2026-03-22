@@ -124,6 +124,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [calOffset, setCalOffset] = useState(0);
   const [calDay, setCalDay]       = useState("");
   const [calTime, setCalTime]     = useState("");
+  const [calPulseDay, setCalPulseDay]   = useState(false);
+  const [calPulseTime, setCalPulseTime] = useState(false);
+  const [calMissingMsg, setCalMissingMsg] = useState("");
   const [apiSlots, setApiSlots]   = useState<string[]>([]);
   const [apiLoading, setApiLoading] = useState(false);
   const [nextDaySlots, setNextDaySlots]   = useState<string[]>([]);
@@ -296,7 +299,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     (step===1 && !isReturning && (symptoms.trim().length < 3 || !selectedVisitType)) ||
     (step===1 && isReturning  && !reason.trim()) ||
     (step===2 && !isReturning && !pharmacy) ||
-    (isCalStep && (!calDay || !calTime));
+    (isCalStep && false); // cal step uses pulse validation, not disabled state
 
   if(!mounted) return null;
 
@@ -315,6 +318,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         @keyframes stepFade      { from{opacity:0;transform:translateY(4px)}  to{opacity:1;transform:translateY(0)} }
         @keyframes slotIn        { from{opacity:0;transform:scale(.97)}        to{opacity:1;transform:scale(1)} }
         @keyframes spin          { to{transform:rotate(360deg)} }
+        @keyframes calPulse      { 0%,100%{opacity:1;transform:scale(1)} 30%{opacity:.5;transform:scale(.97)} 60%{opacity:1;transform:scale(1.01)} }
       `}</style>
 
       {/*
@@ -653,7 +657,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 margin:"0 -4px",
               }}>
                 {/* Day strip */}
-                <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:8}}>
+                <div style={{
+                  display:"flex",alignItems:"center",gap:0,marginBottom:8,
+                  animation:calPulseDay?"calPulse .6s ease":"none",
+                  borderRadius:8,
+                  outline:calPulseDay?"2px solid rgba(249,115,22,.6)":"2px solid transparent",
+                  transition:"outline .15s",
+                }}>
                   <button
                     onClick={()=>{setCalOffset(Math.max(0,calOffset-VISIBLE));setCalDay("");setCalTime("");}}
                     disabled={calOffset===0}
@@ -670,7 +680,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                       const isToday = isSameDay(day,today);
                       const isTom   = isSameDay(day,tomorrow);
                       return (
-                        <button key={iso} onClick={()=>fetchSlots(iso)} style={{
+                        <button key={iso} onClick={()=>{fetchSlots(iso);setCalMissingMsg("");}} style={{
                           flex:1,display:"flex",flexDirection:"column",alignItems:"center",
                           justifyContent:"center",padding:"6px 1px 5px",borderRadius:9,cursor:"pointer",
                           border:isSel?"2px solid #16A34A":isToday?"2px solid rgba(45,212,160,.25)":"2px solid transparent",
@@ -701,8 +711,23 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                 <div style={{height:1,background:"rgba(255,255,255,.08)",marginBottom:8}}/>
 
+                {/* Missing message */}
+                {calMissingMsg ? (
+                  <div style={{
+                    fontSize:11,fontWeight:700,color:"#f97316",
+                    textAlign:"center",padding:"4px 0 6px",
+                    animation:"stepFade .2s ease",
+                  }}>⚠ {calMissingMsg}</div>
+                ) : null}
+
                 {/* Time grid */}
-                <div style={{minHeight:100,maxHeight:260,overflowY:"auto",scrollbarWidth:"none"}}>
+                <div style={{
+                  minHeight:100,maxHeight:260,overflowY:"auto",scrollbarWidth:"none",
+                  animation:calPulseTime?"calPulse .6s ease":"none",
+                  borderRadius:8,
+                  outline:calPulseTime?"2px solid rgba(249,115,22,.6)":"2px solid transparent",
+                  transition:"outline .15s",
+                }}>
                   {!calDay ? (
                     <div style={{display:"flex",alignItems:"center",justifyContent:"center",
                       height:100,color:"rgba(255,255,255,.3)",fontSize:13}}>
@@ -725,7 +750,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         const isAct  = calTime===to24(slot);
                         const badge  = selectedDayObj ? getSlotBadge(slot,selectedDayObj) : null;
                         return (
-                          <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
+                          <button key={slot} onClick={()=>{setCalTime(to24(slot));setCalMissingMsg("");}} style={{
                             padding:badge?"6px 4px":"10px 4px",borderRadius:9,cursor:"pointer",
                             border:isAct?"2px solid #16A34A":badge?"2px solid rgba(249,115,22,.55)":"1.5px solid rgba(255,255,255,.1)",
                             background:isAct?"#16A34A":badge?"rgba(22,13,4,.95)":"rgba(255,255,255,.05)",
@@ -816,14 +841,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               border:isCalStep?"none":"1.5px solid #E5E7EB",
               color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
             }}>← Back</button>
-            <button onClick={goContinue} disabled={contDisabled} style={{
-              flex:2,height:48,borderRadius:12,border:"none",
-              background:contDisabled?(isCalStep?"rgba(255,255,255,.08)":"#F3F4F6"):isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
-              color:contDisabled?(isCalStep?"rgba(255,255,255,.3)":"#9CA3AF"):"#fff",
+            <button onClick={goContinue} disabled={!isCalStep && contDisabled} style={{
+              flex:2,height:48,borderRadius:12,
+              border:isCalStep?(calDay&&calTime?"2.5px solid #16A34A":"2.5px solid rgba(255,255,255,0.5)"):"none",
+              background:(!isCalStep&&contDisabled)?"#F3F4F6":isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
+              color:(!isCalStep&&contDisabled)?"#9CA3AF":"#fff",
               fontSize:14,fontWeight:900,
-              cursor:contDisabled?"default":"pointer",
-              boxShadow:contDisabled?"none":isCalStep?"0 4px 16px rgba(249,115,22,0.35)":"0 4px 12px rgba(22,163,74,0.3)",
-              transition:"all .2s",
+              cursor:(!isCalStep&&contDisabled)?"default":"pointer",
+              boxShadow:isCalStep?(calDay&&calTime?"0 4px 16px rgba(22,163,74,0.4)":"0 4px 16px rgba(249,115,22,0.3)"):(contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)"),
+              transition:"all .25s",
             }}>
               {step===totalSteps ? "Book My Visit →" : "Continue →"}
             </button>
