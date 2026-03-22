@@ -170,6 +170,9 @@ export default function AssessmentPageContent() {
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [overlayVisitType, setOverlayVisitType] = useState("async");
   const pillsRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [carouselRow, setCarouselRow] = useState(0);
+  const lastCarouselRow = useRef(0);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
 
   const [queuePosition, setQueuePosition] = useState(() => {
@@ -224,6 +227,39 @@ export default function AssessmentPageContent() {
     }, delay);
     return () => clearTimeout(t);
   }, [queuePosition]);
+
+  // Carousel scroll tracking + click sound
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const rowHeight = el.scrollHeight / 4;
+      const row = Math.round(el.scrollTop / rowHeight);
+      const clamped = Math.min(3, Math.max(0, row));
+      if (clamped !== lastCarouselRow.current) {
+        lastCarouselRow.current = clamped;
+        setCarouselRow(clamped);
+        // Web Audio API click sound — short tick
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.06);
+          osc.onended = () => ctx.close();
+        } catch {}
+      }
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleConditionClick = (condition: string) => {
     // Map condition/visit-type to canonical visitType key
@@ -378,7 +414,7 @@ export default function AssessmentPageContent() {
 
                  {/* Carousel with vertical scroll indicator on right */}
                  <div style={{ position: "relative", marginBottom: 16 }}>
-                   <div style={{
+                   <div ref={carouselRef} style={{
                      height: "calc(var(--row-h, 148px) + 20px)",
                      overflowY: "scroll",
                      overflowX: "hidden",
@@ -521,7 +557,7 @@ export default function AssessmentPageContent() {
                        <div key={i} style={{
                          flex: 1,
                          borderRadius: 99,
-                         background: i===0 ? "#2dd4a0" : "rgba(255,255,255,0.15)",
+                         background: i===carouselRow ? "#2dd4a0" : "rgba(255,255,255,0.15)",
                          transition: "background .2s",
                        }} />
                      ))}
