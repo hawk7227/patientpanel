@@ -458,7 +458,7 @@ export default function AssessmentPageContent() {
               </div>
 
               {/* WHAT WE TREAT — moved above visit cards */}
-              <div className="px-4 pb-4">
+              <div className="px-4 pb-4 pt-5">
            <div className="relative max-w-4xl mx-auto">
               <div className="absolute -inset-1 bg-gradient-to-b from-teal-500/20 to-teal-500/5 rounded-[35px] blur-lg opacity-60" />
               <div className="relative bg-[#0a0f0d] border border-teal-500/40 rounded-[30px] p-6 md:p-10 shadow-2xl">
