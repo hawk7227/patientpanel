@@ -173,6 +173,9 @@ export default function AssessmentPageContent() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [carouselRow, setCarouselRow] = useState(0);
   const lastCarouselRow = useRef(0);
+  const visitCardsRef = useRef<HTMLDivElement>(null);
+  const [visitCardsRow, setVisitCardsRow] = useState(0);
+  const lastVisitCardsRow = useRef(0);
   const audioCtxRef = useRef<AudioContext|null>(null);
 
   // Unlock AudioContext on first touch — iOS Safari requires user gesture
@@ -292,6 +295,28 @@ export default function AssessmentPageContent() {
     return () => {
       el.removeEventListener("scroll", handleScroll);
     };
+  }, []);
+
+  // Visit cards scroll tracking + snap sound + haptic
+  useEffect(() => {
+    const el = document.getElementById("visit-cards-scroll") as HTMLDivElement | null;
+    if (!el) return;
+    // Store ref for indicator
+    (visitCardsRef as { current: HTMLDivElement|null }).current = el;
+    const handleScroll = () => {
+      const rowHeight = el.scrollHeight / 3;
+      const row = Math.round(el.scrollTop / rowHeight);
+      const clamped = Math.min(2, Math.max(0, row));
+      if (clamped !== lastVisitCardsRow.current) {
+        lastVisitCardsRow.current = clamped;
+        setVisitCardsRow(clamped);
+        playSnapSound();
+        triggerHaptic();
+      }
+    };
+    el.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleConditionClick = (condition: string) => {
@@ -609,7 +634,33 @@ export default function AssessmentPageContent() {
                   <span className="block text-teal-400">RIGHT NOW</span>
                   <span className="block">TREATMENT OPTIONS</span>
                 </h2>
-                <VisitCards onCardClick={(type) => handleConditionClick(type)} />
+                {/* Visit cards — snap scroll with vertical indicator */}
+                <div style={{ position: "relative" }}>
+                  <VisitCards onCardClick={(type) => handleConditionClick(type)} />
+                  {/* Vertical indicator — right side, 3 segments */}
+                  <div className="md:hidden" style={{
+                    position: "absolute",
+                    right: -10,
+                    top: 4,
+                    bottom: 4,
+                    width: 3,
+                    borderRadius: 99,
+                    background: "rgba(255,255,255,0.08)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                    pointerEvents: "none",
+                  }}>
+                    {[0,1,2].map(i => (
+                      <div key={i} style={{
+                        flex: 1,
+                        borderRadius: 99,
+                        background: i===visitCardsRow ? "#2dd4a0" : "rgba(255,255,255,0.15)",
+                        transition: "background .2s",
+                      }} />
+                    ))}
+                  </div>
+                </div>
                 {overlayOpen && (
                   <BookingOverlay
                     visitType={overlayVisitType}

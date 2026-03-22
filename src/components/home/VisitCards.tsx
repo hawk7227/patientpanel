@@ -166,11 +166,29 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
 
   return (
     <>
-      {/* ── MOBILE: 3 unified pair rows ── */}
-      <div className="flex flex-col gap-2 md:hidden">
-        <MobilePair left={CARDS[0]} right={CARDS[1]} onLeft={() => go(CARDS[0].href)} onRight={() => go(CARDS[1].href)} />
-        <MobilePair left={CARDS[2]} right={CARDS[3]} onLeft={() => go(CARDS[2].href)} onRight={() => go(CARDS[3].href)} />
-        <MobilePair left={CARDS[4]} right={CARDS[5]} onLeft={() => go(CARDS[4].href)} onRight={() => go(CARDS[5].href)} />
+      {/* ── MOBILE: snap-scroll 3 rows, indicator passed via ref ── */}
+      <div
+        id="visit-cards-scroll"
+        className="md:hidden"
+        style={{
+          overflowY: "scroll",
+          overflowX: "hidden",
+          scrollSnapType: "y mandatory",
+          scrollbarWidth: "none",
+          WebkitOverflowScrolling: "touch",
+          /* height = first row natural height + peek — set by JS in page.tsx */
+          maxHeight: "76vh",
+        }}
+      >
+        <div style={{ scrollSnapAlign: "start", paddingBottom: 8 }}>
+          <MobilePair left={CARDS[0]} right={CARDS[1]} onLeft={() => go(CARDS[0].href)} onRight={() => go(CARDS[1].href)} />
+        </div>
+        <div style={{ scrollSnapAlign: "start", paddingBottom: 8 }}>
+          <MobilePair left={CARDS[2]} right={CARDS[3]} onLeft={() => go(CARDS[2].href)} onRight={() => go(CARDS[3].href)} />
+        </div>
+        <div style={{ scrollSnapAlign: "start" }}>
+          <MobilePair left={CARDS[4]} right={CARDS[5]} onLeft={() => go(CARDS[4].href)} onRight={() => go(CARDS[5].href)} />
+        </div>
       </div>
 
       {/* ── DESKTOP: 3-col grid, all 6 separate cards ── */}
