@@ -376,17 +376,17 @@ export default function AssessmentPageContent() {
                    What We Treat — <span className="text-teal-400">Privately and Discreetly</span>
                  </h3>
 
-                 {/* 12-panel carousel — 3 across, 4 rows, vertical snap scroll */}
-                 <div style={{
-                   height: "calc(var(--row-h, 148px) + 20px)",
-                   overflowY: "scroll",
-                   overflowX: "hidden",
-                   scrollSnapType: "y mandatory",
-                   scrollbarWidth: "none",
-                   WebkitOverflowScrolling: "touch",
-                   borderRadius: 12,
-                   marginBottom: 16,
-                 }}>
+                 {/* Carousel with vertical scroll indicator on right */}
+                 <div style={{ position: "relative", marginBottom: 16 }}>
+                   <div style={{
+                     height: "calc(var(--row-h, 148px) + 20px)",
+                     overflowY: "scroll",
+                     overflowX: "hidden",
+                     scrollSnapType: "y mandatory",
+                     scrollbarWidth: "none",
+                     WebkitOverflowScrolling: "touch",
+                     borderRadius: 12,
+                   }}>
                    <style>{`
                      :root { --row-h: 148px; }
                      @media (max-width: 380px) { :root { --row-h: 134px; } }
@@ -504,15 +504,30 @@ export default function AssessmentPageContent() {
                      </button>
                    </div>
                  </div>
-
-                 {/* Scroll indicator dots */}
-                                  {/* Scroll indicator dots */}
-                                  {/* Scroll indicator dots */}
-                 <div className="flex justify-center gap-1.5 mb-4">
-                   {[0,1,2,3].map(i => (
-                     <div key={i} className={`rounded-full transition-all ${i===0 ? "w-4 h-1.5 bg-teal-400" : "w-1.5 h-1.5 bg-white/20"}`} />
-                   ))}
+                   {/* Vertical scroll indicator — right side */}
+                   <div style={{
+                     position: "absolute",
+                     right: -10,
+                     top: 4,
+                     bottom: 4,
+                     width: 3,
+                     borderRadius: 99,
+                     background: "rgba(255,255,255,0.08)",
+                     display: "flex",
+                     flexDirection: "column",
+                     gap: 3,
+                   }}>
+                     {[0,1,2,3].map(i => (
+                       <div key={i} style={{
+                         flex: 1,
+                         borderRadius: 99,
+                         background: i===0 ? "#2dd4a0" : "rgba(255,255,255,0.15)",
+                         transition: "background .2s",
+                       }} />
+                     ))}
+                   </div>
                  </div>
+
                  <p className="text-center text-sm text-gray-500 mb-6">Treated from home. Prescription to your pharmacy. No one has to know.</p>
                  <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
               </div>
