@@ -398,10 +398,6 @@ export default function AssessmentPageContent() {
             Instant Private Medical Visits
           </h1>
 
-          <p className="text-gray-400 mb-4 mx-auto" style={{ fontSize: "clamp(13px, 3.5vw, 16px)", maxWidth: "280px" }}>
-            <span style={{ display: "block" }}>See a Provider in minutes, not days.</span>
-            <span style={{ display: "block" }}>No appointments. No waiting rooms.</span>
-          </p>
 
           {/* SINGLE OUTER WRAPPER — red/teal glow frame matching instant-visit */}
           <div className="relative w-full mb-3" style={{ isolation: 'isolate' }}>
