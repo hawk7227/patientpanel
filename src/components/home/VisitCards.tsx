@@ -209,7 +209,6 @@ export default function VisitCards({ onCardClick }: { onCardClick: (type: string
             scrollSnapType: "y mandatory",
             scrollbarWidth: "none",
             WebkitOverflowScrolling: "touch",
-            overscrollBehavior: "contain",
             height: "72vh",
           }}
         >
