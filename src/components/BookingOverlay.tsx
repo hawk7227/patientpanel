@@ -350,7 +350,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
         {/* ── FORM CARD — starts near top ── */}
         <div style={{
-          background:isCalStep?"#0B0F14":"#FFFFFF",
+          background:isCalStep?"#0d1117":"#FFFFFF",
           border:"none",
           borderRadius:"20px 20px 0 0",
           boxShadow:"0 -4px 32px rgba(0,0,0,0.18)",
@@ -365,7 +365,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           <div style={{
             display:"flex",alignItems:"flex-start",justifyContent:"space-between",
             padding:"14px 16px 0",position:"sticky",top:0,
-            background:isCalStep?"#0B0F14":"#FFFFFF",zIndex:2,
+            background:isCalStep?"#0d1117":"#FFFFFF",zIndex:2,
           }}>
             <div style={{flex:1,marginRight:10}}>
               <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:isCalStep?"#FFFFFF":"#111827",lineHeight:1.1}}
@@ -499,7 +499,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 {/* Dropdown — flips above input when keyboard is open */}
                 {showDrop && !pharmacy && (
                   <div style={{
-                    background:isCalStep?"#0B0F14":"#FFFFFF",
+                    background:isCalStep?"#0d1117":"#FFFFFF",
                     border:"1px solid #E5E7EB",
                     borderRadius:10,overflow:"hidden",
                     maxHeight:dropUp ? 160 : 220,
@@ -647,7 +647,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
             {isCalStep && (
               <div style={{
                 display:"flex",flexDirection:"column",gap:0,animation:"stepFade .2s ease",
-                background:"#0B0F14",
+                background:"#0d1117",
                 borderRadius:12,
                 padding:"12px 10px",
                 margin:"0 -4px",
@@ -673,16 +673,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         <button key={iso} onClick={()=>fetchSlots(iso)} style={{
                           flex:1,display:"flex",flexDirection:"column",alignItems:"center",
                           justifyContent:"center",padding:"6px 1px 5px",borderRadius:9,cursor:"pointer",
-                          border:isSel?"2px solid rgba(45,212,160,.8)":isToday?"2px solid rgba(45,212,160,.2)":"2px solid transparent",
-                          background:isSel?"rgba(45,212,160,.15)":"transparent",gap:1,minWidth:0,
+                          border:isSel?"2px solid #16A34A":isToday?"2px solid rgba(45,212,160,.25)":"2px solid transparent",
+                          background:isSel?"#16A34A":"transparent",gap:1,minWidth:0,
                         }}>
-                          <span style={{fontSize:9,fontWeight:700,color:isSel?"#2dd4a0":"rgba(255,255,255,.4)",letterSpacing:".04em",lineHeight:1}}>
+                          <span style={{fontSize:9,fontWeight:700,color:isSel?"#fff":"rgba(255,255,255,.5)",letterSpacing:".04em",lineHeight:1}}>
                             {DAY_ABBR[day.getDay()]}
                           </span>
-                          <span style={{fontSize:18,fontWeight:700,color:"#fff",lineHeight:1.2}}>
+                          <span style={{fontSize:20,fontWeight:800,color:"#fff",lineHeight:1.15}}>
                             {day.getDate()}
                           </span>
-                          <span style={{fontSize:8,fontWeight:600,color:isSel?"#2dd4a0":"rgba(255,255,255,.4)",lineHeight:1,marginTop:1}}>
+                          <span style={{fontSize:8,fontWeight:600,color:isSel?"#fff":"rgba(255,255,255,.4)",lineHeight:1,marginTop:1}}>
                             {isToday?"Today":isTom?"Tmrw":SHORT_MO[day.getMonth()]}
                           </span>
                         </button>
@@ -721,22 +721,22 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     </div>
                   ) : (
                     <>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
                       {slots.map((slot,i)=>{
                         const isAct  = calTime===to24(slot);
                         const badge  = selectedDayObj ? getSlotBadge(slot,selectedDayObj) : null;
                         return (
                           <button key={slot} onClick={()=>setCalTime(to24(slot))} style={{
-                            padding:badge?"4px 3px":"8px 3px",borderRadius:9,cursor:"pointer",
-                            border:isAct?"2px solid rgba(45,212,160,.8)":badge?"2px solid rgba(249,115,22,.4)":"1.5px solid rgba(255,255,255,.12)",
-                            background:isAct?"rgba(45,212,160,.2)":badge?"rgba(249,115,22,.08)":"rgba(255,255,255,.04)",
-                            color:isAct?"#2dd4a0":badge?"#fb923c":"#e2e8f0",fontSize:12,fontWeight:700,
+                            padding:badge?"6px 4px":"10px 4px",borderRadius:9,cursor:"pointer",
+                            border:isAct?"2px solid #16A34A":badge?"2px solid rgba(249,115,22,.5)":"1.5px solid rgba(255,255,255,.1)",
+                            background:isAct?"#16A34A":badge?"rgba(26,17,8,.9)":"rgba(255,255,255,.05)",
+                            color:isAct?"#fff":badge?"#fff":"#e2e8f0",fontSize:13,fontWeight:700,
                             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            {badge && <span style={{fontSize:7,fontWeight:700,color:isAct?"#2dd4a0":badge.color,lineHeight:1}}>{badge.label}</span>}
+                            {badge && <span style={{fontSize:8,fontWeight:800,color:isAct?"#d1fae5":"#f97316",lineHeight:1,letterSpacing:".02em"}}>{badge.label}</span>}
                             <span>{slot}</span>
-                            {badge && <span style={{fontSize:7,fontWeight:600,color:isAct?"#2dd4a0":"#4ade80",lineHeight:1}}>I&apos;m available</span>}
+                            {badge && <span style={{fontSize:8,fontWeight:700,color:isAct?"#d1fae5":"#4ade80",lineHeight:1}}>I'm available</span>}
                           </button>
                         );
                       })}
@@ -751,7 +751,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         {nextDayLoading ? (
                           <div style={{fontSize:11,color:"rgba(255,255,255,.3)",padding:"6px 2px"}}>Loading…</div>
                         ) : (
-                          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+                          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
                             {nextDaySlots.map((slot:string,i:number)=>{
                               const t24n = to24(slot);
                               const isActN = calTime===t24n && calDay===isoDate(nextDayObj!);
@@ -818,7 +818,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
             }}>← Back</button>
             <button onClick={goContinue} disabled={contDisabled} style={{
               flex:2,height:48,borderRadius:12,border:"none",
-              background:contDisabled?(isCalStep?"rgba(255,255,255,.08)":"#F3F4F6"):"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
+              background:contDisabled?(isCalStep?"rgba(255,255,255,.08)":"#F3F4F6"):isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
               color:contDisabled?"#9CA3AF":"#fff",
               fontSize:14,fontWeight:900,
               cursor:contDisabled?"default":"pointer",
