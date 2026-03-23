@@ -799,8 +799,8 @@ function Step2PaymentForm({
           </button>
         ) : (
           <div className="space-y-1.5">
-            {/* Payment brand logos */}
-            <div className="flex items-center justify-center gap-2 py-1">
+            {/* Payment brand logos — hidden when card form open */}
+            {!showCardForm && <div className="flex items-center justify-center gap-2 py-1">
               {/* Apple Pay */}
               <div style={{ background:"#fff", borderRadius:6, padding:"3px 7px", display:"flex", alignItems:"center", height:28, border:"1.5px solid #3f8464" }}>
                 <svg width="38" height="14" viewBox="0 0 38 14" fill="none"><path d="M7.08 2.88c-.44.52-1.14.92-1.84.86-.08-.7.26-1.44.66-1.9.44-.52 1.2-.9 1.82-.92.08.72-.2 1.44-.64 1.96zm.62.98c-1.02-.06-1.88.58-2.36.58-.48 0-1.22-.54-2.02-.52C2.3 3.94 1.4 4.56.96 5.52c-.9 1.56-.24 3.86.64 5.12.42.62.94 1.3 1.62 1.28.64-.02.88-.42 1.66-.42.76 0 .98.42 1.66.4.7-.02 1.14-.62 1.56-1.24.5-.72.7-1.42.72-1.46-.02-.02-1.38-.54-1.4-2.1-.02-1.3 1.06-1.92 1.1-1.96-.62-.88-1.56-.98-1.82-1zm4.62-1.66v9.52h1.48V9.06h2.04c1.86 0 3.16-1.28 3.16-3.14 0-1.86-1.28-3.12-3.12-3.12h-3.56zm1.48 1.26h1.7c1.28 0 2 .68 2 1.88 0 1.2-.72 1.88-2.02 1.88h-1.68V3.46zm7.68 8.34c.92 0 1.78-.46 2.16-1.2h.03v1.12h1.36V6.86c0-1.38-1.1-2.26-2.78-2.26-1.56 0-2.72.9-2.76 2.12h1.32c.1-.58.64-.96 1.4-.96.9 0 1.4.42 1.4 1.18v.52l-1.84.1c-1.7.1-2.62.8-2.62 2.02 0 1.24.96 2.06 2.33 2.06zm.4-1.12c-.78 0-1.28-.38-1.28-1 0-.64.48-1 1.38-1.06l1.64-.1v.54c0 .92-.78 1.62-1.74 1.62zm5.2 3.58c1.44 0 2.12-.56 2.72-2.22l2.6-7.34h-1.52l-1.74 5.62h-.03l-1.74-5.62h-1.56l2.52 6.98-.14.42c-.22.72-.6 1-1.2 1-.12 0-.34-.02-.44-.04v1.14c.1.04.4.06.53.06z" fill="#000"/></svg>
@@ -821,7 +821,7 @@ function Step2PaymentForm({
               <div style={{ background:"#2671B9", borderRadius:6, padding:"3px 7px", display:"flex", alignItems:"center", justifyContent:"center", height:28, border:"1.5px solid #3f8464", minWidth:44 }}>
                 <span style={{ color:"#fff", fontSize:"9px", fontWeight:800, letterSpacing:"0.04em", fontFamily:"'Avenir Next', Inter, -apple-system, sans-serif", lineHeight:1 }}>AMERICAN<br/>EXPRESS</span>
               </div>
-            </div>
+            </div>}
 
             {/* Card form — fields scroll, 3 CTAs pinned to bottom */}
             {showCardForm ? (
