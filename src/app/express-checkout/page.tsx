@@ -900,19 +900,7 @@ function Step2PaymentForm({
               </>
             ) : (
               <>
-                {/* Main CTA — opens card form */}
-                <button
-                  onClick={() => {
-                    if (isNewPatient && !newPatientFieldsComplete) { onValidateFields?.(); return; }
-                    setShowCardForm(true); onCardExpand?.(true);
-                  }}
-                  disabled={payInFlight}
-                  style={{ width: "100%", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", height: "54px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(47,111,83,0.35)", opacity: payInFlight ? 0.7 : 1, transition: "opacity 150ms ease" }}
-                >
-                  <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" }}>{`Book & Pay ${currentPrice.display} Now`}</span>
-                  <span style={{ fontSize: "10px", fontWeight: 400, opacity: 0.85, letterSpacing: "0.01em" }}>with debit/credit card</span>
-                </button>
-                {/* Express wallets (Apple Pay / Google Pay) + Link */}
+                {/* Express wallets (Apple Pay / Google Pay) — above main CTA */}
                 <div style={{ visibility: expressReady ? "visible" : "hidden", height: expressReady ? "auto" : "0" }}>
                   <ExpressCheckoutElement
                     onConfirm={handleExpressConfirm}
@@ -929,17 +917,18 @@ function Step2PaymentForm({
                     }}
                   />
                 </div>
-                {/* Link button */}
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <button
-                    onClick={() => { setShowCardForm(true); onCardExpand?.(true); }}
-                    disabled={payInFlight}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "none", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "14px", fontWeight: 600, cursor: "pointer", transition: "opacity 150ms ease" }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="white"/><path d="M7 5.5l4.5 3.5L7 12.5" stroke="#2f6f53" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    link
-                  </button>
-                </div>
+                {/* Main CTA — opens card form */}
+                <button
+                  onClick={() => {
+                    if (isNewPatient && !newPatientFieldsComplete) { onValidateFields?.(); return; }
+                    setShowCardForm(true); onCardExpand?.(true);
+                  }}
+                  disabled={payInFlight}
+                  style={{ width: "100%", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", height: "54px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(47,111,83,0.35)", opacity: payInFlight ? 0.7 : 1, transition: "opacity 150ms ease" }}
+                >
+                  <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" }}>{`Book & Pay ${currentPrice.display} Now`}</span>
+                  <span style={{ fontSize: "10px", fontWeight: 400, opacity: 0.85, letterSpacing: "0.01em" }}>with debit/credit card</span>
+                </button>
               </>
             )}
           </div>
@@ -2732,7 +2721,7 @@ export default function ExpressCheckoutPage() {
 
         {/* ═══ BOTTOM FOOTER ═══ */}
         <div className="flex-shrink-0 pb-1 pt-1">
-          <p className="text-center text-gray-700 text-[8px]"><Lock size={8} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Booking fee reserves your provider</p>
+          <p className="text-center text-gray-500 text-[10px]"><Lock size={10} className="inline mr-0.5" />HIPAA Compliant · Encrypted · Booking fee reserves your provider</p>
         </div>
       </div>
 
