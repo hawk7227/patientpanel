@@ -38,7 +38,7 @@ interface PharmacyInfo {
 // Visit Type Config
 // ═══════════════════════════════════════════════════════════════
 const VISIT_TYPES = [
-  { key: "async" as VisitType, label: "Async", icon: Zap, desc: "No live visit", badge: "✨ NEW", needsCalendar: false, color: "#2dd4a0" },
+  { key: "async" as VisitType, label: "Async", icon: Zap, desc: "No live visit", badge: "✨ NEW", needsCalendar: false, color: "#2d7a5f" },
   { key: "instant" as VisitType, label: "Instant\nVisit", icon: Zap, desc: "Private & discreet", badge: "⚡ FAST", needsCalendar: false, color: "#f59e0b" },
   { key: "refill" as VisitType, label: "Rx\nRefill", icon: Pill, desc: "No questions asked", badge: null, needsCalendar: false, color: "#f59e0b" },
   { key: "video" as VisitType, label: "Video\nVisit", icon: Video, desc: "Secure 1-on-1", badge: null, needsCalendar: true, color: "#3b82f6" },
@@ -729,8 +729,8 @@ function Step2PaymentForm({
   if (isProcessing) {
     return (
       <div className="w-full space-y-2 py-1">
-        <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
-          <div className="h-full bg-[#2dd4a0] rounded-full transition-all duration-500 ease-out" style={{ width: `${Math.min(progress, 100)}%` }} />
+        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+          <div className="h-full bg-[#2d7a5f] rounded-full transition-all duration-500 ease-out" style={{ width: `${Math.min(progress, 100)}%` }} />
         </div>
         <p className="text-[12px] text-gray-300 text-center">{statusText}</p>
       </div>
@@ -744,9 +744,9 @@ function Step2PaymentForm({
 
         {/* Decline state — warm, empathetic, actionable */}
         {declineState && (
-          <div className="rounded-xl border border-[#2dd4a0]/25 px-3 py-3 space-y-2" style={{ background: "linear-gradient(135deg, rgba(13,18,24,0.95) 0%, rgba(20,28,36,0.95) 100%)" }}>
+          <div className="rounded-xl border border-[#2d7a5f]/25 px-3 py-3 space-y-2" style={{ background: "linear-gradient(135deg, rgba(13,18,24,0.95) 0%, rgba(20,28,36,0.95) 100%)" }}>
             <div className="flex items-start gap-2">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ background: "rgba(45,212,160,0.12)" }}>
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ background: "rgba(45,122,95,0.12)" }}>
                 <span className="text-[14px]">💙</span>
               </div>
               <div className="flex-1 min-w-0">
@@ -760,7 +760,7 @@ function Step2PaymentForm({
                 <button
                   onClick={() => { setDeclineState(null); setTimeout(() => handlePay(), 50); }}
                   className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
-                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                  style={{ background: "#2d6b4f", boxShadow: "0 2px 8px rgba(45,107,79,0.25)" }}
                 >
                   Try Again
                 </button>
@@ -769,7 +769,7 @@ function Step2PaymentForm({
                 <button
                   onClick={() => { setDeclineState(null); setShowCardForm(true); }}
                   className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-[0.98]"
-                  style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 2px 8px rgba(249,115,22,0.25)" }}
+                  style={{ background: "#2d6b4f", boxShadow: "0 2px 8px rgba(45,107,79,0.25)" }}
                 >
                   Use a Different Card
                 </button>
@@ -779,8 +779,8 @@ function Step2PaymentForm({
                   href={`${process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(patient.email || "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2dd4a0] border border-[#2dd4a0]/30 text-center transition-all active:scale-[0.98]"
-                  style={{ background: "rgba(45,212,160,0.06)" }}
+                  className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2d7a5f] border border-[#2d7a5f]/30 text-center transition-all active:scale-[0.98]"
+                  style={{ background: "rgba(45,122,95,0.06)" }}
                 >
                   Book Now, Pay Later
                 </a>
@@ -797,7 +797,7 @@ function Step2PaymentForm({
             if (!acceptedTerms) { setPulseField("terms"); setTimeout(() => setPulseField(null), 1500); return; }
             if (isNewPatient && !newDobComplete) { setPulseField("dob"); setTimeout(() => setPulseField(null), 1500); return; }
             handlePay();
-          }} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold text-white text-[14px] active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)" }}>
+          }} className="w-full rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold text-white text-[14px] active:scale-[0.98]" style={{ background: "#2d6b4f", boxShadow: "0 4px 16px rgba(45,107,79,0.3)" }}>
             🧪 Test Pay — {currentPrice.display}
           </button>
         ) : (
@@ -870,9 +870,9 @@ function Step2PaymentForm({
 
             {/* Divider */}
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-px bg-white/10" />
+              <div className="flex-1 h-px bg-gray-100" />
               <span className="text-gray-500 text-[9px] font-semibold uppercase">or pay with card</span>
-              <div className="flex-1 h-px bg-white/10" />
+              <div className="flex-1 h-px bg-gray-100" />
             </div>
 
 
@@ -881,13 +881,13 @@ function Step2PaymentForm({
               <>
                 {/* Field hint — shown when a specific field caused the decline */}
                 {declineState?.fieldHint && (
-                  <p className="text-[#f97316] text-[10px] font-medium px-1 -mb-1">
+                  <p className="text-[#2d6b4f] text-[10px] font-medium px-1 -mb-1">
                     ⚠ {declineState.fieldHint}
                   </p>
                 )}
 
                 {/* Stripe PaymentElement — name/email/phone collected above; address collected by Stripe */}
-                <div className={`rounded-xl border-2 border-[#2dd4a0]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#2dd4a0] animate-pulse" : ""}`} style={{ background: "rgba(0,0,0,0.15)" }}>
+                <div className={`rounded-xl border-2 border-[#2d7a5f]/35 p-1 transition-all ${pulseField === "card" ? "ring-2 ring-[#2d7a5f] animate-pulse" : ""}`} style={{ background: "#f9fafb" }}>
                   <PaymentElement onReady={() => setElementReady(true)} onChange={() => { if (declineState) setDeclineState(null); }} options={{
                     layout: "tabs",
                     paymentMethodOrder: ["card"],
@@ -904,11 +904,11 @@ function Step2PaymentForm({
                 </div>
 
                 {/* Terms + pay button */}
-                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #070a08 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
-                  <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#f97316] animate-pulse bg-[#f97316]/10" : ""}`}>
-                    <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2dd4a0' }} />
+                <div className="sticky bottom-0 z-10 pt-1 pb-0.5" style={{ background: "linear-gradient(to top, #ffffff 60%, transparent 100%)", paddingBottom: "max(env(safe-area-inset-bottom, 20px), 20px)" }}>
+                  <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#2d6b4f] animate-pulse bg-[#2d6b4f]/10" : ""}`}>
+                    <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2d7a5f' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2dd4a0] underline">Terms of Service</span>, <span className="text-[#2dd4a0] underline">Privacy Policy</span>, and <span className="text-[#2dd4a0] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your <strong className="text-white">{getPrice(visitType as VisitType).display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
+                      By confirming, I agree to the <span className="text-[#2d7a5f] underline">Terms of Service</span>, <span className="text-[#2d7a5f] underline">Privacy Policy</span>, and <span className="text-[#2d7a5f] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your <strong className="text-white">{getPrice(visitType as VisitType).display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -919,14 +919,14 @@ function Step2PaymentForm({
                     }
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
-                  }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
+                  }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "#2d6b4f", boxShadow: "0 4px 16px rgba(45,107,79,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
                     <Lock size={13} /> {payInFlight ? "Processing..." : "BOOK NOW, PAY LATER"}
                   </button>
                   <p className="text-center text-gray-600 text-[9px] tracking-wide mt-1">CARE FIRST program</p>
                 </div>
               </>
             ) : (
-              <button onClick={() => { setShowCardForm(true); onCardExpand?.(true); }} className="w-full py-2.5 rounded-xl text-gray-400 font-semibold text-[12px] transition-all border border-white/10 hover:border-white/20">
+              <button onClick={() => { setShowCardForm(true); onCardExpand?.(true); }} className="w-full py-2.5 rounded-xl text-gray-400 font-semibold text-[12px] transition-all border border-gray-200 hover:border-white/20">
                 Pay with credit or debit card
               </button>
             )}
@@ -978,7 +978,7 @@ function InstantFAQ() {
         <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
       </button>
       {expanded && (
-        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
+        <div style={{ padding: "4px 10px 2px", background: "#f9fafb", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
           {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
         </div>
       )}
@@ -1005,7 +1005,7 @@ function RefillFAQ() {
         <span style={{ fontSize: 13, color: "#64748b", transform: expanded ? "rotate(180deg)" : "none", transition: "transform 180ms ease" }}>▾</span>
       </button>
       {expanded && (
-        <div style={{ padding: "4px 10px 2px", background: "rgba(255,255,255,0.02)", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
+        <div style={{ padding: "4px 10px 2px", background: "#f9fafb", borderRadius: "0 0 8px 8px", border: "1px solid rgba(255,255,255,0.07)", borderTop: "none" }}>
           {faqs.map((f, i) => <FAQItem key={i} q={f.q} a={f.a} />)}
         </div>
       )}
@@ -1147,7 +1147,7 @@ export default function ExpressCheckoutPage() {
               const words = line.split(" ");
               if (i === title.split("\n").length - 1 && words.length > 0) {
                 const last = words.pop();
-                return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+                return <span key={i}>{words.join(" ")} <span className="text-[#2d7a5f]">{last}</span>{"\n"}</span>;
               }
               return <span key={i}>{line}{"\n"}</span>;
             })}
@@ -1155,10 +1155,10 @@ export default function ExpressCheckoutPage() {
           <p className="text-[#6b7280] mt-2 leading-relaxed" style={{ textAlign: "center", fontSize: "13px" }}>{sub}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2 px-1 justify-center">
-          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>🔒 HIPAA Encrypted</span>}
-          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👩‍⚕️ Board-Certified</span>}
-          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>⭐ 4.9 · 10K+</span>}
-          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2dd4a0] inline-block"></span>👤 Same Provider</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2d7a5f] inline-block"></span>🔒 HIPAA Encrypted</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2d7a5f] inline-block"></span>👩‍⚕️ Board-Certified</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2d7a5f] inline-block"></span>⭐ 4.9 · 10K+</span>}
+          {step <= 3 && <span className="text-[#6b7280] flex items-center gap-1" style={{ fontSize: "13px" }}><span className="w-1 h-1 rounded-full bg-[#2d7a5f] inline-block"></span>👤 Same Provider</span>}
         </div>
       </div>
     );
@@ -1176,7 +1176,7 @@ export default function ExpressCheckoutPage() {
               const words = line.split(" ");
               if (i === title.split("\n").length - 1 && words.length > 0) {
                 const last = words.pop();
-                return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+                return <span key={i}>{words.join(" ")} <span className="text-[#2d7a5f]">{last}</span>{"\n"}</span>;
               }
               return <span key={i}>{line}{"\n"}</span>;
             })}
@@ -1189,34 +1189,34 @@ export default function ExpressCheckoutPage() {
             { icon: "👩‍⚕️", t: activeTimeline.s2, d: activeTimeline.d2, time: "~18 min" },
             { icon: "💊", t: activeTimeline.s3, d: activeTimeline.d3, time: "Same day" }].map((item, i) => (
             <div key={i}>
-              {i > 0 && <div className="w-px h-1.5 bg-[#2dd4a0]/15" style={{ margin: "0 auto" }}></div>}
+              {i > 0 && <div className="w-px h-1.5 bg-[#2d7a5f]/15" style={{ margin: "0 auto" }}></div>}
               <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
-                <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
+                <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2d7a5f]/15" style={{ background: "rgba(45,122,95,0.06)" }}>{item.icon}</div>
                 <div className="mt-1" style={{ textAlign: "center" }}>
                   <div className="text-[11px] font-bold text-white">{item.t}</div>
                   <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
-                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2d7a5f] font-bold px-1.5 py-0.5 rounded border border-[#2d7a5f]/12" style={{ background: "rgba(45,122,95,0.08)" }}>⏱ {item.time}</span>
                 </div>
               </div>
             </div>
           ))}
         </div>
         {/* Discretion callout */}
-        <div className="mt-3 rounded-xl px-3 py-2.5 flex flex-col items-center gap-1.5 border border-dashed border-[#2dd4a0]/20" style={{ background: "rgba(45,212,160,0.02)", textAlign: "center" }}>
+        <div className="mt-3 rounded-xl px-3 py-2.5 flex flex-col items-center gap-1.5 border border-dashed border-[#2d7a5f]/20" style={{ background: "rgba(45,122,95,0.02)", textAlign: "center" }}>
           <span className="text-[18px]">🙈</span>
           <p className="text-[11px] text-[#9ca3af] leading-relaxed" style={{ textAlign: "center" }}><strong className="text-[#d1d5db]">{activePrivacy}</strong></p>
         </div>
         {/* Provider quote */}
-        <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-white/6" style={{ background: "rgba(255,255,255,0.02)" }}>
-          <img src="/assets/provider-lamonica.png" alt="" className="w-[34px] h-[34px] rounded-full border-2 border-[#2dd4a0] object-cover object-top flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }} />
+        <div className="mt-3 rounded-xl px-3 py-2.5 flex items-center gap-2.5 border border-gray-100" style={{ background: "#f9fafb" }}>
+          <img src="/assets/provider-lamonica.png" alt="" className="w-[34px] h-[34px] rounded-full border-2 border-[#2d7a5f] object-cover object-top flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,122,95,0.2)" }} />
           <div>
             <p className="text-[10px] text-[#9ca3af] italic leading-relaxed">{activeQuote}</p>
-            <p className="text-[8px] text-[#2dd4a0] font-bold mt-0.5">— LaMonica A. Hodges, APRN</p>
+            <p className="text-[8px] text-[#2d7a5f] font-bold mt-0.5">— LaMonica A. Hodges, APRN</p>
           </div>
         </div>
         {/* Rating */}
         <div className="mt-2 text-center text-[10px] text-[#4b5563]">⭐⭐⭐⭐⭐ <strong className="text-[#f59e0b]">4.9</strong> · 10,000+ patients</div>
-        <div className="mt-1 text-center text-[9px] text-[#374151]">Your case stays between you and your provider. <strong className="text-[#2dd4a0]">No one else.</strong></div>
+        <div className="mt-1 text-center text-[9px] text-[#374151]">Your case stays between you and your provider. <strong className="text-[#2d7a5f]">No one else.</strong></div>
       </div>
     );
   };
@@ -1659,11 +1659,11 @@ export default function ExpressCheckoutPage() {
     appearance: {
       theme: "night" as const,
       variables: {
-        colorPrimary: "#2dd4a0",
-        colorBackground: "#0b0f0c",
-        colorText: "#ffffff",
-        colorTextSecondary: "#ffffff",
-        colorTextPlaceholder: "rgba(255,255,255,0.5)",
+        colorPrimary: "#2d7a5f",
+        colorBackground: "#ffffff",
+        colorText: "#1a1a1a",
+        colorTextSecondary: "#555555",
+        colorTextPlaceholder: "rgba(100,116,107,0.6)",
         borderRadius: "8px",
         spacingUnit: "2px",
         fontFamily: "system-ui, -apple-system, sans-serif",
@@ -1671,14 +1671,14 @@ export default function ExpressCheckoutPage() {
         fontSizeSm: "10px",
       },
       rules: {
-        ".Tab": { border: "2px solid rgba(45,212,160,0.35)", backgroundColor: "#0b0f0c", padding: "6px 0" },
-        ".Tab--selected": { border: "2px solid #2dd4a0", backgroundColor: "rgba(45,212,160,0.08)", color: "#ffffff" },
-        ".Tab:hover": { border: "1px solid rgba(45,212,160,0.5)" },
-        ".TabIcon--selected": { fill: "#2dd4a0" },
-        ".Label": { color: "#ffffff", fontSize: "10px", fontWeight: "600", marginBottom: "2px" },
-        ".Input": { backgroundColor: "rgba(0,0,0,0.3)", border: "3px solid rgba(45,212,160,0.35)", color: "#ffffff", padding: "6px 8px", fontSize: "12px" },
-        ".Input:focus": { border: "3px solid #2dd4a0", boxShadow: "0 0 0 2px rgba(45,212,160,0.25)" },
-        ".Input::placeholder": { color: "rgba(255,255,255,0.75)", fontWeight: "600" },
+        ".Tab": { border: "2px solid rgba(45,122,95,0.35)", backgroundColor: "#ffffff", padding: "6px 0" },
+        ".Tab--selected": { border: "2px solid #2d7a5f", backgroundColor: "rgba(45,122,95,0.08)", color: "#ffffff" },
+        ".Tab:hover": { border: "1px solid rgba(45,122,95,0.5)" },
+        ".TabIcon--selected": { fill: "#2d7a5f" },
+        ".Label": { color: "#1a1a1a", fontSize: "10px", fontWeight: "600", marginBottom: "2px" },
+        ".Input": { backgroundColor: "#ffffff", border: "1px solid #c8d8cb", color: "#1a1a1a", padding: "6px 8px", fontSize: "12px" },
+        ".Input:focus": { border: "3px solid #2d7a5f", boxShadow: "0 0 0 2px rgba(45,122,95,0.25)" },
+        ".Input::placeholder": { color: "rgba(100,116,107,0.8)", fontWeight: "600" },
         ".Block": { padding: "4px 0" },
       },
     },
@@ -2045,16 +2045,16 @@ export default function ExpressCheckoutPage() {
     const controlledMeds = selectedMeds.filter(m => isControlledSubstance(m));
 
     return (
-      <div className="text-white font-sans overflow-hidden" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "0" }}>
+      <div className="text-[#1a1a1a] font-sans overflow-hidden" style={{ background: "#ffffff", height: "100dvh", minHeight: "0" }}>
         <style>{`@keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } } @keyframes successPulse { 0%,100% { box-shadow: 0 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: 0 0 24px rgba(34,197,94,0.4); } }`}</style>
         <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
           <div className="text-center pt-1 pb-1">
             <span className="text-white font-black text-[15px] tracking-tight">MEDAZON </span>
-            <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">EXPRESS </span>
+            <span className="text-[#2d7a5f] font-black text-[15px] tracking-tight">EXPRESS </span>
             <span className="text-white font-black text-[15px] tracking-tight">BOOKING</span>
             <span className="text-[9px] text-green-400 font-bold ml-2">✓ PAID</span>
           </div>
-          <div className="rounded-xl p-3 mb-2 border border-green-500/25" style={{ background: "rgba(34,197,94,0.06)", animation: "successPulse 3s ease-in-out infinite" }}>
+          <div className="rounded-xl p-3 mb-2 border border-green-500/25" style={{ background: "rgba(45,122,95,0.06)", animation: "successPulse 3s ease-in-out infinite" }}>
             <div className="flex items-start gap-2.5">
               <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0"><Check size={16} className="text-green-400" /></div>
               <div className="flex-1 min-w-0">
@@ -2066,24 +2066,24 @@ export default function ExpressCheckoutPage() {
           </div>
           <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 pb-1" style={{ scrollbarWidth: "none" }}>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setControlledVisitType("video")} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-[12px] transition-all ${controlledVisitType === "video" ? "border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]" : "border-white/10 bg-[#11161c] text-gray-500"}`}><Video size={14} />Video Call</button>
-              <button onClick={() => setControlledVisitType("phone")} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-[12px] transition-all ${controlledVisitType === "phone" ? "border-[#a855f7] bg-[#a855f7]/10 text-[#a855f7]" : "border-white/10 bg-[#11161c] text-gray-500"}`}><Phone size={14} />Phone Call</button>
+              <button onClick={() => setControlledVisitType("video")} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-[12px] transition-all ${controlledVisitType === "video" ? "border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]" : "border-gray-200 bg-[#11161c] text-gray-500"}`}><Video size={14} />Video Call</button>
+              <button onClick={() => setControlledVisitType("phone")} className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-[12px] transition-all ${controlledVisitType === "phone" ? "border-[#a855f7] bg-[#a855f7]/10 text-[#a855f7]" : "border-gray-200 bg-[#11161c] text-gray-500"}`}><Phone size={14} />Phone Call</button>
             </div>
             <div>
               <span className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider pl-1">Select a date</span>
               <div className="flex gap-1.5 mt-1 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-                {getAvailableDates().map(d => (<button key={d.value} onClick={() => { setControlledScheduleDate(d.value); setControlledScheduleTime(""); }} className={`flex-shrink-0 flex flex-col items-center w-[52px] py-2 rounded-xl border-2 transition-all ${controlledScheduleDate === d.value ? "border-[#2dd4a0] bg-[#2dd4a0]/10 text-white" : "border-white/10 bg-[#11161c]/80 text-gray-500 hover:border-white/20"}`}><span className="text-[8px] font-bold uppercase">{d.dayLabel}</span><span className="text-[16px] font-black">{d.monthDay}</span><span className="text-[8px]">{d.label.split(" ")[0]}</span></button>))}
+                {getAvailableDates().map(d => (<button key={d.value} onClick={() => { setControlledScheduleDate(d.value); setControlledScheduleTime(""); }} className={`flex-shrink-0 flex flex-col items-center w-[52px] py-2 rounded-xl border-2 transition-all ${controlledScheduleDate === d.value ? "border-[#2d7a5f] bg-[#2d7a5f]/10 text-white" : "border-gray-200 bg-[#11161c]/80 text-gray-500 hover:border-white/20"}`}><span className="text-[8px] font-bold uppercase">{d.dayLabel}</span><span className="text-[16px] font-black">{d.monthDay}</span><span className="text-[8px]">{d.label.split(" ")[0]}</span></button>))}
               </div>
             </div>
-            {controlledScheduleDate && (<div><span className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider pl-1">Select a time</span><div className="grid grid-cols-4 gap-1.5 mt-1 max-h-[140px] overflow-y-auto" style={{ scrollbarWidth: "none" }}>{getTimeSlots().map(t => (<button key={t.value} onClick={() => setControlledScheduleTime(t.value)} className={`py-2 rounded-lg border text-[11px] font-semibold transition-all ${controlledScheduleTime === t.value ? "bg-[#2dd4a0]/15 border-[#2dd4a0]/40 text-[#2dd4a0]" : "bg-[#11161c]/80 border-white/10 text-gray-500 hover:border-white/15"}`}>{t.label}</button>))}</div></div>)}
-            {controlledScheduleDate && controlledScheduleTime && (<div className="bg-[#2dd4a0]/5 border border-[#2dd4a0]/20 rounded-xl px-3 py-2 text-center"><p className="text-[11px] text-gray-300"><span className="text-[#2dd4a0] font-bold">{controlledVisitType === "video" ? "📹 Video" : "📞 Phone"} Visit</span>{" · "}<span className="text-white font-semibold">{new Date(controlledScheduleDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at {(() => { const [h, m] = controlledScheduleTime.split(":").map(Number); const hr = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; })()}</span></p></div>)}
+            {controlledScheduleDate && (<div><span className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider pl-1">Select a time</span><div className="grid grid-cols-4 gap-1.5 mt-1 max-h-[140px] overflow-y-auto" style={{ scrollbarWidth: "none" }}>{getTimeSlots().map(t => (<button key={t.value} onClick={() => setControlledScheduleTime(t.value)} className={`py-2 rounded-lg border text-[11px] font-semibold transition-all ${controlledScheduleTime === t.value ? "bg-[#2d7a5f]/15 border-[#2d7a5f]/40 text-[#2d7a5f]" : "bg-[#11161c]/80 border-gray-200 text-gray-500 hover:border-white/15"}`}>{t.label}</button>))}</div></div>)}
+            {controlledScheduleDate && controlledScheduleTime && (<div className="bg-[#2d7a5f]/5 border border-[#2d7a5f]/20 rounded-xl px-3 py-2 text-center"><p className="text-[11px] text-gray-300"><span className="text-[#2d7a5f] font-bold">{controlledVisitType === "video" ? "📹 Video" : "📞 Phone"} Visit</span>{" · "}<span className="text-white font-semibold">{new Date(controlledScheduleDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at {(() => { const [h, m] = controlledScheduleTime.split(":").map(Number); const hr = h > 12 ? h - 12 : h === 0 ? 12 : h; return `${hr}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`; })()}</span></p></div>)}
           </div>
           {scheduleError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-[10px] mb-1">{scheduleError}</div>}
           <div className="flex-shrink-0 pb-2 pt-1">
             <button onClick={() => {
               if (!controlledScheduleDate || !controlledScheduleTime) return;
               handleControlledSchedule();
-            }} className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] border border-[#2dd4a0]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", color: "#fff", boxShadow: "0 4px 16px rgba(249,115,22,0.25)", opacity: schedulingAppointment ? 0.6 : 1 }}>
+            }} className="w-full py-3.5 rounded-xl font-bold text-[14px] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] border border-[#2d7a5f]" style={{ background: "#2d6b4f", color: "#fff", boxShadow: "0 4px 16px rgba(45,107,79,0.25)", opacity: schedulingAppointment ? 0.6 : 1 }}>
               {schedulingAppointment ? (<><div className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" />Scheduling...</>) : (<><Check size={16} />Confirm {controlledVisitType === "video" ? "Video" : "Phone"} Visit</>)}
             </button>
             <p className="text-center text-gray-700 text-[8px] mt-1"><Lock size={8} className="inline mr-0.5" />No additional charge · HIPAA Compliant</p>
@@ -2123,29 +2123,29 @@ export default function ExpressCheckoutPage() {
     };
 
     return (
-      <div className="ec-root fixed inset-0 bg-[#070a08] overflow-hidden" style={{ height: "100dvh" }}>
+      <div className="ec-root fixed inset-0 bg-white overflow-hidden" style={{ height: "100dvh" }}>
         <style>{`
           @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
           @keyframes onAutofill { from {} to {} }
           input:-webkit-autofill { animation-name: onAutofill; animation-duration: 1ms; }
         `}</style>
-        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "radial-gradient(600px 300px at 15% 10%, rgba(255,179,71,0.15), transparent 55%), radial-gradient(500px 250px at 80% 18%, rgba(110,231,183,0.12), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)" }}>
+        <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "#ffffff" }}>
 
           {/* Header — compact */}
           <div className="flex-shrink-0 text-center pt-1 pb-0.5">
             <div className="flex items-center justify-center gap-1.5">
-              <div className="w-5 h-5 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center"><Shield size={11} className="text-[#2dd4a0]" /></div>
-              <span className="text-white font-bold text-[13px] tracking-tight">Medazon <span className="text-[#2dd4a0]">Health</span></span>
+              <div className="w-5 h-5 bg-[#2d7a5f]/20 rounded-md flex items-center justify-center"><Shield size={11} className="text-[#2d7a5f]" /></div>
+              <span className="text-white font-bold text-[13px] tracking-tight">Medazon <span className="text-[#2d7a5f]">Health</span></span>
             </div>
-            <p className="text-[#2dd4a0] text-[8px] font-bold uppercase tracking-[0.2em]">Private · Discreet</p>
+            <p className="text-[#2d7a5f] text-[8px] font-bold uppercase tracking-[0.2em]">Private · Discreet</p>
             <h1 className="text-white font-black text-[18px] leading-tight mt-0.5">{allIntakeDone ? "Ready to submit." : "Secure intake unlocked."}</h1>
           </div>
 
           {/* Progress bar */}
           <div className="flex-shrink-0 pb-1">
-            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${intakePct}%` }} />
+            <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-[#2d6b4f] rounded-full transition-all duration-500" style={{ width: `${intakePct}%` }} />
             </div>
           </div>
 
@@ -2156,7 +2156,7 @@ export default function ExpressCheckoutPage() {
               {/* Auto-filled demographics */}
               <div className="flex items-center gap-1.5 mb-0.5">
                 <span className="text-white/35 text-[8px] font-extrabold uppercase tracking-widest">Your Information</span>
-                <span className="text-[#f97316] text-[7px] font-black uppercase tracking-wide bg-[#f97316]/10 border border-[#f97316]/25 rounded px-1 py-px">PRIORITY</span>
+                <span className="text-[#2d6b4f] text-[7px] font-black uppercase tracking-wide bg-[#2d6b4f]/10 border border-[#2d6b4f]/25 rounded px-1 py-px">PRIORITY</span>
               </div>
               <div className="flex flex-col gap-0.5">
                 <div className="grid grid-cols-4 gap-0.5">
@@ -2192,7 +2192,7 @@ export default function ExpressCheckoutPage() {
                     <div key={q.id} className="border border-white/8 rounded-lg opacity-20">
                       <div className="flex items-center justify-between px-2.5 py-1.5">
                         <span className="text-white/30 text-[11px] font-extrabold">{q.q}</span>
-                        <span className="text-[#f97316] text-[8px] font-bold bg-[#f97316]/10 rounded px-1.5 py-0.5">Pending</span>
+                        <span className="text-[#2d6b4f] text-[8px] font-bold bg-[#2d6b4f]/10 rounded px-1.5 py-0.5">Pending</span>
                       </div>
                     </div>
                   );
@@ -2201,12 +2201,12 @@ export default function ExpressCheckoutPage() {
                 if (isDone) {
                   const ansText = a.val ? `Yes: ${a.detail || "—"}` : "No";
                   return (
-                    <div key={q.id} className="border border-[#2dd4a0]/15 rounded-lg cursor-pointer" onClick={() => { const next = { ...intakeAnswers }; delete next[q.id]; setIntakeAnswers(next); setIntakeStep(i); }}>
+                    <div key={q.id} className="border border-[#2d7a5f]/15 rounded-lg cursor-pointer" onClick={() => { const next = { ...intakeAnswers }; delete next[q.id]; setIntakeAnswers(next); setIntakeStep(i); }}>
                       <div className="flex items-center justify-between px-2.5 py-1.5">
                         <span className="text-white text-[11px] font-extrabold">{q.q}</span>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[#2dd4a0] text-[9px] font-semibold max-w-[120px] truncate">{ansText}</span>
-                          <span className="text-[#2dd4a0] text-[8px] font-bold bg-[#2dd4a0]/10 rounded px-1 py-0.5">✓</span>
+                          <span className="text-[#2d7a5f] text-[9px] font-semibold max-w-[120px] truncate">{ansText}</span>
+                          <span className="text-[#2d7a5f] text-[8px] font-bold bg-[#2d7a5f]/10 rounded px-1 py-0.5">✓</span>
                         </div>
                       </div>
                     </div>
@@ -2216,14 +2216,14 @@ export default function ExpressCheckoutPage() {
                 if (isActive) {
                   const showDetail = intakeDetailId === q.id;
                   return (
-                    <div key={q.id} className="border border-[#f97316]/30 rounded-lg shadow-[0_0_8px_rgba(249,115,22,0.1)]">
+                    <div key={q.id} className="border border-[#2d6b4f]/30 rounded-lg shadow-[0_0_8px_rgba(45,107,79,0.1)]">
                       <div className="flex items-center justify-between px-2.5 py-1.5">
                         <span className="text-white text-[11px] font-extrabold">{q.q}</span>
-                        <span className="text-[#f97316] text-[8px] font-bold bg-[#f97316]/10 rounded px-1.5 py-0.5">Answer</span>
+                        <span className="text-[#2d6b4f] text-[8px] font-bold bg-[#2d6b4f]/10 rounded px-1.5 py-0.5">Answer</span>
                       </div>
                       <div className="px-2.5 pb-2.5 flex flex-col gap-1.5">
                         <div className="flex gap-1.5">
-                          <button onClick={() => { setIntakeDetailId(q.id); setIntakeDetailText(""); }} className={`flex-1 py-2 rounded-lg border-2 font-extrabold text-[12px] transition-all active:scale-95 ${showDetail ? "border-[#2dd4a0] bg-[#2dd4a0] text-black" : "border-white/8 bg-transparent text-white"}`}>Yes</button>
+                          <button onClick={() => { setIntakeDetailId(q.id); setIntakeDetailText(""); }} className={`flex-1 py-2 rounded-lg border-2 font-extrabold text-[12px] transition-all active:scale-95 ${showDetail ? "border-[#2d7a5f] bg-[#2d7a5f] text-black" : "border-white/8 bg-transparent text-white"}`}>Yes</button>
                           <button onClick={() => {
                             setIntakeDetailId(null); setIntakeDetailText("");
                             setIntakeAnswers(prev => ({ ...prev, [q.id]: { val: false, detail: "" } }));
@@ -2232,13 +2232,13 @@ export default function ExpressCheckoutPage() {
                         </div>
                         {showDetail && (
                           <div className="flex flex-col gap-1.5">
-                            <input value={intakeDetailText} onChange={(e) => setIntakeDetailText(e.target.value)} placeholder={q.ph} autoFocus className="w-full bg-transparent border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white caret-white focus:outline-none focus:border-[#2dd4a0] placeholder:text-white/50" onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }} />
+                            <input value={intakeDetailText} onChange={(e) => setIntakeDetailText(e.target.value)} placeholder={q.ph} autoFocus className="w-full bg-transparent border border-gray-200 rounded-lg px-2.5 py-2 text-[11px] text-white caret-white focus:outline-none focus:border-[#2d7a5f] placeholder:text-white/50" onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ behavior: "smooth", block: "center" }), 300); }} />
                             <button onClick={() => {
-                              if (!intakeDetailText.trim()) { const inp = document.querySelector<HTMLInputElement>(`input[placeholder="${q.ph}"]`); if (inp) { inp.classList.add("animate-pulse"); inp.style.boxShadow = "0 0 12px rgba(249,115,22,0.4)"; setTimeout(() => { inp.classList.remove("animate-pulse"); inp.style.boxShadow = "none"; }, 1500); inp.focus(); } return; }
+                              if (!intakeDetailText.trim()) { const inp = document.querySelector<HTMLInputElement>(`input[placeholder="${q.ph}"]`); if (inp) { inp.classList.add("animate-pulse"); inp.style.boxShadow = "0 0 12px rgba(45,107,79,0.4)"; setTimeout(() => { inp.classList.remove("animate-pulse"); inp.style.boxShadow = "none"; }, 1500); inp.focus(); } return; }
                               setIntakeAnswers(prev => ({ ...prev, [q.id]: { val: true, detail: intakeDetailText.trim() } }));
                               setIntakeStep(Math.max(intakeStep, i + 1));
                               setIntakeDetailId(null); setIntakeDetailText("");
-                            }} className="w-full py-1.5 rounded-md text-white font-bold text-[11px] transition-all active:scale-97" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)" }}>Next →</button>
+                            }} className="w-full py-1.5 rounded-md text-white font-bold text-[11px] transition-all active:scale-97" style={{ background: "#2d6b4f" }}>Next →</button>
                           </div>
                         )}
                       </div>
@@ -2252,8 +2252,8 @@ export default function ExpressCheckoutPage() {
               {/* Submit button — shown when all done */}
               {allIntakeDone && (
                 <div style={{ animation: "fadeInStep 0.4s ease both" }} className="flex flex-col gap-1.5 mt-0.5">
-                  <p className="text-[#2dd4a0] text-[10px] font-extrabold text-center">✓ All Questions Answered</p>
-                  <button onClick={handleIntakeSubmit} className="w-full py-3 rounded-xl border-2 border-[#2dd4a0]/30 text-white font-extrabold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.25)", opacity: intakeSubmitting ? 0.6 : 1 }}>
+                  <p className="text-[#2d7a5f] text-[10px] font-extrabold text-center">✓ All Questions Answered</p>
+                  <button onClick={handleIntakeSubmit} className="w-full py-3 rounded-xl border-2 border-[#2d7a5f]/30 text-white font-extrabold text-[13px] flex items-center justify-center gap-2 transition-all active:scale-95" style={{ background: "#2d6b4f", boxShadow: "0 4px 16px rgba(45,107,79,0.25)", opacity: intakeSubmitting ? 0.6 : 1 }}>
                     {intakeSubmitting ? (<><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Submitting...</>) : "Submit Intake →"}
                   </button>
                 </div>
@@ -2273,32 +2273,32 @@ export default function ExpressCheckoutPage() {
   // ═══════════════════════════════════════════════════════════
   // STEP 1 — MOBILE APP GUIDED BOOKING FLOW
   // ═══════════════════════════════════════════════════════════
-  const activeOrangeBorder = "border-[3px] border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.5)]";
+  const activeOrangeBorder = "border-[3px] border-[#2d6b4f] shadow-[0_0_20px_rgba(45,107,79,0.4)]";
 
   const CompletedPill = ({ text, onReset, subText }: { text: string; onReset: () => void; subText?: string }) => (
-    <button onClick={onReset} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+    <button onClick={onReset} className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-gray-100 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
       <span className="text-gray-500 text-[10px] font-semibold truncate flex-1 text-left">{text}</span>
-      <span className="text-[#2dd4a0]/60 text-[9px] font-semibold flex-shrink-0">change</span>
+      <span className="text-[#2d7a5f]/60 text-[9px] font-semibold flex-shrink-0">change</span>
     </button>
   );
 
   const PharmacyCompletedView = () => (
     <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null }); }}
-      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-gray-100 hover:bg-white/[0.05] transition-all" style={{ animation: "fadeInPill 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
       <Pill size={12} className="text-gray-600 flex-shrink-0" />
       <span className="text-gray-500 text-[10px] font-semibold truncate flex-1 text-left">{pharmacy}</span>
-      <span className="text-[#2dd4a0]/60 text-[9px] font-semibold flex-shrink-0">change</span>
+      <span className="text-[#2d7a5f]/60 text-[9px] font-semibold flex-shrink-0">change</span>
     </button>
   );
 
   return (
-    <div className="ec-root text-white font-sans" style={{ background: "radial-gradient(900px 420px at 18% 12%, rgba(255,179,71,0.18), transparent 55%), radial-gradient(800px 380px at 76% 22%, rgba(110,231,183,0.16), transparent 55%), linear-gradient(180deg, #0b0f0c 0%, #070a08 100%)", height: "100dvh", minHeight: "100vh", overflow: "hidden" }}>
+    <div className="ec-root text-[#1a1a1a] font-sans" style={{ background: "#ffffff", height: "100dvh", minHeight: "100vh", overflow: "hidden" }}>
       <style>{`
         @supports (height: 100dvh) { .ec-root { height: 100dvh !important; } }
         @supports not (height: 100dvh) { .ec-root { height: 100svh !important; } }
-        @keyframes guidePulse { 0%,100% { box-shadow: 0 0 8px rgba(249,115,22,0.3); } 50% { box-shadow: 0 0 18px rgba(249,115,22,0.55); } }
+        @keyframes guidePulse { 0%,100% { box-shadow: 0 0 8px rgba(45,107,79,0.3); } 50% { box-shadow: 0 0 18px rgba(45,107,79,0.4); } }
         @keyframes slideUp { from { opacity:0; transform: translateY(100%); } to { opacity:1; transform: translateY(0); } }
-        @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(249,115,22,0); } 50% { box-shadow: 0 0 16px rgba(249,115,22,0.5); } }
+        @keyframes ackPulse { 0%,100% { box-shadow: 0 0 0px rgba(45,107,79,0); } 50% { box-shadow: 0 0 16px rgba(45,107,79,0.4); } }
         @keyframes fadeInBtn { from { opacity:0; transform:translateY(12px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
         @keyframes fadeInPill { from { opacity:0; transform:translateY(12px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
@@ -2311,7 +2311,7 @@ export default function ExpressCheckoutPage() {
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #0b0f0c 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", padding: "max(env(safe-area-inset-top, 10px), 10px) 16px 10px" }}>
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #ffffff 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", padding: "max(env(safe-area-inset-top, 10px), 10px) 16px 10px" }}>
           {headerIsStep5 ? (
             /* ── PAYMENT STEP HEADER — appointment context ── */
             <div>
@@ -2329,7 +2329,7 @@ export default function ExpressCheckoutPage() {
                 const h = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
                 const ampm = hours >= 12 ? "pm" : "am";
                 return (
-                  <p className="text-center font-semibold" style={{ fontSize: 12, color: "#2dd4a0", marginBottom: 3 }}>
+                  <p className="text-center font-semibold" style={{ fontSize: 12, color: "#2d7a5f", marginBottom: 3 }}>
                     {dayNames[date.getDay()]}, {monthNames[month-1]} {day} @ {h}:{String(minutes).padStart(2,"0")}{ampm}
                   </p>
                 );
@@ -2343,17 +2343,17 @@ export default function ExpressCheckoutPage() {
             /* ── REGULAR STEPS HEADER — logo + title + progress ── */
             <div>
               <div className="flex items-center justify-center gap-1.5 mb-0.5">
-                <div className="w-6 h-6 bg-[#2dd4a0]/20 rounded-md flex items-center justify-center">
-                  <Shield size={13} className="text-[#2dd4a0]" />
+                <div className="w-6 h-6 bg-[#2d7a5f]/20 rounded-md flex items-center justify-center">
+                  <Shield size={13} className="text-[#2d7a5f]" />
                 </div>
-                <span className="text-white font-bold text-[15px] tracking-tight">Medazon <span className="text-[#2dd4a0]">Health</span></span>
+                <span className="text-white font-bold text-[15px] tracking-tight">Medazon <span className="text-[#2d7a5f]">Health</span></span>
               </div>
-              <p className="text-[#2dd4a0] text-[9px] font-bold uppercase tracking-[0.2em] mb-0.5 text-center">Private · Discreet</p>
+              <p className="text-[#2d7a5f] text-[9px] font-bold uppercase tracking-[0.2em] mb-0.5 text-center">Private · Discreet</p>
               <h1 key={pillText} className="text-white font-black leading-tight text-center mb-1" style={{ fontSize: "clamp(20px, 5.5vw, 26px)" }}>
                 {pillText}
               </h1>
-              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-[#f97316] rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-[#2d6b4f] rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
               </div>
             </div>
           )}
@@ -2383,7 +2383,7 @@ export default function ExpressCheckoutPage() {
                     justifyContent: "space-between",
                     padding: "12px 16px",
                     borderRadius: "12px",
-                    border: "2px solid rgba(45,212,160,0.4)",
+                    border: "2px solid rgba(45,122,95,0.4)",
                     background: "#0d1218",
                     textAlign: "left",
                     userSelect: "none",
@@ -2402,15 +2402,15 @@ export default function ExpressCheckoutPage() {
           {reason && !symptomsDone ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-3 space-y-2 transition-all mt-3 ${activeOrangeBorder} flex flex-col min-h-0`}>
-                <textarea id="symptoms-textarea" value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-white/50 caret-white transition-all ${pulseSection === "symptoms" ? "ring-2 ring-[#f97316] animate-pulse border-[#f97316]" : chiefComplaint.length >= 10 ? "border-[#2dd4a0]/30" : "border-[#f97316] focus:border-[#f97316]"}`} />
+                <textarea id="symptoms-textarea" value={chiefComplaint} onChange={(e) => { setChiefComplaint(e.target.value); saveAnswers({ chiefComplaint: e.target.value }); }} onFocus={(e) => { setTimeout(() => { e.target.scrollIntoView({ behavior: "smooth", block: "center" }); }, 300); }} placeholder="e.g., Burning during urination for 3 days..." rows={3} autoFocus className={`w-full bg-[#0d1218] border-2 rounded-xl px-4 py-3 text-[15px] text-white focus:outline-none resize-none placeholder:text-white/50 caret-white transition-all ${pulseSection === "symptoms" ? "ring-2 ring-[#2d6b4f] animate-pulse border-[#2d6b4f]" : chiefComplaint.length >= 10 ? "border-[#2d7a5f]/30" : "border-[#2d6b4f] focus:border-[#2d6b4f]"}`} />
                 {chiefComplaint.length < 10 ? (
-                  <p className="text-gray-300 text-[12px]">Type at least <span className="text-[#f97316] font-black text-[16px] inline-block" style={{ animation: "charPulse 1.2s ease-in-out infinite" }}>{10 - chiefComplaint.length}</span> more characters</p>
+                  <p className="text-gray-300 text-[12px]">Type at least <span className="text-[#2d6b4f] font-black text-[16px] inline-block" style={{ animation: "charPulse 1.2s ease-in-out infinite" }}>{10 - chiefComplaint.length}</span> more characters</p>
                 ) : (
-                  <p className="text-[#2dd4a0] text-[12px] font-semibold">✓ Ready to continue</p>
+                  <p className="text-[#2d7a5f] text-[12px] font-semibold">✓ Ready to continue</p>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.12)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
-                  <button onClick={() => { if (chiefComplaint.length < 10) { triggerPulse("symptoms"); document.getElementById("symptoms-textarea")?.focus(); return; } setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 border-[#f97316]" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 16px rgba(249,115,22,0.25)" }}>Continue →</button>
+                  <button onClick={goBack} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2d7a5f]/30" style={{ background: "rgba(45,122,95,0.12)" }}><span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back</button>
+                  <button onClick={() => { if (chiefComplaint.length < 10) { triggerPulse("symptoms"); document.getElementById("symptoms-textarea")?.focus(); return; } setSymptomsDone(true); saveAnswers({ chiefComplaint, symptomsDone: true }); }} className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 border-[#2d6b4f]" style={{ background: "#2d6b4f", boxShadow: "0 4px 16px rgba(45,107,79,0.25)" }}>Continue →</button>
                 </div>
               </div>
               <BelowCardContent step={2} />
@@ -2432,7 +2432,7 @@ export default function ExpressCheckoutPage() {
                     } else { saveAnswers({ pharmacy: val }); }
                   }}
                   placeholder="Search pharmacy..."
-                  className="w-full bg-[#0d1218] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#f97316] placeholder:text-white/50"
+                  className="w-full bg-[#0d1218] border border-gray-200 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#2d6b4f] placeholder:text-white/50"
                 />
               </div>
               <BelowCardContent step={3} />
@@ -2452,7 +2452,7 @@ export default function ExpressCheckoutPage() {
                       const hasPopupOpen = !!visitTypePopup;
                       return (<button key={vt.key} onClick={() => {
                         setVisitTypePopup(vt.key);
-                      }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2dd4a0]/30 shadow-[0_0_12px_rgba(45,212,160,0.15)]` : hasPopupOpen ? "border-2 border-white/10" : "border-2 border-white/10 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
+                      }} className={`relative flex flex-col items-center justify-center py-3 px-1 rounded-xl transition-all ${isActive ? `border-[3px] border-[#2d7a5f]/30 shadow-[0_0_12px_rgba(45,122,95,0.15)]` : hasPopupOpen ? "border-2 border-gray-200" : "border-2 border-gray-200 hover:border-white/20"}`} style={{ minHeight: "72px" }}>
                         {vt.badge && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: vt.color, color: "#000" }}>{vt.badge}</span>}
                         <Icon size={16} style={{ color: vt.color }} /><span className={`text-[8px] font-bold mt-1 text-center leading-tight whitespace-pre-line ${isActive ? "text-white" : ""}`} style={{ color: isActive ? "#fff" : vt.color }}>{vt.label}</span>
                       </button>);
@@ -2465,7 +2465,7 @@ export default function ExpressCheckoutPage() {
           {/* ═══ VISIT TYPE INFO — compact popup with confirm button inside ═══ */}
           {visitTypePopup && !visitTypeConfirmed && (
             <div className="rounded-xl overflow-hidden" style={{ animation: "fadeInStep 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="p-3 space-y-2.5 relative bg-transparent border border-white/10 rounded-xl" style={{ minHeight: "140px" }}>
+              <div className="p-3 space-y-2.5 relative bg-transparent border border-gray-200 rounded-xl" style={{ minHeight: "140px" }}>
                 <button onClick={() => setVisitTypePopup(null)} className="absolute top-2.5 right-2.5 text-gray-500 hover:text-white transition-colors z-10"><X size={16} /></button>
                 {visitTypePopup === "async" && (<>
                   <div className="px-1 mb-2" style={{ textAlign: "center" }}>
@@ -2474,7 +2474,7 @@ export default function ExpressCheckoutPage() {
                         const words = line.split(" ");
                         if (i === visitContent.async.title.split("\n").length - 1 && words.length > 0) {
                           const last = words.pop();
-                          return <span key={i}>{words.join(" ")} <span className="text-[#2dd4a0]">{last}</span>{"\n"}</span>;
+                          return <span key={i}>{words.join(" ")} <span className="text-[#2d7a5f]">{last}</span>{"\n"}</span>;
                         }
                         return <span key={i}>{line}{"\n"}</span>;
                       })}
@@ -2484,19 +2484,19 @@ export default function ExpressCheckoutPage() {
                   <div className="space-y-0">
                     {visitContent.async.steps.map((item, i) => (
                       <div key={i}>
-                        {i > 0 && <div className="w-px h-1.5 bg-[#2dd4a0]/15" style={{ margin: "0 auto" }}></div>}
+                        {i > 0 && <div className="w-px h-1.5 bg-[#2d7a5f]/15" style={{ margin: "0 auto" }}></div>}
                         <div className="flex flex-col items-center py-2" style={{ textAlign: "center" }}>
-                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2dd4a0]/15" style={{ background: "rgba(45,212,160,0.06)" }}>{item.icon}</div>
+                          <div className="w-[34px] h-[34px] rounded-full flex-shrink-0 flex items-center justify-center text-[14px] border border-[#2d7a5f]/15" style={{ background: "rgba(45,122,95,0.06)" }}>{item.icon}</div>
                           <div className="mt-1" style={{ textAlign: "center" }}>
                             <div className="text-[11px] font-bold text-white">{item.t}</div>
                             <div className="text-[11px] text-[#6b7280] mt-0.5">{item.d}</div>
-                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2dd4a0] font-bold px-1.5 py-0.5 rounded border border-[#2dd4a0]/12" style={{ background: "rgba(45,212,160,0.08)" }}>⏱ {item.time}</span>
+                            <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-[#2d7a5f] font-bold px-1.5 py-0.5 rounded border border-[#2d7a5f]/12" style={{ background: "rgba(45,122,95,0.08)" }}>⏱ {item.time}</span>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; setVisitType("async"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); setAppointmentDate(today); setAppointmentTime(""); setVisitTypePopup(null); saveAnswers({ visitType: "async", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: today, appointmentTime: "" }); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#2d6b4f] text-white active:scale-95 transition-all" style={{ background: "#2d6b4f" }}>← Back</button><button onClick={() => { const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; setVisitType("async"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); setAppointmentDate(today); setAppointmentTime(""); setVisitTypePopup(null); saveAnswers({ visitType: "async", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: today, appointmentTime: "" }); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2d7a5f]/30 text-white" style={{ background: "rgba(45,122,95,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "instant" && (<>
@@ -2510,8 +2510,8 @@ export default function ExpressCheckoutPage() {
                   </div>
                   {/* After-hours notice */}
                   {(() => { const azInfo = getInstantAZInfo(); return azInfo.isAfterCutoff ? (
-                    <div className="rounded-xl px-3 py-2 mb-1" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
-                      <p className="text-[#f97316] text-[10px] font-bold">🌙 After Hours</p>
+                    <div className="rounded-xl px-3 py-2 mb-1" style={{ background: "rgba(45,107,79,0.06)", border: "1px solid rgba(45,107,79,0.2)" }}>
+                      <p className="text-[#2d6b4f] text-[10px] font-bold">🌙 After Hours</p>
                       <p className="text-gray-300 text-[10px] mt-0.5">The provider will connect with you tomorrow at <strong>9:00 AM Arizona time</strong>. Your spot is locked in now.</p>
                     </div>
                   ) : null; })()}
@@ -2533,12 +2533,12 @@ export default function ExpressCheckoutPage() {
                   </div>
                   {/* FAQ accordion */}
                   <InstantFAQ />
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#2d6b4f] text-white active:scale-95 transition-all" style={{ background: "#2d6b4f" }}>← Back</button><button onClick={() => { setVisitType("instant"); setVisitTypeChosen(true); saveAnswers({ visitType: "instant", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2d7a5f]/30 text-white" style={{ background: "rgba(45,122,95,0.12)" }}>Choose →</button></div>
                   <div className="flex items-center gap-1.5 opacity-50 justify-center"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>
                 </>)}
                 {visitTypePopup === "refill" && (<>
                   <div className="flex items-center gap-2.5 mb-1"><div className="w-8 h-8 rounded-full bg-[#f59e0b]/15 flex items-center justify-center flex-shrink-0"><Pill size={16} className="text-[#f59e0b]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">💊 Rx Refill</h3><p className="text-[#f59e0b] text-[9px] font-bold uppercase tracking-wider">Provider reviews &amp; sends to pharmacy same day</p></div></div>
-                  <div className="rounded-xl bg-[#0d1218] border border-white/10 p-2.5 space-y-1.5">
+                  <div className="rounded-xl bg-[#0d1218] border border-gray-200 p-2.5 space-y-1.5">
                     <p className="text-white text-[10px] font-semibold">Select Medications to Refill</p>
                     {medsLoading ? (
                       <div className="flex items-center justify-center py-2"><div className="animate-spin w-3 h-3 border-2 border-[#f59e0b] border-t-transparent rounded-full" /><span className="ml-2 text-gray-400 text-[10px]">Loading...</span></div>
@@ -2559,23 +2559,23 @@ export default function ExpressCheckoutPage() {
                     ) : (
                       <p className="text-gray-500 text-[10px] py-1">No medications found on file.</p>
                     )}
-                    <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-white/5 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-white/50" />
+                    <textarea value={symptomsText} onChange={(e) => { setSymptomsText(e.target.value); saveAnswers({ symptomsText: e.target.value }); }} placeholder="Additional medications or notes..." rows={1} className="w-full bg-[#11161c] border border-gray-100 rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#f59e0b] resize-none placeholder:text-white/50" />
                   </div>
                   {/* FAQ accordion */}
                   <RefillFAQ />
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; setVisitType("refill"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); setAppointmentDate(today); setAppointmentTime(""); setVisitTypePopup(null); saveAnswers({ visitType: "refill", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: today, appointmentTime: "" }); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#2d6b4f] text-white active:scale-95 transition-all" style={{ background: "#2d6b4f" }}>← Back</button><button onClick={() => { const d = new Date(); const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; setVisitType("refill"); setVisitTypeChosen(true); setVisitTypeConfirmed(true); setAppointmentDate(today); setAppointmentTime(""); setVisitTypePopup(null); saveAnswers({ visitType: "refill", visitTypeChosen: true, visitTypeConfirmed: true, appointmentDate: today, appointmentTime: "" }); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2d7a5f]/30 text-white" style={{ background: "rgba(45,122,95,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "video" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#3b82f6]/15 flex items-center justify-center flex-shrink-0"><Video size={16} className="text-[#3b82f6]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Face-to-Face, From Anywhere</h3><p className="text-[#3b82f6] text-[9px] font-bold uppercase tracking-wider">Video Visit · Live</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">See your provider live on video — just like an in-office visit.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Real-time</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">HIPAA encrypted</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#3b82f6]" /><span className="text-white text-[10px]">Pick a time</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("video"); setVisitTypeChosen(true); saveAnswers({ visitType: "video", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#2d6b4f] text-white active:scale-95 transition-all" style={{ background: "#2d6b4f" }}>← Back</button><button onClick={() => { setVisitType("video"); setVisitTypeChosen(true); saveAnswers({ visitType: "video", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2d7a5f]/30 text-white" style={{ background: "rgba(45,122,95,0.12)" }}>Choose →</button></div>
                 </>)}
                 {visitTypePopup === "phone" && (<>
                   <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-full bg-[#a855f7]/15 flex items-center justify-center flex-shrink-0"><Phone size={16} className="text-[#a855f7]" /></div><div><h3 className="text-white font-black text-[13px] leading-tight">Talk, Text, or Both</h3><p className="text-[#a855f7] text-[9px] font-bold uppercase tracking-wider">Phone / SMS · No Camera</p></div></div>
                   <p className="text-gray-300 text-[11px] leading-relaxed">Connect by phone or text — same quality care, no video.</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1"><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">No downloads</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Flexible</span></div><div className="flex items-center gap-1"><Check size={11} className="text-[#a855f7]" /><span className="text-white text-[10px]">Follow-ups</span></div></div>
-                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#f97316] text-white active:scale-95 transition-all" style={{ background: "#f97316" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2dd4a0]/30 text-white" style={{ background: "rgba(45,212,160,0.12)" }}>Choose →</button></div>
+                  <div className="flex justify-between gap-2"><button onClick={goBack} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border-2 border-[#2d6b4f] text-white active:scale-95 transition-all" style={{ background: "#2d6b4f" }}>← Back</button><button onClick={() => { setVisitType("phone"); setVisitTypeChosen(true); saveAnswers({ visitType: "phone", visitTypeChosen: true }); setVisitTypePopup(null); setDateTimeDialogOpen(true); setCalWeekOffset(0); setCalSelectedDay((() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })()); setCalSelectedTime(""); }} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg font-bold text-[12px] border border-[#2d7a5f]/30 text-white" style={{ background: "rgba(45,122,95,0.12)" }}>Choose →</button></div>
                 </>)}
                 {(visitTypePopup === "refill" || visitTypePopup === "video" || visitTypePopup === "phone") && <div className="flex items-center gap-1.5 opacity-50"><Lock size={9} className="text-gray-500" /><span className="text-gray-500 text-[8px]">Full anonymity · Identity stays private</span></div>}
               </div>
@@ -2591,53 +2591,53 @@ export default function ExpressCheckoutPage() {
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Summary card */}
-                <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background: "rgba(255,255,255,0.02)" }}>
-                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-white/5">
-                    <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
+                <div className="rounded-xl border border-gray-200 overflow-hidden" style={{ background: "#f9fafb" }}>
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-gray-100">
+                    <div className="w-9 h-9 rounded-full border-2 border-[#2d7a5f] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,122,95,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
                     <div className="flex-1 min-w-0"><p className="text-white font-bold text-[13px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
-                    <Shield size={14} className="text-[#2dd4a0] flex-shrink-0" />
+                    <Shield size={14} className="text-[#2d7a5f] flex-shrink-0" />
                   </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
                     <div className="flex items-center gap-2">
-                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2dd4a0]/15 border border-[#2dd4a0]/30 text-[#2dd4a0] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
-                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2d7a5f]/15 border border-[#2d7a5f]/30 text-[#2d7a5f] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
+                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
                         {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
-                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
-                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
                   {selectedMeds.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                       <span className="text-gray-500 text-[12px] font-semibold">Medications</span>
                       <span className="text-white text-[12px] font-medium truncate ml-4">{selectedMeds.join(", ")}</span>
                     </div>
                   )}
                   {appointmentDate && appointmentTime && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
                       <div className="flex items-center gap-2">
                         <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                       </div>
                     </div>
                   )}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,122,95,0.04)" }}>
                     <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
-                    <span className="text-[#2dd4a0] font-black text-[18px]">{currentPrice.display}</span>
+                    <span className="text-[#2d7a5f] font-black text-[18px]">{currentPrice.display}</span>
                   </div>
                 </div>
                 {/* CONTINUE button */}
@@ -2647,7 +2647,7 @@ export default function ExpressCheckoutPage() {
                     return;
                   }
                   setConfirmReviewed(true); saveAnswers({ confirmReviewed: true });
-                }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)", boxShadow: "0 4px 20px rgba(249,115,22,0.35)" }}>
+                }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "#2d6b4f", boxShadow: "0 4px 20px rgba(45,107,79,0.35)" }}>
                   CONTINUE
                 </button>
               </div>
@@ -2658,53 +2658,53 @@ export default function ExpressCheckoutPage() {
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
                 {/* Summary card — collapses when card form is open */}
-                <div className="rounded-xl border border-white/10 overflow-hidden transition-all" style={{ background: "rgba(255,255,255,0.02)", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
-                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-white/5">
-                    <div className="w-9 h-9 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,212,160,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
+                <div className="rounded-xl border border-gray-200 overflow-hidden transition-all" style={{ background: "#f9fafb", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
+                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-gray-100">
+                    <div className="w-9 h-9 rounded-full border-2 border-[#2d7a5f] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,122,95,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
                     <div className="flex-1 min-w-0"><p className="text-white font-bold text-[13px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
-                    <Shield size={14} className="text-[#2dd4a0] flex-shrink-0" />
+                    <Shield size={14} className="text-[#2d7a5f] flex-shrink-0" />
                   </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
                     <div className="flex items-center gap-2">
-                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2dd4a0]/15 border border-[#2dd4a0]/30 text-[#2dd4a0] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
-                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2d7a5f]/15 border border-[#2d7a5f]/30 text-[#2d7a5f] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
+                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold">
                         {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
                       </span>
-                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                     <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
                     <div className="flex items-center gap-2">
                       <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
-                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                     </div>
                   </div>
                   {selectedMeds.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                       <span className="text-gray-500 text-[12px] font-semibold">Medications</span>
                       <span className="text-white text-[12px] font-medium truncate ml-4">{selectedMeds.join(", ")}</span>
                     </div>
                   )}
                   {appointmentDate && appointmentTime && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-white/5">
+                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
                       <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
                       <div className="flex items-center gap-2">
                         <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2dd4a0] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
+                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
                       </div>
                     </div>
                   )}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,212,160,0.04)" }}>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,122,95,0.04)" }}>
                     <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
-                    <span className="text-[#2dd4a0] font-black text-[18px]">{currentPrice.display}</span>
+                    <span className="text-[#2d7a5f] font-black text-[18px]">{currentPrice.display}</span>
                   </div>
                 </div>
 
@@ -2719,16 +2719,16 @@ export default function ExpressCheckoutPage() {
                       <p className="text-red-400 text-[11px] font-semibold mb-1">Payment setup failed</p>
                       <p className="text-gray-400 text-[9px]">{paymentIntentError}</p>
                     </div>
-                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>Retry</button>
+                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#2d6b4f] hover:bg-[#2d6b4f]/10 transition-all" style={{ background: "rgba(45,107,79,0.05)" }}>Retry</button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-4 gap-2">
-                    <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                    <div className="animate-spin w-5 h-5 border-2 border-[#2d7a5f] border-t-transparent rounded-full" />
                     <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
                 {/* Back button */}
-                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2d7a5f]/30" style={{ background: "rgba(45,122,95,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
               <ConfirmBelowContent isReturn={true} />
             </div>
@@ -2741,98 +2741,98 @@ export default function ExpressCheckoutPage() {
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
 
                 {/* ── NEW PATIENT INFO — form tag enables browser autofill on page load ── */}
-                <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#f97316] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
+                <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#2d6b4f] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
                   {/* Row 1: First + Last */}
                   <div className="flex gap-1">
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                      {npErrors.firstName && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.firstName}</span>}
+                      {npErrors.firstName && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.firstName}</span>}
                     <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                       name="given-name"
                       ref={npFirstNameRef}
                       placeholder="First name" defaultValue=""
                       aria-invalid={!!npErrors.firstName}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.firstName ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #f97316" : v ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
+                      style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                      onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                     />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                      {npErrors.lastName && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.lastName}</span>}
+                      {npErrors.lastName && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.lastName}</span>}
                     <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                       name="family-name"
                       ref={npLastNameRef}
                       placeholder="Last name" defaultValue=""
                       aria-invalid={!!npErrors.lastName}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.lastName ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #f97316" : v ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
+                      style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                      onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                     />
                     </div>
                   </div>
                   {/* Row 2: Email + Phone */}
                   <div className="flex gap-1">
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                      {npErrors.email && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.email}</span>}
+                      {npErrors.email && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.email}</span>}
                     <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
                       name="email"
                       ref={npEmailRef}
                       placeholder="Email" defaultValue=""
                       aria-invalid={!!npErrors.email}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.email ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #f97316" : v.includes("@") ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
+                      style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                      onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #2d6b4f" : v.includes("@") ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                     />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                      {npErrors.phone && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.phone}</span>}
+                      {npErrors.phone && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.phone}</span>}
                     <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
                       name="tel"
                       ref={npPhoneRef}
                       placeholder="Phone" defaultValue=""
                       aria-invalid={!!npErrors.phone}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ background: "rgba(0,0,0,0.3)", border: npErrors.phone ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #f97316" : v.length>=10 ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
+                      style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                      onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #2d6b4f" : v.length>=10 ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                     />
                     </div>
                   </div>
                   {/* Row 3: Address (flex-3) + DOB single field (flex-2) */}
                   <div className="flex gap-1">
                     <div style={{flex:3,minWidth:0}} className="flex flex-col gap-0.5">
-                      {npErrors.address && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.address}</span>}
+                      {npErrors.address && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.address}</span>}
                     <input type="text" autoComplete="street-address" autoCorrect="off" spellCheck={false}
                       name="street-address"
                       ref={npAddressRef}
                       placeholder="Street address" defaultValue=""
                       aria-invalid={!!npErrors.address}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-white/70"
-                      style={{ flex: 3, minWidth: 0, background: "rgba(0,0,0,0.3)", border: npErrors.address ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2dd4a0"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #f97316" : v ? "1.5px solid rgba(45,212,160,0.5)" : "1.5px solid rgba(255,255,255,0.12)"; }}
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
+                      style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                      onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                     />
                     </div>
                     <div style={{flex:2,minWidth:0}} className="flex flex-col gap-0.5">
-                      {npErrors.dob && <span className="text-[10px] font-semibold text-[#f97316] px-0.5">{npErrors.dob}</span>}
+                      {npErrors.dob && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.dob}</span>}
                     <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
                       name="bday"
                       ref={npDobRef}
                       placeholder="DOB MM/DD/YYYY"
                       defaultValue=""
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-white/70"
+                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-gray-400"
                       aria-invalid={!!npErrors.dob}
-                      style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: npErrors.dob ? "1.5px solid #f97316" : "1.5px solid rgba(255,255,255,0.12)" }}
-                      onFocus={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #f97316" : "3px solid #2dd4a0"; e.target.style.boxShadow = npErrors.dob ? "none" : "0 0 0 2px rgba(45,212,160,0.25)"; }}
+                      style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                      onFocus={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #2d6b4f" : "3px solid #2d7a5f"; e.target.style.boxShadow = npErrors.dob ? "none" : "0 0 0 2px rgba(45,122,95,0.25)"; }}
                       onBlur={(e) => {
                         const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                         const mm = raw.slice(0,2); const dd = raw.slice(2,4); const yyyy = raw.slice(4,8);
                         setNpDobMonth(mm); setNpDobDay(dd); setNpDobYear(yyyy);
                         const complete = mm.length===2 && dd.length===2 && yyyy.length===4;
                         if (complete) setNpErrors(p=>({...p,dob:""}));
-                        e.target.style.border = npErrors.dob && !complete ? "1.5px solid #f97316" : complete ? "3px solid rgba(45,212,160,0.65)" : "1.5px solid rgba(255,255,255,0.12)";
+                        e.target.style.border = npErrors.dob && !complete ? "1.5px solid #2d6b4f" : complete ? "3px solid rgba(45,122,95,0.65)" : "1.5px solid #c8d8cb";
                         e.target.style.boxShadow = "none";
                         // Auto-format display: insert slashes
                         if (raw.length >= 4) {
@@ -2859,16 +2859,16 @@ export default function ExpressCheckoutPage() {
                       <p className="text-red-400 text-[11px] font-semibold mb-1">Payment setup failed</p>
                       <p className="text-gray-400 text-[9px]">{paymentIntentError}</p>
                     </div>
-                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#f97316] hover:bg-[#f97316]/10 transition-all" style={{ background: "rgba(249,115,22,0.05)" }}>Retry</button>
+                    <button onClick={retryPaymentIntent} className="w-full py-2.5 rounded-xl text-white font-bold text-[12px] border border-[#2d6b4f] hover:bg-[#2d6b4f]/10 transition-all" style={{ background: "rgba(45,107,79,0.05)" }}>Retry</button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-4 gap-2">
-                    <div className="animate-spin w-5 h-5 border-2 border-[#2dd4a0] border-t-transparent rounded-full" />
+                    <div className="animate-spin w-5 h-5 border-2 border-[#2d7a5f] border-t-transparent rounded-full" />
                     <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
                 {/* Back button */}
-                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2dd4a0]/30" style={{ background: "rgba(45,212,160,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2d7a5f]/30" style={{ background: "rgba(45,122,95,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
             </div>
           </div>
@@ -2890,21 +2890,21 @@ export default function ExpressCheckoutPage() {
           {/* Header */}
           <div className="flex justify-between items-center px-4 pt-4 pb-3 flex-shrink-0">
             <span className="text-white font-bold text-lg">Reason For Visit</span>
-            <button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white"><X size={18} /></button>
+            <button onClick={() => { setReasonDialogOpen(false); setReasonQuery(""); }} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:text-white"><X size={18} /></button>
           </div>
           {/* Search */}
           <div className="px-4 pb-3 flex-shrink-0">
             <div className="relative">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-              <input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..." autoFocus className="w-full bg-[#11161c] border border-white/10 rounded-xl pl-9 pr-3 py-3 text-sm text-white focus:outline-none focus:border-[#2dd4a0]" />
+              <input value={reasonQuery} onChange={(e) => setReasonQuery(e.target.value)} placeholder="Search symptoms..." autoFocus className="w-full bg-[#11161c] border border-gray-200 rounded-xl pl-9 pr-3 py-3 text-sm text-white focus:outline-none focus:border-[#2d7a5f]" />
             </div>
           </div>
           {/* Scrollable list — takes remaining space, keyboard pushes it up naturally */}
           <div className="flex-1 overflow-y-auto px-4 pb-8">
-            <div className="border border-white/5 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 text-white bg-white/[0.03] hover:bg-[#2dd4a0]/10 hover:text-[#2dd4a0] cursor-pointer text-sm border-b border-white/5 font-semibold active:bg-[#2dd4a0]/15 active:text-[#2dd4a0]" onClick={() => { setReason("Something Else"); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: "Something Else" }); }}>Something else</div>
+            <div className="border border-gray-100 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 text-[#1a1a1a] bg-white/[0.03] hover:bg-[#2d7a5f]/10 hover:text-[#2d7a5f] cursor-pointer text-sm border-b border-gray-100 font-semibold active:bg-[#2d7a5f]/15 active:text-[#2d7a5f]" onClick={() => { setReason("Something Else"); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: "Something Else" }); }}>Something else</div>
               {filteredReasons.map((item: { name: string }) => (
-                <div key={item.name} className="px-4 py-3 text-white hover:bg-[#2dd4a0]/10 hover:text-[#2dd4a0] cursor-pointer text-sm border-b border-white/5 last:border-0 active:bg-[#2dd4a0]/15 active:text-[#2dd4a0]" onClick={() => { setReason(item.name); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: item.name }); }}>{item.name}</div>
+                <div key={item.name} className="px-4 py-3 text-white hover:bg-[#2d7a5f]/10 hover:text-[#2d7a5f] cursor-pointer text-sm border-b border-gray-100 last:border-0 active:bg-[#2d7a5f]/15 active:text-[#2d7a5f]" onClick={() => { setReason(item.name); setReasonDialogOpen(false); setReasonQuery(""); saveAnswers({ reason: item.name }); }}>{item.name}</div>
               ))}
             </div>
           </div>
@@ -2936,7 +2936,7 @@ export default function ExpressCheckoutPage() {
           // After hours: 5:30 PM onward on weekdays
           const t24 = convertTo24(slot);
           const [h] = t24.split(":").map(Number);
-          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours", color: "#f97316" };
+          if (h >= 17 && slot !== "5:00 PM") return { label: "After Hours", color: "#2d6b4f" };
           return null;
         };
         // Convert HH:MM (API format) to display string "9:00 AM"
@@ -3019,9 +3019,9 @@ export default function ExpressCheckoutPage() {
                       className="flex-1 flex flex-col items-center justify-center rounded-[14px] transition-all active:scale-95"
                       style={{
                         padding: "10px 4px 8px",
-                        border: isSelected ? "2px solid rgba(45,212,160,0.4)" : isToday ? "2px solid rgba(45,212,160,0.2)" : "2px solid transparent",
+                        border: isSelected ? "2px solid rgba(45,122,95,0.4)" : isToday ? "2px solid rgba(45,122,95,0.2)" : "2px solid transparent",
                         background: isSelected ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "transparent",
-                        boxShadow: isSelected ? "0 4px 16px rgba(45,212,160,0.15)" : "none",
+                        boxShadow: isSelected ? "0 4px 16px rgba(45,122,95,0.15)" : "none",
                         cursor: "pointer",
                         gap: 2,
                         minWidth: 0,
@@ -3029,11 +3029,11 @@ export default function ExpressCheckoutPage() {
                       <span style={{ fontSize: 11, fontWeight: isSelected ? 700 : 600, color: isSelected ? "#fff" : "#64748b", letterSpacing: "0.04em", lineHeight: 1 }}>{DAY_ABBR[day.getDay()]}</span>
                       <span style={{ fontSize: 22, fontWeight: 700, color: isSelected ? "#fff" : "#cbd5e1", lineHeight: 1.2 }}>{day.getDate()}</span>
                       {special ? (
-                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? "#d1fae5" : "#2dd4a0", lineHeight: 1, marginTop: 1 }}>{special}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: isSelected ? "#d1fae5" : "#2d7a5f", lineHeight: 1, marginTop: 1 }}>{special}</span>
                       ) : (
                         <span style={{ fontSize: 9, fontWeight: 600, color: isSelected ? "#d1fae5" : "#64748b", lineHeight: 1, marginTop: 1 }}>{SHORT_MO[day.getMonth()]}</span>
                       )}
-                      {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2dd4a0] mt-0.5" />}
+                      {isToday && !isSelected && <span className="w-1.5 h-1.5 rounded-full bg-[#2d7a5f] mt-0.5" />}
                     </button>
                   );
                 })}
@@ -3043,7 +3043,7 @@ export default function ExpressCheckoutPage() {
               {canGoForward ? (
                 <button onClick={() => { setCalWeekOffset(Math.min(calWeekOffset + VISIBLE, TOTAL - VISIBLE)); setCalSelectedTime(""); }} className="flex-shrink-0 flex flex-col items-center p-1 text-[#64748b] active:scale-90 transition-transform" style={{ background: "none", border: "none" }}>
                   <ChevronDown size={20} className="-rotate-90" />
-                  <span style={{ fontSize: 10, color: "#2dd4a0", fontWeight: 600, marginTop: -2 }}>Next &gt;</span>
+                  <span style={{ fontSize: 10, color: "#2d7a5f", fontWeight: 600, marginTop: -2 }}>Next &gt;</span>
                 </button>
               ) : <div style={{ width: 28 }} />}
             </div>
@@ -3058,7 +3058,7 @@ export default function ExpressCheckoutPage() {
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#cbd5e1", margin: "0 0 14px", lineHeight: 1 }}>Available Times for {selectedDayLabel}</p>
                   {calApiLoading ? (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: 12 }}>
-                      <div className="animate-spin" style={{ width: 24, height: 24, border: "2px solid rgba(45,212,160,0.2)", borderTop: "2px solid #2dd4a0", borderRadius: "50%" }} />
+                      <div className="animate-spin" style={{ width: 24, height: 24, border: "2px solid rgba(45,122,95,0.2)", borderTop: "2px solid #2d7a5f", borderRadius: "50%" }} />
                       <p style={{ color: "#64748b", fontSize: 12 }}>Loading available times...</p>
                     </div>
                   ) : (
@@ -3083,14 +3083,14 @@ export default function ExpressCheckoutPage() {
                             style={{
                               padding: badge ? "6px 12px 6px" : "14px 16px",
                               borderRadius: 12,
-                              border: isActive ? "2px solid rgba(45,212,160,0.5)" : badge ? "2px solid rgba(249,115,22,0.2)" : "2px solid rgba(255,255,255,0.1)",
-                              background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : badge ? "rgba(249,115,22,0.04)" : "rgba(255,255,255,0.03)",
+                              border: isActive ? "2px solid rgba(45,122,95,0.5)" : badge ? "2px solid rgba(45,107,79,0.2)" : "2px solid rgba(255,255,255,0.1)",
+                              background: isActive ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : badge ? "rgba(45,107,79,0.04)" : "rgba(255,255,255,0.03)",
                               color: isActive ? "#ffffff" : "#e2e8f0",
                               fontSize: 15,
                               fontWeight: 700,
                               cursor: "pointer",
                               textAlign: "center" as const,
-                              boxShadow: isActive ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                              boxShadow: isActive ? "0 4px 16px rgba(45,122,95,0.2)" : "none",
                               animation: "slotFadeIn 0.3s ease both",
                               animationDelay: `${i * 0.05}s`,
                               display: "flex",
@@ -3134,12 +3134,12 @@ export default function ExpressCheckoutPage() {
                                 }}
                                 style={{
                                   padding: "14px 16px", borderRadius: 12,
-                                  border: isActN ? "2px solid rgba(45,212,160,0.5)" : "2px solid rgba(255,255,255,0.1)",
+                                  border: isActN ? "2px solid rgba(45,122,95,0.5)" : "2px solid rgba(255,255,255,0.1)",
                                   background: isActN ? "linear-gradient(135deg, #22805a 0%, #1a6b48 100%)" : "rgba(255,255,255,0.03)",
                                   color: isActN ? "#ffffff" : "#e2e8f0",
                                   fontSize: 15, fontWeight: 700, cursor: "pointer",
                                   textAlign: "center" as const,
-                                  boxShadow: isActN ? "0 4px 16px rgba(45,212,160,0.2)" : "none",
+                                  boxShadow: isActN ? "0 4px 16px rgba(45,122,95,0.2)" : "none",
                                   animation: "slotFadeIn 0.3s ease both",
                                   animationDelay: `${i * 0.05}s`,
                                   display: "flex", flexDirection: "column" as const,
@@ -3172,13 +3172,13 @@ export default function ExpressCheckoutPage() {
                   if (!calSelectedDay) {
                     // Pulse the day strip
                     const strip = document.getElementById("cal-day-strip");
-                    if (strip) { strip.classList.add("animate-pulse"); strip.style.boxShadow = "0 0 20px rgba(249,115,22,0.4)"; setTimeout(() => { strip.classList.remove("animate-pulse"); strip.style.boxShadow = "none"; }, 1500); }
+                    if (strip) { strip.classList.add("animate-pulse"); strip.style.boxShadow = "0 0 20px rgba(45,107,79,0.4)"; setTimeout(() => { strip.classList.remove("animate-pulse"); strip.style.boxShadow = "none"; }, 1500); }
                     return;
                   }
                   if (!calSelectedTime) {
                     // Pulse the time grid
                     const grid = document.getElementById("cal-time-grid");
-                    if (grid) { grid.classList.add("animate-pulse"); grid.style.boxShadow = "0 0 20px rgba(249,115,22,0.4)"; setTimeout(() => { grid.classList.remove("animate-pulse"); grid.style.boxShadow = "none"; }, 1500); }
+                    if (grid) { grid.classList.add("animate-pulse"); grid.style.boxShadow = "0 0 20px rgba(45,107,79,0.4)"; setTimeout(() => { grid.classList.remove("animate-pulse"); grid.style.boxShadow = "none"; }, 1500); }
                     return;
                   }
                   setAppointmentDate(calSelectedDay);
@@ -3194,12 +3194,12 @@ export default function ExpressCheckoutPage() {
                   padding: "16px 24px",
                   borderRadius: 14,
                   border: "none",
-                  background: "linear-gradient(135deg, #f97316 0%, #ea8a2e 100%)",
+                  background: "#2d6b4f",
                   color: "#ffffff",
                   fontSize: 18,
                   fontWeight: 800,
                   cursor: "pointer",
-                  boxShadow: "0 4px 20px rgba(249,115,22,0.25)",
+                  boxShadow: "0 4px 20px rgba(45,107,79,0.25)",
                 }}>
                 Confirm
               </button>
