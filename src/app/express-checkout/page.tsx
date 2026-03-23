@@ -2294,12 +2294,12 @@ export default function ExpressCheckoutPage() {
       <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px" }}>
 
         {/* ═══ LOCKED HEADER — never scrolls, never shrinks ═══ */}
-        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "linear-gradient(180deg, #ffffff 0%, rgba(11,15,12,0.97) 100%)", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", padding: "max(env(safe-area-inset-top, 10px), 10px) 16px 10px" }}>
+        <div className="flex-shrink-0 z-10 pb-1.5" style={{ background: "#ffffff", paddingTop: "max(env(safe-area-inset-top, 12px), 12px)", padding: "max(env(safe-area-inset-top, 10px), 10px) 16px 10px" }}>
           {headerIsStep5 ? (
             /* ── PAYMENT STEP HEADER — appointment context ── */
             <div>
               {/* Row 1: Confirm & Book Your [Visit Type] */}
-              <p className="text-white font-black text-center leading-tight" style={{ fontSize: "clamp(14px, 3.8vw, 17px)", marginBottom: 3 }}>
+              <p className="font-black text-center leading-tight" style={{ fontSize: "clamp(14px, 3.8vw, 17px)", marginBottom: 3, color: "#262626" }}>
                 Confirm &amp; Book Your {({async:"Async Visit",sms:"SMS Visit",refill:"Rx Refill",video:"Video Visit",phone:"Phone Visit",instant:"Instant Visit"} as Record<string,string>)[visitType] || "Visit"}
               </p>
               {/* Row 2: Day, Month Date @ Time — only if date/time exist */}
@@ -2318,7 +2318,7 @@ export default function ExpressCheckoutPage() {
                 );
               })()}
               {/* Row 3: Your Provider */}
-              <p className="text-center" style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 0 }}>
+              <p className="text-center" style={{ fontSize: 11, color: "#767d86", marginBottom: 0 }}>
                 Your Provider · LaMonica A. Hodges, MSN, APRN, FNP-C
               </p>
             </div>
