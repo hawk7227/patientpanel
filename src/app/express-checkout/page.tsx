@@ -854,15 +854,15 @@ function Step2PaymentForm({
                       disabled={payInFlight}
                       style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "2px solid #3f8464", background: "#fff", color: "#1a1a1a", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
                     >
-                      <svg width="24" height="16" viewBox="0 0 38 14" fill="none"><path d="M7.08 2.88c-.44.52-1.14.92-1.84.86-.08-.7.26-1.44.66-1.9.44-.52 1.2-.9 1.82-.92.08.72-.2 1.44-.64 1.96zm.62.98c-1.02-.06-1.88.58-2.36.58-.48 0-1.22-.54-2.02-.52C2.3 3.94 1.4 4.56.96 5.52c-.9 1.56-.24 3.86.64 5.12.42.62.94 1.3 1.62 1.28.64-.02.88-.42 1.66-.42.76 0 .98.42 1.66.4.7-.02 1.14-.62 1.56-1.24.5-.72.7-1.42.72-1.46-.02-.02-1.38-.54-1.4-2.1-.02-1.3 1.06-1.92 1.1-1.96-.62-.88-1.56-.98-1.82-1zm4.62-1.66v9.52h1.48V9.06h2.04c1.86 0 3.16-1.28 3.16-3.14 0-1.86-1.28-3.12-3.12-3.12h-3.56zm1.48 1.26h1.7c1.28 0 2 .68 2 1.88 0 1.2-.72 1.88-2.02 1.88h-1.68V3.46zm7.68 8.34c.92 0 1.78-.46 2.16-1.2h.03v1.12h1.36V6.86c0-1.38-1.1-2.26-2.78-2.26-1.56 0-2.72.9-2.76 2.12h1.32c.1-.58.64-.96 1.4-.96.9 0 1.4.42 1.4 1.18v.52l-1.84.1c-1.7.1-2.62.8-2.62 2.02 0 1.24.96 2.06 2.33 2.06zm.4-1.12c-.78 0-1.28-.38-1.28-1 0-.64.48-1 1.38-1.06l1.64-.1v.54c0 .92-.78 1.62-1.74 1.62zm5.2 3.58c1.44 0 2.12-.56 2.72-2.22l2.6-7.34h-1.52l-1.74 5.62h-.03l-1.74-5.62h-1.56l2.52 6.98-.14.42c-.22.72-.6 1-1.2 1-.12 0-.34-.02-.44-.04v1.14c.1.04.4.06.53.06z" fill="#000"/></svg>
-                      Pay with Apple Pay
+                      <svg width="13" height="16" viewBox="0 0 13 16" fill="none" style={{flexShrink:0}}><path d="M12.27 11.97c-.26.6-.57 1.15-.92 1.66-.49.69-.88 1.17-1.2 1.43-.47.44-.98.67-1.52.68-.39 0-.86-.11-1.4-.34-.55-.23-1.05-.34-1.52-.34-.49 0-1.01.11-1.56.34-.56.23-1.01.35-1.36.36-.52.02-1.04-.21-1.54-.68-.34-.28-.75-.77-1.24-1.48-.52-.76-.96-1.64-1.3-2.65C.25 9.85 0 8.79 0 7.76c0-1.18.25-2.2.76-3.04.4-.68.93-1.22 1.6-1.62.67-.4 1.39-.6 2.16-.61.42 0 .98.13 1.67.39.69.26 1.13.39 1.32.39.15 0 .65-.15 1.49-.46.8-.28 1.47-.4 2.02-.36 1.49.12 2.61.71 3.35 1.77-1.33.81-1.99 1.94-1.98 3.38.01 1.13.42 2.07 1.22 2.81.36.34.77.61 1.22.79l-.06.17zM9.4.32C9.4 1.2 9.09 2.02 8.48 2.77 7.73 3.67 6.82 4.19 5.83 4.11c-.01-.1-.02-.2-.02-.31 0-.84.36-1.74.99-2.47C7.11.66 7.6.3 8.19.01c.59-.28 1.14-.43 1.66-.45.01.12.02.23.02.34l-.47-.58z" fill="#1a1a1a"/></svg>
+                      Pay with  Pay
                     </button>
                     <button
                       onClick={() => { setShowCardForm(true); onCardExpand?.(true); }}
                       disabled={payInFlight}
                       style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "none", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="white"/><path d="M6 4l4 4-4 4" stroke="#2d6b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="white"/><path d="M7 5.5l4.5 3.5L7 12.5" stroke="#2f6f53" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       link
                     </button>
                   </div>
@@ -900,15 +900,15 @@ function Step2PaymentForm({
                     disabled={payInFlight}
                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "2px solid #3f8464", background: "#fff", color: "#1a1a1a", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "13px", fontWeight: 600, cursor: "pointer", transition: "opacity 150ms ease" }}
                   >
-                    <svg width="24" height="16" viewBox="0 0 38 14" fill="none"><path d="M7.08 2.88c-.44.52-1.14.92-1.84.86-.08-.7.26-1.44.66-1.9.44-.52 1.2-.9 1.82-.92.08.72-.2 1.44-.64 1.96zm.62.98c-1.02-.06-1.88.58-2.36.58-.48 0-1.22-.54-2.02-.52C2.3 3.94 1.4 4.56.96 5.52c-.9 1.56-.24 3.86.64 5.12.42.62.94 1.3 1.62 1.28.64-.02.88-.42 1.66-.42.76 0 .98.42 1.66.4.7-.02 1.14-.62 1.56-1.24.5-.72.7-1.42.72-1.46-.02-.02-1.38-.54-1.4-2.1-.02-1.3 1.06-1.92 1.1-1.96-.62-.88-1.56-.98-1.82-1zm4.62-1.66v9.52h1.48V9.06h2.04c1.86 0 3.16-1.28 3.16-3.14 0-1.86-1.28-3.12-3.12-3.12h-3.56zm1.48 1.26h1.7c1.28 0 2 .68 2 1.88 0 1.2-.72 1.88-2.02 1.88h-1.68V3.46zm7.68 8.34c.92 0 1.78-.46 2.16-1.2h.03v1.12h1.36V6.86c0-1.38-1.1-2.26-2.78-2.26-1.56 0-2.72.9-2.76 2.12h1.32c.1-.58.64-.96 1.4-.96.9 0 1.4.42 1.4 1.18v.52l-1.84.1c-1.7.1-2.62.8-2.62 2.02 0 1.24.96 2.06 2.33 2.06zm.4-1.12c-.78 0-1.28-.38-1.28-1 0-.64.48-1 1.38-1.06l1.64-.1v.54c0 .92-.78 1.62-1.74 1.62zm5.2 3.58c1.44 0 2.12-.56 2.72-2.22l2.6-7.34h-1.52l-1.74 5.62h-.03l-1.74-5.62h-1.56l2.52 6.98-.14.42c-.22.72-.6 1-1.2 1-.12 0-.34-.02-.44-.04v1.14c.1.04.4.06.53.06z" fill="#000"/></svg>
-                    Pay with Apple Pay
+                    <svg width="13" height="16" viewBox="0 0 13 16" fill="none" style={{flexShrink:0}}><path d="M12.27 11.97c-.26.6-.57 1.15-.92 1.66-.49.69-.88 1.17-1.2 1.43-.47.44-.98.67-1.52.68-.39 0-.86-.11-1.4-.34-.55-.23-1.05-.34-1.52-.34-.49 0-1.01.11-1.56.34-.56.23-1.01.35-1.36.36-.52.02-1.04-.21-1.54-.68-.34-.28-.75-.77-1.24-1.48-.52-.76-.96-1.64-1.3-2.65C.25 9.85 0 8.79 0 7.76c0-1.18.25-2.2.76-3.04.4-.68.93-1.22 1.6-1.62.67-.4 1.39-.6 2.16-.61.42 0 .98.13 1.67.39.69.26 1.13.39 1.32.39.15 0 .65-.15 1.49-.46.8-.28 1.47-.4 2.02-.36 1.49.12 2.61.71 3.35 1.77-1.33.81-1.99 1.94-1.98 3.38.01 1.13.42 2.07 1.22 2.81.36.34.77.61 1.22.79l-.06.17zM9.4.32C9.4 1.2 9.09 2.02 8.48 2.77 7.73 3.67 6.82 4.19 5.83 4.11c-.01-.1-.02-.2-.02-.31 0-.84.36-1.74.99-2.47C7.11.66 7.6.3 8.19.01c.59-.28 1.14-.43 1.66-.45.01.12.02.23.02.34l-.47-.58z" fill="#1a1a1a"/></svg>
+                    Pay with  Pay
                   </button>
                   <button
                     onClick={() => { setShowCardForm(true); onCardExpand?.(true); }}
                     disabled={payInFlight}
                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "none", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "14px", fontWeight: 600, cursor: "pointer", transition: "opacity 150ms ease" }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="8" fill="white"/><path d="M6 4l4 4-4 4" stroke="#2d6b4f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="white"/><path d="M7 5.5l4.5 3.5L7 12.5" stroke="#2f6f53" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     link
                   </button>
                 </div>
