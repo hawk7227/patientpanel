@@ -884,7 +884,7 @@ function Step2PaymentForm({
                     handlePay();
                   }}
                   style={{ width: "100%", height: "46px", borderRadius: "12px", border: "none", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "15px", fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" as const, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", opacity: payInFlight ? 0.7 : 1, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(47,111,83,0.3)" }}>
-                    {payInFlight ? "Processing..." : "BOOK NOW, PAY LATER"}
+                    {payInFlight ? "Processing..." : `Book & Pay ${currentPrice.display} Now`}
                   </button>
                 </div>
               </>
@@ -899,10 +899,10 @@ function Step2PaymentForm({
                   disabled={payInFlight}
                   style={{ width: "100%", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "15px", fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" as const, height: "46px", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(47,111,83,0.35)", opacity: payInFlight ? 0.7 : 1, transition: "opacity 150ms ease" }}
                 >
-                  BOOK NOW, PAY LATER
+                  {`Book & Pay ${currentPrice.display} Now`}
                 </button>
                 {/* Booking fee notice */}
-                <p style={{ textAlign: "center", fontSize: "11px", color: "#6f6f73", lineHeight: 1.3, marginTop: "6px" }}>$1.89 Booking fee reserves your provider. Pay Visit Fee Only after provider accepts or offers treatment.</p>
+                <p style={{ textAlign: "center", fontSize: "11px", color: "#6f6f73", lineHeight: 1.3, marginTop: "6px" }}>$1.89 covers provider review. You only pay for the visit ({visitFeePrice.display} flat fee) after the provider accepts your appointment or handles your treatment.</p>
                 {/* Express wallets (Apple Pay / Google Pay) + Link */}
                 <div style={{ visibility: expressReady ? "visible" : "hidden", height: expressReady ? "auto" : "0" }}>
                   <ExpressCheckoutElement
