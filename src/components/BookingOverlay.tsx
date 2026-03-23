@@ -34,7 +34,7 @@ const VISIT_COLORS: Record<string,{accent:string;border:string;cta:string;dim:st
 // Returning: 1=reason   2=calendar  → navigate
 function getStepTitle(s:number, r:boolean): string {
   if (r) { if(s===1) return "Reason for Visit"; return "Pick Date & Time"; }
-  if (s===1) return "Describe Your Symptoms";
+  if (s===1) return "Reason for Visit";
   if (s===2) return "Select Pharmacy";
   return "Pick Date & Time";
 }
@@ -436,6 +436,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
                   }}
                 />
+                <div style={{fontSize:12,color:"#16A34A",fontWeight:500}}>Describe why you&apos;re booking today</div>
                 {/* Line 1+2: char counter below 3 chars, visit type selector at 3+ */}
                 {symptoms.trim().length < 3 ? (
                   <div style={{fontSize:12,color:"#6B7280"}}>
