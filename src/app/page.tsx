@@ -83,7 +83,7 @@ function PairedCTABlock({
           phone: data.patient.phone || "",
           dateOfBirth: data.patient.dateOfBirth || "",
           address: data.patient.address || "",
-          source: data.source || "returning",
+          source: data.source || "new",
           pharmacy: data.patient.pharmacy || "",
         }));
       } else {

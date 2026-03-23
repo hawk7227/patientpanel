@@ -1341,7 +1341,7 @@ export default function ExpressCheckoutPage() {
   const [bookingIntentId, setBookingIntentId] = useState("");
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "async";
-  const isReturningPatient = !!patient?.id || (!!patient?.source && patient.source !== "new");
+  const isReturningPatient = !!patient?.id;
 
   // ── Arizona time helpers for instant visit after-hours cutoff ──
   const getArizonaHour = (): number => {
@@ -1492,7 +1492,7 @@ export default function ExpressCheckoutPage() {
 
   // ── Pre-fetch payment intent — fires when user taps Confirm on step 4.5 ──
   // Phone step (step 5) gives Stripe ~3-5s to return clientSecret before payment renders.
-  const shouldPrefetch = visitTypeChosen && !clientSecret;
+  const shouldPrefetch = !!pharmacy && !clientSecret;
 
   useEffect(() => {
     if (!shouldPrefetch) {
