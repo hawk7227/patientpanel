@@ -2576,17 +2576,6 @@ export default function ExpressCheckoutPage() {
           {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="rounded-xl p-4 space-y-3 transition-all mt-3" style={{ background: "#f7f4f4", border: "1px solid #d8d3d1", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                {/* Compacted header */}
-                <div className="text-center pb-2 border-b border-gray-100">
-                  <h2 style={{ fontSize: "20px", fontWeight: 700, color: "#262626", lineHeight: 1.15, letterSpacing: "-0.01em", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>
-                    Confirm &amp; Book Your{" "}
-                    {visitType === "async" ? "Async" : visitType === "instant" ? "Instant" : visitType === "refill" ? "Rx Refill" : visitType === "video" ? "Video" : "SMS"} Visit
-                  </h2>
-                  {appointmentDate && appointmentTime ? (
-                    <p style={{ fontSize: "16px", fontWeight: 600, color: "#2f7d5f", marginTop: "4px", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>{formatDisplayDateTime()}</p>
-                  ) : null}
-                  <p style={{ fontSize: "12px", fontWeight: 500, color: "#767d86", marginTop: "3px", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>Your Provider · LaMonica A. Hodges, MSN, APRN, FNP-C</p>
-                </div>
                 {/* Payment */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
@@ -2614,18 +2603,6 @@ export default function ExpressCheckoutPage() {
             /* ── NEW PATIENT: compacted header + fields + payment ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="rounded-xl p-4 space-y-3 transition-all mt-3" style={{ background: "#f7f4f4", border: "1px solid #d8d3d1", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                {/* Compacted header */}
-                <div className="text-center pb-2 border-b border-gray-100">
-                  <h2 style={{ fontSize: "20px", fontWeight: 700, color: "#262626", lineHeight: 1.15, letterSpacing: "-0.01em", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>
-                    Confirm &amp; Book Your{" "}
-                    {visitType === "async" ? "Async" : visitType === "instant" ? "Instant" : visitType === "refill" ? "Rx Refill" : visitType === "video" ? "Video" : "SMS"} Visit
-                  </h2>
-                  {appointmentDate && appointmentTime ? (
-                    <p style={{ fontSize: "16px", fontWeight: 600, color: "#2f7d5f", marginTop: "4px", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>{formatDisplayDateTime()}</p>
-                  ) : null}
-                  <p style={{ fontSize: "12px", fontWeight: 500, color: "#767d86", marginTop: "3px", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>Your Provider · LaMonica A. Hodges, MSN, APRN, FNP-C</p>
-                </div>
-
                 {/* ── NEW PATIENT INFO FIELDS ── */}
                 <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#2d6b4f] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
                   {/* Row 1: First + Last */}
