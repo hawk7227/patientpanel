@@ -2644,8 +2644,7 @@ export default function ExpressCheckoutPage() {
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.email && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.email}</span>}
                       <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
-                        name="email" ref={npEmailRef} placeholder="Email" defaultValue=""
-                        aria-invalid={!!npErrors.email}
+                        id="np-email" name="email" ref={npEmailRef} placeholder="Email" defaultValue=""
                         className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
@@ -2655,7 +2654,7 @@ export default function ExpressCheckoutPage() {
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.phone && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.phone}</span>}
                       <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
-                        name="tel" ref={npPhoneRef} placeholder="Phone" defaultValue=""
+                        id="np-phone" name="phone" ref={npPhoneRef} placeholder="Phone" defaultValue=""
                         aria-invalid={!!npErrors.phone}
                         className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
