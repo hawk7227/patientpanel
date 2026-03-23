@@ -246,14 +246,14 @@ function getDeclineState(err: { type?: string; code?: string; decline_code?: str
 // ═══════════════════════════════════════════════════════════════
 function Step2PaymentForm({
   patient, reason, chiefComplaint, visitType, appointmentDate, appointmentTime,
-  currentPrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient, onPulseForm, onValidateFields,
+  currentPrice, visitFeePrice, pharmacy, pharmacyAddress, pharmacyPhone, selectedMedications, symptomsText, onSuccess, visitIntentId, bookingIntentId, onCardExpand, isNewPatient, onPulseForm, onValidateFields,
   npFirstName, npLastName, npEmail, npPhone, npAddress, npDobMonth, npDobDay, npDobYear,
 }: {
   patient: PatientInfo; reason: string; chiefComplaint: string; visitType: string;
   appointmentDate: string; appointmentTime: string; currentPrice: { amount: number; display: string };
   pharmacy: string; pharmacyAddress: string; pharmacyPhone: string; selectedMedications: string[];
   symptomsText: string; onSuccess: () => void; visitIntentId: string; bookingIntentId: string; onCardExpand?: (expanded: boolean) => void;
-  isNewPatient: boolean; onPulseForm?: () => void; onValidateFields?: () => boolean;
+  isNewPatient: boolean; visitFeePrice: { amount: number; display: string }; onPulseForm?: () => void; onValidateFields?: () => boolean;
   npFirstName?: string; npLastName?: string; npEmail?: string; npPhone?: string; npAddress?: string;
   npDobMonth?: string; npDobDay?: string; npDobYear?: string;
 }) {
@@ -780,7 +780,7 @@ function Step2PaymentForm({
                   className="flex-1 py-2 rounded-lg text-[11px] font-semibold text-[#2d7a5f] border border-[#2d7a5f]/30 text-center transition-all active:scale-[0.98]"
                   style={{ background: "rgba(45,122,95,0.06)" }}
                 >
-                  Book Now, Pay Later
+                  Book &amp; Pay {currentPrice.display} Now
                 </a>
               )}
             </div>
@@ -816,14 +816,15 @@ function Step2PaymentForm({
                 }}
                 options={{
                   buttonType: { applePay: "buy", googlePay: "buy" },
-                  buttonTheme: { applePay: "white-outline", googlePay: "white" },
-                  buttonHeight: 40,
+                  buttonTheme: { applePay: "black", googlePay: "white" },
+                  buttonHeight: 44,
+                  layout: { maxColumns: 1, maxRows: 2 },
                 }}
               />
             </div>
 
             {/* Booking fee notice */}
-            <p className="text-center text-gray-500 text-[8px] py-0">{currentPrice.display} booking fee · Visit fee collected separately after provider review</p>
+            <p className="text-center text-gray-500 text-[8px] py-0">$1.89 covers provider review. You only pay for the visit ({visitFeePrice.display} flat fee) after the provider accepts your appointment or handles your treatment.</p>
 
             {/* Accepted payment logos */}
             <div className="flex items-center justify-center gap-2 py-1">
@@ -906,7 +907,7 @@ function Step2PaymentForm({
                   <div className={`flex items-start gap-1.5 mb-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#2d6b4f] animate-pulse bg-[#2d6b4f]/10" : ""}`}>
                     <input type="checkbox" id="step2Terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="flex-shrink-0 mt-[1px]" style={{ width: '12px', height: '12px', borderRadius: '2px', accentColor: '#2d7a5f' }} />
                     <label htmlFor="step2Terms" className="leading-[1.4]" style={{ fontSize: '7px', color: '#888' }}>
-                      By confirming, I agree to the <span className="text-[#2d7a5f] underline">Terms of Service</span>, <span className="text-[#2d7a5f] underline">Privacy Policy</span>, and <span className="text-[#2d7a5f] underline">Cancellation Policy</span>. This <strong className="text-white">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-white">{getPrice(visitType as VisitType).display}</strong>. By completing this booking you acknowledged that your <strong className="text-white">{getPrice(visitType as VisitType).display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
+                      By confirming, I agree to the <span className="text-[#2d7a5f] underline">Terms of Service</span>, <span className="text-[#2d7a5f] underline">Privacy Policy</span>, and <span className="text-[#2d7a5f] underline">Cancellation Policy</span>. This <strong className="text-[#1a1a1a]">{currentPrice.display}</strong> booking fee reserves your provider&apos;s time for a flat fee of <strong className="text-[#1a1a1a]">{visitFeePrice.display}</strong>. By completing this booking you acknowledged that your <strong className="text-[#1a1a1a]">{visitFeePrice.display}</strong> visit fee is non-refundable and reserves your provider&apos;s time slot. Visit fees are collected upon provider acceptance or engagement. No-shows and cancellations within 30 minutes of scheduled time are non-refundable.
                     </label>
                   </div>
                   <button onClick={() => {
@@ -918,7 +919,7 @@ function Step2PaymentForm({
                     if (!elementReady) { setPulseField("card"); setTimeout(() => setPulseField(null), 1500); return; }
                     handlePay();
                   }} className="w-full text-white font-extrabold py-3 rounded-xl transition-all text-[13px] flex items-center justify-center gap-2 active:scale-[0.98]" style={{ background: "#2d6b4f", boxShadow: "0 4px 16px rgba(45,107,79,0.3)", opacity: payInFlight ? 0.6 : 1 }}>
-                    <Lock size={13} /> {payInFlight ? "Processing..." : "BOOK NOW, PAY LATER"}
+                    <Lock size={13} /> {payInFlight ? "Processing..." : `Book & Pay ${currentPrice.display} Now`}
                   </button>
                   <p className="text-center text-gray-600 text-[9px] tracking-wide mt-1">CARE FIRST program</p>
                 </div>
@@ -2606,7 +2607,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} visitFeePrice={visitFeePrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
                   </Elements>
                 ) : paymentIntentError ? (
                   <div className="space-y-2 py-1">
@@ -2733,7 +2734,7 @@ export default function ExpressCheckoutPage() {
                 {/* Payment */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
-                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
+                    <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} visitFeePrice={visitFeePrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
                       onPulseForm={() => { setNpFormPulse(true); setTimeout(() => setNpFormPulse(false), 1500); }}
                       onValidateFields={() => validateNpFields()}
                       npFirstName={npFirstName} npLastName={npLastName} npEmail={npEmail} npPhone={npPhone} npAddress={npAddress} npDobMonth={npDobMonth} npDobDay={npDobDay} npDobYear={npDobYear}
