@@ -93,11 +93,12 @@ function filterSlotsForDay(day:Date, apiSlots:string[]): string[] {
 // ─── Main component ───────────────────────────────────────────
 export default function BookingOverlay({ visitType, onClose }: BookingOverlayProps) {
   const [mounted, setMounted] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Step state
   const [step, setStep] = useState(1);
   const [patient, setPatient] = useState<PatientInfo|null>(null);
-  const isReturning = !!(patient?.id || (patient?.source && patient.source !== "new"));
+  const isReturning = !!patient?.id;
 
   // Returning: only 2 steps (reason + calendar)
   const totalSteps = isReturning ? 2 : TOTAL_STEPS;
@@ -148,6 +149,12 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
   // ── Mount ──
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // ── Patient ──
   useEffect(() => {
@@ -336,6 +343,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         @keyframes slotIn        { from{opacity:0;transform:scale(.97)}        to{opacity:1;transform:scale(1)} }
         @keyframes spin          { to{transform:rotate(360deg)} }
         @keyframes calPulse      { 0%,100%{opacity:1;transform:scale(1)} 30%{opacity:.5;transform:scale(.97)} 60%{opacity:1;transform:scale(1.01)} }
+        .booking-textarea::placeholder { color: #16A34A; opacity: 0.7; }
       `}</style>
 
       {/*
@@ -393,7 +401,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                    key={step}>
                 {getStepTitle(step, isReturning)}
               </div>
-              <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#6B7280",marginTop:3,fontWeight:500}}>
+              <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#16A34A",marginTop:3,fontWeight:600}}>
                 {VISIT_LABELS[visitType]} · Step {step} of {totalSteps}
               </div>
             </div>
@@ -420,9 +428,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   ref={symRef}
                   value={symptoms}
                   onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setSymptoms(e.target.value)}
-                  placeholder="e.g., Burning during urination for 3 days..."
+                  placeholder="e.g., Burning during urination for 3 days..." className="booking-textarea"
                   style={{
-                    width:"100%",height:120,background:"#F0FDF4",
+                    width:"100%",height:120,background:isMobile?"#F0FDF4":"transparent",
                     border:symptoms.trim().length>=3?"2px solid #16A34A":"1.5px solid #BBF7D0",
                     borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                     resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
@@ -480,10 +488,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <textarea
                   value={reason}
                   onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setReason(e.target.value)}
-                  placeholder="e.g., Follow up for UTI, need prescription refill..."
+                  placeholder="e.g., Follow up for UTI, need prescription refill..." className="booking-textarea"
                   autoFocus
                   style={{
-                    width:"100%",height:120,background:"#F0FDF4",
+                    width:"100%",height:120,background:isMobile?"#F0FDF4":"transparent",
                     border:reason.trim().length>0?"2px solid #16A34A":"1.5px solid #BBF7D0",
                     borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
                     resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
@@ -856,13 +864,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               flex:1,height:48,borderRadius:12,
               background:isCalStep?"#16A34A":"#FFFFFF",
               border:isCalStep?"none":"1.5px solid #E5E7EB",
-              color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
+              color:isCalStep?"#fff":"#374151",fontSize:14,fontWeight:700,cursor:"pointer",
             }}>← Back</button>
             <button onClick={goContinue} disabled={!isCalStep && contDisabled} style={{
               flex:2,height:48,borderRadius:12,
               border:isCalStep?(calDay&&calTime?"2.5px solid #16A34A":"2.5px solid rgba(255,255,255,0.5)"):"none",
               background:(!isCalStep&&contDisabled)?"#F3F4F6":isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
-              color:(!isCalStep&&contDisabled)?"#9CA3AF":"#fff",
+              color:(!isCalStep&&contDisabled)?"#16A34A":"#fff",
               fontSize:14,fontWeight:900,
               cursor:(!isCalStep&&contDisabled)?"default":"pointer",
               boxShadow:isCalStep?(calDay&&calTime?"0 4px 16px rgba(22,163,74,0.4)":"0 4px 16px rgba(249,115,22,0.3)"):(contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)"),
