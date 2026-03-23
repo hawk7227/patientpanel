@@ -134,9 +134,7 @@ function getStepTitle(uiStep: number, isPreparingBooking: boolean, isReturning: 
   if (uiStep === 2) return "Describe Your Symptoms";
   if (uiStep === 3) return "Select Pharmacy";
   if (uiStep === 4) return "Visit Type";
-  if (uiStep === 4.5 && !isReturning) return "Confirm";
-  if (uiStep === 4.5) return "Book Your Visit";
-  if (uiStep === 4.75) return "Book Your Visit";
+  if (uiStep >= 4.5) return "Book Your Visit";
   return "Book Your Visit";
 }
 
@@ -1539,7 +1537,7 @@ export default function ExpressCheckoutPage() {
   // ── Autofill scan: runs 600ms after form step becomes visible ──
   // Gives browser time to autofill, then marks any still-empty fields.
   // Only marks fields empty — never overwrites a value the user has typed.
-  const formStepVisible = !isReturningPatient && confirmReviewed;
+  const formStepVisible = !isReturningPatient && visitTypeConfirmed;
   useEffect(() => {
     if (!formStepVisible) return;
     const timer = setTimeout(() => {
@@ -1786,14 +1784,13 @@ export default function ExpressCheckoutPage() {
     if (!visitTypeConfirmed) return 4.5;
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return 4.5;
     // New patient: must review confirm summary before payment
-    if (!isReturningPatient && !confirmReviewed) return 4.5;
     // New patient: payment form step
     if (!isReturningPatient && !phoneConfirmed) return 4.75;
     // Returning patient: skip straight to pay (summary+wallets at 4.5)
     return 6;
-  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient, confirmReviewed]);
+  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient]);
 
-  const totalSteps = isReturningPatient ? 4.5 : 4.75;
+  const totalSteps = 4.5;
 
   const uiStep = activeGuideStep;
   const [cardFormExpanded, setCardFormExpanded] = useState(false);
@@ -2367,6 +2364,10 @@ export default function ExpressCheckoutPage() {
           {!reason ? (
             <div style={{ position: "relative", zIndex: 1, marginTop: "12px" }}>
               <div className={`rounded-xl bg-transparent p-4 transition-all ${activeOrangeBorder}`} style={{ position: "relative" }}>
+                <div className="mb-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#2d7a5f]">REASON FOR VISIT</p>
+                  <p className="text-[#6b7280] text-[12px] mt-0.5">Describe Your Symptoms</p>
+                </div>
                 <button
                   type="button"
                   onTouchEnd={(e) => { e.preventDefault(); setReasonDialogOpen(true); }}
@@ -2585,130 +2586,24 @@ export default function ExpressCheckoutPage() {
           </div>
           {/* END Step 4 wrapper */}
 
-          {/* STEP 4.5: Confirm Summary (new patient) / Summary + Pay (returning patient) */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !confirmReviewed && !isReturningPatient ? (
-            /* ── NEW PATIENT: Confirm Summary with CONTINUE button ── */
-            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                {/* Summary card */}
-                <div className="rounded-xl border border-gray-200 overflow-hidden" style={{ background: "#f9fafb" }}>
-                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-gray-100">
-                    <div className="w-9 h-9 rounded-full border-2 border-[#2d7a5f] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,122,95,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
-                    <div className="flex-1 min-w-0"><p className="text-white font-bold text-[13px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
-                    <Shield size={14} className="text-[#2d7a5f] flex-shrink-0" />
-                  </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
-                    <div className="flex items-center gap-2">
-                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2d7a5f]/15 border border-[#2d7a5f]/30 text-[#2d7a5f] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
-                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                    </div>
-                  </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-[13px] font-semibold">
-                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
-                      </span>
-                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                    </div>
-                  </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
-                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setConfirmReviewed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, confirmReviewed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                    </div>
-                  </div>
-                  {selectedMeds.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                      <span className="text-gray-500 text-[12px] font-semibold">Medications</span>
-                      <span className="text-white text-[12px] font-medium truncate ml-4">{selectedMeds.join(", ")}</span>
-                    </div>
-                  )}
-                  {appointmentDate && appointmentTime && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                      <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                      </div>
-                    </div>
-                  )}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,122,95,0.04)" }}>
-                    <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
-                    <span className="text-[#2d7a5f] font-black text-[18px]">{currentPrice.display}</span>
-                  </div>
-                </div>
-                {/* CONTINUE button */}
-                <button onClick={() => {
-                  if (needsCalendar && (!appointmentDate || !appointmentTime)) {
-                    setDateTimeDialogOpen(true);
-                    return;
-                  }
-                  setConfirmReviewed(true); saveAnswers({ confirmReviewed: true });
-                }} className="w-full py-4 rounded-xl text-white font-black text-[18px] tracking-wide transition-all active:scale-[0.98] uppercase" style={{ background: "#2d6b4f", boxShadow: "0 4px 20px rgba(45,107,79,0.35)" }}>
-                  CONTINUE
-                </button>
-              </div>
-              <ConfirmBelowContent isReturn={false} />
-            </div>
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
-            /* ── RETURNING PATIENT: Summary + Wallets + collapsed card form ── */
-            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
-                {/* Summary card — collapses when card form is open */}
-                <div className="rounded-xl border border-gray-200 overflow-hidden transition-all" style={{ background: "#f9fafb", ...(cardFormExpanded ? { maxHeight: 0, overflow: "hidden", opacity: 0, margin: 0, padding: 0, border: "none" } : {}) }}>
-                  <div className="flex items-center gap-3 px-3.5 py-2.5 border-b border-gray-100">
-                    <div className="w-9 h-9 rounded-full border-2 border-[#2d7a5f] overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px rgba(45,122,95,0.2)" }}><img src="/assets/provider-lamonica.png" alt="Provider" className="w-full h-full object-cover object-top" /></div>
-                    <div className="flex-1 min-w-0"><p className="text-white font-bold text-[13px]">LaMonica A. Hodges, MSN, APRN, FNP-C</p></div>
-                    <Shield size={14} className="text-[#2d7a5f] flex-shrink-0" />
-                  </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-gray-500 text-[12px] font-semibold">Reason</span>
-                    <div className="flex items-center gap-2">
-                      <span className="relative inline-flex items-center"><span className="text-white text-[13px] font-semibold" style={{ filter: "blur(6px)", userSelect: "none" }}>{reason}</span><span className="absolute inset-0 flex items-center justify-center"><span className="bg-[#2d7a5f]/15 border border-[#2d7a5f]/30 text-[#2d7a5f] text-[8px] font-black tracking-widest uppercase px-2 py-0.5 rounded">PRIVATE</span></span></span>
-                      <button onClick={() => { setReason(""); setChiefComplaint(""); setSymptomsDone(false); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                    </div>
-                  </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-gray-500 text-[12px] font-semibold">Visit Type</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-[13px] font-semibold">
-                        {visitType === "async" ? "📝 Async Visit" : visitType === "instant" ? "⚡ Instant Care" : visitType === "refill" ? "💊 Rx Refill" : visitType === "video" ? "📹 Video Visit" : "📞 Phone / SMS"}
-                      </span>
-                      <button onClick={() => { setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                    </div>
-                  </div>
-                  <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                    <span className="text-gray-500 text-[12px] font-semibold">Pharmacy</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-[13px] font-semibold truncate">{pharmacy}</span>
-                      <button onClick={() => { setPharmacy(""); setPharmacyAddress(""); setPharmacyInfo(null); setVisitTypeChosen(false); setVisitTypeConfirmed(false); setPhoneConfirmed(false); setContactPhone(""); setStep4PopupFired(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); saveAnswers({ pharmacy: "", pharmacyAddress: "", pharmacyInfo: null, visitTypeChosen: false, visitTypeConfirmed: false, phoneConfirmed: false, contactPhone: "" }); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                    </div>
-                  </div>
-                  {selectedMeds.length > 0 && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                      <span className="text-gray-500 text-[12px] font-semibold">Medications</span>
-                      <span className="text-white text-[12px] font-medium truncate ml-4">{selectedMeds.join(", ")}</span>
-                    </div>
-                  )}
-                  {appointmentDate && appointmentTime && (
-                    <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-gray-100">
-                      <span className="text-gray-500 text-[12px] font-semibold">Date &amp; Time</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white text-[13px] font-semibold">{formatDisplayDateTime()}</span>
-                        <button onClick={() => { setAppointmentDate(""); setAppointmentTime(""); setVisitTypeChosen(false); setVisitTypeConfirmed(false); paymentFetchController.current?.abort(); setClientSecret(""); setPaymentIntentError(null); setCalSelectedDay(""); setCalSelectedTime(""); setCalApiSlots([]); setCalApiLoading(false); saveAnswers({ appointmentDate: "", appointmentTime: "", visitTypeChosen: false, visitTypeConfirmed: false }); setDateTimeDialogOpen(true); }} className="text-[#2d7a5f] text-[10px] underline underline-offset-2 font-bold flex-shrink-0">change</button>
-                      </div>
-                    </div>
-                  )}
-                  <div className="px-3.5 py-2.5 flex items-center justify-between" style={{ background: "rgba(45,122,95,0.04)" }}>
-                    <span className="text-gray-400 text-[13px] font-bold">Booking Fee</span>
-                    <span className="text-[#2d7a5f] font-black text-[18px]">{currentPrice.display}</span>
-                  </div>
-                </div>
+          {/* ═══ STEP 4.5 — PAYMENT PAGE (both patient types) ═══ */}
 
-                {/* Payment — Express wallets + card fallback */}
+          {/* RETURNING PATIENT: compacted header + payment only */}
+          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
+            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
+                {/* Compacted header */}
+                <div className="text-center pb-2 border-b border-gray-100">
+                  <h2 className="text-[#1a1a1a] font-bold text-[16px]">
+                    Confirm &amp; Book Your{" "}
+                    {visitType === "async" ? "Async" : visitType === "instant" ? "Instant" : visitType === "refill" ? "Rx Refill" : visitType === "video" ? "Video" : "SMS"} Visit
+                  </h2>
+                  {appointmentDate && appointmentTime ? (
+                    <p className="text-[#2d7a5f] font-semibold text-[13px] mt-0.5">{formatDisplayDateTime()}</p>
+                  ) : null}
+                  <p className="text-gray-500 text-[12px] mt-0.5">Your Provider · LaMonica A. Hodges, MSN, APRN, FNP-C</p>
+                </div>
+                {/* Payment */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={false} />
@@ -2727,124 +2622,115 @@ export default function ExpressCheckoutPage() {
                     <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
-                {/* Back button */}
-                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2d7a5f]/30" style={{ background: "rgba(45,122,95,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-[#1a1a1a] font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-gray-200" style={{ background: "#f9fafb" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
               <ConfirmBelowContent isReturn={true} />
             </div>
-          ) : null}
-
-          {/* STEP 4.75: New Patient Payment Form (after CONTINUE from confirm) */}
-          {/* Form is pre-rendered hidden so browser autofills on page load — revealed when step is active */}
-          <div style={{ display: reason && symptomsDone && pharmacy && visitTypeChosen && confirmReviewed && !isReturningPatient ? "block" : "none" }}>
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !isReturningPatient ? (
+            /* ── NEW PATIENT: compacted header + fields + payment ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-3 transition-all mt-3 ${activeOrangeBorder}`}>
+                {/* Compacted header */}
+                <div className="text-center pb-2 border-b border-gray-100">
+                  <h2 className="text-[#1a1a1a] font-bold text-[16px]">
+                    Confirm &amp; Book Your{" "}
+                    {visitType === "async" ? "Async" : visitType === "instant" ? "Instant" : visitType === "refill" ? "Rx Refill" : visitType === "video" ? "Video" : "SMS"} Visit
+                  </h2>
+                  {appointmentDate && appointmentTime ? (
+                    <p className="text-[#2d7a5f] font-semibold text-[13px] mt-0.5">{formatDisplayDateTime()}</p>
+                  ) : null}
+                  <p className="text-gray-500 text-[12px] mt-0.5">Your Provider · LaMonica A. Hodges, MSN, APRN, FNP-C</p>
+                </div>
 
-                {/* ── NEW PATIENT INFO — form tag enables browser autofill on page load ── */}
+                {/* ── NEW PATIENT INFO FIELDS ── */}
                 <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#2d6b4f] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
                   {/* Row 1: First + Last */}
                   <div className="flex gap-1">
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.firstName && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.firstName}</span>}
-                    <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                      name="given-name"
-                      ref={npFirstNameRef}
-                      placeholder="First name" defaultValue=""
-                      aria-invalid={!!npErrors.firstName}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
-                      style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
-                    />
+                      <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                        name="given-name" ref={npFirstNameRef} placeholder="First name" defaultValue=""
+                        aria-invalid={!!npErrors.firstName}
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.lastName && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.lastName}</span>}
-                    <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                      name="family-name"
-                      ref={npLastNameRef}
-                      placeholder="Last name" defaultValue=""
-                      aria-invalid={!!npErrors.lastName}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
-                      style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
-                    />
+                      <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
+                        name="family-name" ref={npLastNameRef} placeholder="Last name" defaultValue=""
+                        aria-invalid={!!npErrors.lastName}
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
+                      />
                     </div>
                   </div>
                   {/* Row 2: Email + Phone */}
                   <div className="flex gap-1">
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.email && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.email}</span>}
-                    <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
-                      name="email"
-                      ref={npEmailRef}
-                      placeholder="Email" defaultValue=""
-                      aria-invalid={!!npErrors.email}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
-                      style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #2d6b4f" : v.includes("@") ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
-                    />
+                      <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
+                        name="email" ref={npEmailRef} placeholder="Email" defaultValue=""
+                        aria-invalid={!!npErrors.email}
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #2d6b4f" : v.includes("@") ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
+                      />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.phone && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.phone}</span>}
-                    <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
-                      name="tel"
-                      ref={npPhoneRef}
-                      placeholder="Phone" defaultValue=""
-                      aria-invalid={!!npErrors.phone}
-                      className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
-                      style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
-                      onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #2d6b4f" : v.length>=10 ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
-                    />
+                      <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
+                        name="tel" ref={npPhoneRef} placeholder="Phone" defaultValue=""
+                        aria-invalid={!!npErrors.phone}
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #2d6b4f" : v.length>=10 ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
+                      />
                     </div>
                   </div>
-                  {/* Row 3: Address (flex-3) + DOB single field (flex-2) */}
+                  {/* Row 3: Address + DOB */}
                   <div className="flex gap-1">
                     <div style={{flex:3,minWidth:0}} className="flex flex-col gap-0.5">
                       {npErrors.address && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.address}</span>}
-                    <input type="text" autoComplete="street-address" autoCorrect="off" spellCheck={false}
-                      name="street-address"
-                      ref={npAddressRef}
-                      placeholder="Street address" defaultValue=""
-                      aria-invalid={!!npErrors.address}
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] focus:outline-none placeholder:text-gray-400"
-                      style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
-                      onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
-                      onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
-                    />
+                      <input type="text" autoComplete="address-line1" autoCorrect="off" spellCheck={false}
+                        name="address1" ref={npAddressRef} placeholder="Street address" defaultValue=""
+                        aria-invalid={!!npErrors.address}
+                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
+                      />
                     </div>
                     <div style={{flex:2,minWidth:0}} className="flex flex-col gap-0.5">
                       {npErrors.dob && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.dob}</span>}
-                    <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
-                      name="bday"
-                      ref={npDobRef}
-                      placeholder="DOB MM/DD/YYYY"
-                      defaultValue=""
-                      className="rounded-lg px-2 py-1.5 text-white text-[11px] text-center focus:outline-none placeholder:text-gray-400"
-                      aria-invalid={!!npErrors.dob}
-                      style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
-                      onFocus={(e) => { e.target.style.border = npErrors.dob ? "1.5px solid #2d6b4f" : "3px solid #2d7a5f"; e.target.style.boxShadow = npErrors.dob ? "none" : "0 0 0 2px rgba(45,122,95,0.25)"; }}
-                      onBlur={(e) => {
-                        const raw = e.target.value.replace(/\D/g,"").slice(0,8);
-                        const mm = raw.slice(0,2); const dd = raw.slice(2,4); const yyyy = raw.slice(4,8);
-                        setNpDobMonth(mm); setNpDobDay(dd); setNpDobYear(yyyy);
-                        const complete = mm.length===2 && dd.length===2 && yyyy.length===4;
-                        if (complete) setNpErrors(p=>({...p,dob:""}));
-                        e.target.style.border = npErrors.dob && !complete ? "1.5px solid #2d6b4f" : complete ? "3px solid rgba(45,122,95,0.65)" : "1.5px solid #c8d8cb";
-                        e.target.style.boxShadow = "none";
-                        // Auto-format display: insert slashes
-                        if (raw.length >= 4) {
-                          e.target.value = mm + "/" + dd + (yyyy ? "/" + yyyy : "");
-                        }
-                      }}
-                    />
+                      <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
+                        name="bday" ref={npDobRef} placeholder="MM/DD/YYYY" defaultValue=""
+                        aria-invalid={!!npErrors.dob}
+                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] text-center focus:outline-none placeholder:text-gray-400"
+                        style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; e.target.style.boxShadow = "0 0 0 2px rgba(45,122,95,0.15)"; }}
+                        onBlur={(e) => {
+                          const raw = e.target.value.replace(/\D/g,"").slice(0,8);
+                          const mm = raw.slice(0,2); const dd = raw.slice(2,4); const yyyy = raw.slice(4,8);
+                          setNpDobMonth(mm); setNpDobDay(dd); setNpDobYear(yyyy);
+                          const complete = mm.length===2 && dd.length===2 && yyyy.length===4;
+                          if (complete) setNpErrors(p=>({...p,dob:""}));
+                          e.target.style.border = npErrors.dob && !complete ? "1.5px solid #2d6b4f" : complete ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb";
+                          e.target.style.boxShadow = "none";
+                          if (raw.length >= 4) { e.target.value = mm + "/" + dd + (yyyy ? "/" + yyyy : ""); }
+                        }}
+                      />
                     </div>
                   </div>
                 </form>
 
-                {/* Payment — Express wallets + card form — only card/Stripe fields inside Elements */}
+                {/* Payment */}
                 {clientSecret && stripeOptions ? (
                   <Elements options={stripeOptions} stripe={stripePromise}>
                     <Step2PaymentForm patient={patient} reason={reason} chiefComplaint={chiefComplaint} visitType={visitType} appointmentDate={appointmentDate} appointmentTime={appointmentTime} currentPrice={currentPrice} pharmacy={pharmacy} pharmacyAddress={pharmacyAddress} pharmacyPhone={pharmacyInfo?.phone || ""} selectedMedications={selectedMeds} symptomsText={symptomsText} onSuccess={handleSuccess} visitIntentId={visitIntentId} bookingIntentId={bookingIntentId} onCardExpand={(expanded) => setCardFormExpanded(expanded)} isNewPatient={true}
@@ -2867,11 +2753,11 @@ export default function ExpressCheckoutPage() {
                     <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
-                {/* Back button */}
-                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-white font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2d7a5f]/30" style={{ background: "rgba(45,122,95,0.08)" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
+                <button onClick={goBack} className="w-full py-2.5 rounded-xl text-[#1a1a1a] font-bold text-[13px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-gray-200" style={{ background: "#f9fafb" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
+              <ConfirmBelowContent isReturn={false} />
             </div>
-          </div>
+          ) : null}
 
 
         </div>
