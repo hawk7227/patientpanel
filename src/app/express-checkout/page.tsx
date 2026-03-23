@@ -829,7 +829,7 @@ function Step2PaymentForm({
               <div className={`flex items-start gap-1.5 rounded-lg px-1 py-0.5 transition-all ${pulseField === "terms" ? "ring-2 ring-[#2d6b4f] animate-pulse bg-[#2d6b4f]/10" : ""}`}>
                 <input type="checkbox" id="step2TermsDefault" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} style={{ width: '14px', height: '14px', borderRadius: '2px', accentColor: '#2d7a5f', flexShrink: 0, marginTop: '2px' }} />
                 <label htmlFor="step2TermsDefault" style={{ fontSize: '10px', color: '#6f6f73', lineHeight: 1.4, fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}>
-                  By confirming, I agree to the <span className="text-[#2d7a5f] underline">Terms of Service</span>, <span className="text-[#2d7a5f] underline">Privacy Policy</span>, and <span className="text-[#2d7a5f] underline">Cancellation Policy</span>. $1.89 covers provider review. You only pay for the visit (<strong style={{ color: "#262626" }}>{visitFeePrice.display}</strong> flat fee) after the provider accepts your appointment or handles your treatment.
+                  By confirming, I agree to the <span className="text-[#2d7a5f] underline">Terms of Service</span>, <span className="text-[#2d7a5f] underline">Privacy Policy</span>, and <span className="text-[#2d7a5f] underline">Cancellation Policy</span>. <strong style={{ color: "#262626" }}>$1.89</strong> covers provider review. You only pay for the visit (<strong style={{ color: "#262626" }}>{visitFeePrice.display}</strong> flat fee) after the provider accepts your appointment or handles your treatment.
                 </label>
               </div>
             )}
@@ -911,8 +911,6 @@ function Step2PaymentForm({
                 >
                   {`Book & Pay ${currentPrice.display} Now`}
                 </button>
-                {/* Booking fee notice */}
-                <p style={{ textAlign: "center", fontSize: "11px", color: "#6f6f73", lineHeight: 1.3, marginTop: "6px" }}>$1.89 covers provider review. You only pay for the visit ({visitFeePrice.display} flat fee) after the provider accepts your appointment or handles your treatment.</p>
                 {/* Express wallets (Apple Pay / Google Pay) + Link */}
                 <div style={{ visibility: expressReady ? "visible" : "hidden", height: expressReady ? "auto" : "0" }}>
                   <ExpressCheckoutElement
