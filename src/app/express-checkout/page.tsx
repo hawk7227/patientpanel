@@ -907,9 +907,10 @@ function Step2PaymentForm({
                     setShowCardForm(true); onCardExpand?.(true);
                   }}
                   disabled={payInFlight}
-                  style={{ width: "100%", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "15px", fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" as const, height: "46px", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(47,111,83,0.35)", opacity: payInFlight ? 0.7 : 1, transition: "opacity 150ms ease" }}
+                  style={{ width: "100%", background: "linear-gradient(180deg, #4e9a76 0%, #3f8464 50%, #2f6f53 100%)", color: "#fff", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", borderRadius: "12px", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "2px", height: "54px", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 6px rgba(47,111,83,0.35)", opacity: payInFlight ? 0.7 : 1, transition: "opacity 150ms ease" }}
                 >
-                  {`Book & Pay ${currentPrice.display} Now`}
+                  <span style={{ fontSize: "15px", fontWeight: 700, letterSpacing: "0.02em", textTransform: "uppercase" }}>{`Book & Pay ${currentPrice.display} Now`}</span>
+                  <span style={{ fontSize: "10px", fontWeight: 400, opacity: 0.85, letterSpacing: "0.01em" }}>with debit/credit card</span>
                 </button>
                 {/* Express wallets (Apple Pay / Google Pay) + Link */}
                 <div style={{ visibility: expressReady ? "visible" : "hidden", height: expressReady ? "auto" : "0" }}>
