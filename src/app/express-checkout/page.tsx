@@ -2622,7 +2622,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                         name="given-name" ref={npFirstNameRef} placeholder="First name" defaultValue=""
                         aria-invalid={!!npErrors.firstName}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
+                        className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2633,7 +2633,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                         name="family-name" ref={npLastNameRef} placeholder="Last name" defaultValue=""
                         aria-invalid={!!npErrors.lastName}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
+                        className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2646,7 +2646,7 @@ export default function ExpressCheckoutPage() {
                       {npErrors.email && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.email}</span>}
                       <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
                         id="np-email" name="email" ref={npEmailRef} placeholder="Email" defaultValue=""
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
+                        className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #2d6b4f" : v.includes("@") ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2657,7 +2657,7 @@ export default function ExpressCheckoutPage() {
                       <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
                         id="np-phone" name="phone" ref={npPhoneRef} placeholder="Phone" defaultValue=""
                         aria-invalid={!!npErrors.phone}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
+                        className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #2d6b4f" : v.length>=10 ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2671,7 +2671,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" autoComplete="address-line1" autoCorrect="off" spellCheck={false}
                         name="address1" ref={npAddressRef} placeholder="Street address" defaultValue=""
                         aria-invalid={!!npErrors.address}
-                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
+                        className={`rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2682,7 +2682,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
                         name="bday" ref={npDobRef} placeholder="DOB MM/DD/YYYY" defaultValue=""
                         aria-invalid={!!npErrors.dob}
-                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] text-center focus:outline-none placeholder:text-[#3f8464]"
+                        className={`rounded-lg px-3 text-[#1a1a1a] text-center focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; e.target.style.boxShadow = "0 0 0 2px rgba(45,122,95,0.15)"; }}
                         onBlur={(e) => {
