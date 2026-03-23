@@ -1547,35 +1547,17 @@ export default function ExpressCheckoutPage() {
     if (!formStepVisible) return;
     const timer = setTimeout(() => {
       // Read from DOM refs — uncontrolled inputs may have been autofilled
+      // Sync to state so payment form has values — do NOT set errors pre-emptively
       const fn = npFirstNameRef.current?.value?.trim() || "";
       const ln = npLastNameRef.current?.value?.trim()  || "";
       const em = npEmailRef.current?.value?.trim()     || "";
       const ph = (npPhoneRef.current?.value || "").replace(/\D/g,"");
       const ad = npAddressRef.current?.value?.trim()   || "";
-      // Sync to state so payment form has values
       if (fn) setNpFirstName(fn);
       if (ln) setNpLastName(ln);
       if (em) setNpEmail(em);
       if (ph) setNpPhone(ph);
       if (ad) setNpAddress(ad);
-      const errs: Record<string,string> = {};
-      if (!fn)               errs.firstName = "First name required";
-      if (!ln)               errs.lastName  = "Last name required";
-      if (!em.includes("@")) errs.email     = "Valid email required";
-      if (ph.length < 10)    errs.phone     = "10-digit phone required";
-      if (!ad)               errs.address   = "Street address required";
-      // Check DOB from ref directly (uncontrolled) — fallback to state
-    const dobRaw = npDobRef.current?.value?.replace(/\D/g,"") || "";
-    const dobComplete = dobRaw.length >= 8 || npDobComplete;
-    if (!dobComplete) errs.dob = "Date of birth required";
-      setNpErrors(errs);
-      // Auto-focus first empty field
-      if      (errs.firstName) npFirstNameRef.current?.focus();
-      else if (errs.lastName)  npLastNameRef.current?.focus();
-      else if (errs.email)     npEmailRef.current?.focus();
-      else if (errs.phone)     npPhoneRef.current?.focus();
-      else if (errs.address)   npAddressRef.current?.focus();
-      else if (errs.dob)       npDobRef.current?.focus();
     }, 600);
     return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2631,7 +2613,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                         name="given-name" ref={npFirstNameRef} placeholder="First name" defaultValue=""
                         aria-invalid={!!npErrors.firstName}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2642,7 +2624,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
                         name="family-name" ref={npLastNameRef} placeholder="Last name" defaultValue=""
                         aria-invalid={!!npErrors.lastName}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2656,7 +2638,7 @@ export default function ExpressCheckoutPage() {
                       <input type="email" inputMode="email" autoComplete="email" autoCorrect="off" spellCheck={false}
                         name="email" ref={npEmailRef} placeholder="Email" defaultValue=""
                         aria-invalid={!!npErrors.email}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #2d6b4f" : v.includes("@") ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2667,7 +2649,7 @@ export default function ExpressCheckoutPage() {
                       <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
                         name="tel" ref={npPhoneRef} placeholder="Phone" defaultValue=""
                         aria-invalid={!!npErrors.phone}
-                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        className="flex-1 min-w-0 rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #2d6b4f" : v.length>=10 ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2681,7 +2663,7 @@ export default function ExpressCheckoutPage() {
                       <input type="text" autoComplete="address-line1" autoCorrect="off" spellCheck={false}
                         name="address1" ref={npAddressRef} placeholder="Street address" defaultValue=""
                         aria-invalid={!!npErrors.address}
-                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-gray-400"
+                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] focus:outline-none placeholder:text-[#3f8464]"
                         style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
@@ -2690,9 +2672,9 @@ export default function ExpressCheckoutPage() {
                     <div style={{flex:2,minWidth:0}} className="flex flex-col gap-0.5">
                       {npErrors.dob && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.dob}</span>}
                       <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
-                        name="bday" ref={npDobRef} placeholder="MM/DD/YYYY" defaultValue=""
+                        name="bday" ref={npDobRef} placeholder="DOB MM/DD/YYYY" defaultValue=""
                         aria-invalid={!!npErrors.dob}
-                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] text-center focus:outline-none placeholder:text-gray-400"
+                        className="rounded-lg px-2 py-1.5 text-[#1a1a1a] text-[11px] text-center focus:outline-none placeholder:text-[#3f8464]"
                         style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; e.target.style.boxShadow = "0 0 0 2px rgba(45,122,95,0.15)"; }}
                         onBlur={(e) => {
