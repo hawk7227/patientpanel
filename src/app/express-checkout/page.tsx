@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
-import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
+import { useStripe, useElements, PaymentElement, ExpressCheckoutElement } from "@stripe/react-stripe-js";
 import {
   Zap, Calendar, ChevronDown, X, Clock, Lock, Search,
   Phone, Video, Pill, Camera, AlertTriangle, Shield, Check, Star, Upload,
@@ -267,6 +267,7 @@ function Step2PaymentForm({
   const [elementReady, setElementReady] = useState(false);
   const [payInFlight, setPayInFlight] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
+  const [expressReady, setExpressReady] = useState(false);
   const [pulseField, setPulseField] = useState<string | null>(null);
   const [declineState, setDeclineState] = useState<DeclineState | null>(null);
 
@@ -847,15 +848,25 @@ function Step2PaymentForm({
 
                 {/* 3 CTAs — sticky to bottom of scroll container, always visible */}
                 <div style={{ position: "sticky", bottom: 0, background: "#f7f4f4", paddingTop: "8px", paddingBottom: "4px", display: "flex", flexDirection: "column", gap: "8px", zIndex: 10 }}>
-                  {/* Apple Pay + Link row */}
+                  {/* Express wallets (Apple Pay / Google Pay) — Stripe native, link suppressed */}
+                  <div style={{ visibility: expressReady ? "visible" : "hidden", height: expressReady ? "auto" : "0" }}>
+                    <ExpressCheckoutElement
+                      onConfirm={handleExpressConfirm}
+                      onReady={({ availablePaymentMethods }) => { if (availablePaymentMethods) setExpressReady(true); }}
+                      onClick={({ resolve }) => {
+                        if (isNewPatient && !newPatientFieldsComplete) { onValidateFields?.(); return; }
+                        resolve({});
+                      }}
+                      options={{
+                        buttonType: { applePay: "plain" as const, googlePay: "buy" as const },
+                        buttonTheme: { applePay: "white-outline", googlePay: "white" },
+                        buttonHeight: 44,
+                        paymentMethods: { link: "never" },
+                      }}
+                    />
+                  </div>
+                  {/* Link button */}
                   <div style={{ display: "flex", gap: "8px" }}>
-                    <button
-                      onClick={() => { if (isNewPatient && !newPatientFieldsComplete) { onValidateFields?.(); return; } handleExpressConfirm(); }}
-                      disabled={payInFlight}
-                      style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "2px solid #3f8464", background: "#fff", color: "#1a1a1a", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
-                    >
-                      Pay with <svg width="13" height="16" viewBox="0 0 13 16" fill="none" style={{flexShrink:0}}><path d="M12.27 11.97c-.26.6-.57 1.15-.92 1.66-.49.69-.88 1.17-1.2 1.43-.47.44-.98.67-1.52.68-.39 0-.86-.11-1.4-.34-.55-.23-1.05-.34-1.52-.34-.49 0-1.01.11-1.56.34-.56.23-1.01.35-1.36.36-.52.02-1.04-.21-1.54-.68-.34-.28-.75-.77-1.24-1.48-.52-.76-.96-1.64-1.3-2.65C.25 9.85 0 8.79 0 7.76c0-1.18.25-2.2.76-3.04.4-.68.93-1.22 1.6-1.62.67-.4 1.39-.6 2.16-.61.42 0 .98.13 1.67.39.69.26 1.13.39 1.32.39.15 0 .65-.15 1.49-.46.8-.28 1.47-.4 2.02-.36 1.49.12 2.61.71 3.35 1.77-1.33.81-1.99 1.94-1.98 3.38.01 1.13.42 2.07 1.22 2.81.36.34.77.61 1.22.79l-.06.17zM9.4.32C9.4 1.2 9.09 2.02 8.48 2.77 7.73 3.67 6.82 4.19 5.83 4.11c-.01-.1-.02-.2-.02-.31 0-.84.36-1.74.99-2.47C7.11.66 7.6.3 8.19.01c.59-.28 1.14-.43 1.66-.45.01.12.02.23.02.34l-.47-.58z" fill="#1a1a1a"/></svg> Pay
-                    </button>
                     <button
                       onClick={() => { setShowCardForm(true); onCardExpand?.(true); }}
                       disabled={payInFlight}
@@ -892,15 +903,25 @@ function Step2PaymentForm({
                 </button>
                 {/* Booking fee notice */}
                 <p style={{ textAlign: "center", fontSize: "11px", color: "#6f6f73", lineHeight: 1.3, marginTop: "6px" }}>$1.89 Booking fee reserves your provider. Pay Visit Fee Only after provider accepts or offers treatment.</p>
-                {/* Apple Pay + Link row */}
+                {/* Express wallets (Apple Pay / Google Pay) + Link */}
+                <div style={{ visibility: expressReady ? "visible" : "hidden", height: expressReady ? "auto" : "0" }}>
+                  <ExpressCheckoutElement
+                    onConfirm={handleExpressConfirm}
+                    onReady={({ availablePaymentMethods }) => { if (availablePaymentMethods) setExpressReady(true); }}
+                    onClick={({ resolve }) => {
+                      if (isNewPatient && !newPatientFieldsComplete) { onValidateFields?.(); return; }
+                      resolve({});
+                    }}
+                    options={{
+                      buttonType: { applePay: "plain" as const, googlePay: "buy" as const },
+                      buttonTheme: { applePay: "white-outline", googlePay: "white" },
+                      buttonHeight: 44,
+                      paymentMethods: { link: "never" },
+                    }}
+                  />
+                </div>
+                {/* Link button */}
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <button
-                    onClick={() => { if (isNewPatient && !newPatientFieldsComplete) { onValidateFields?.(); return; } handleExpressConfirm(); }}
-                    disabled={payInFlight}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", height: "44px", borderRadius: "12px", border: "2px solid #3f8464", background: "#fff", color: "#1a1a1a", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "13px", fontWeight: 600, cursor: "pointer", transition: "opacity 150ms ease" }}
-                  >
-                    Pay with <svg width="13" height="16" viewBox="0 0 13 16" fill="none" style={{flexShrink:0}}><path d="M12.27 11.97c-.26.6-.57 1.15-.92 1.66-.49.69-.88 1.17-1.2 1.43-.47.44-.98.67-1.52.68-.39 0-.86-.11-1.4-.34-.55-.23-1.05-.34-1.52-.34-.49 0-1.01.11-1.56.34-.56.23-1.01.35-1.36.36-.52.02-1.04-.21-1.54-.68-.34-.28-.75-.77-1.24-1.48-.52-.76-.96-1.64-1.3-2.65C.25 9.85 0 8.79 0 7.76c0-1.18.25-2.2.76-3.04.4-.68.93-1.22 1.6-1.62.67-.4 1.39-.6 2.16-.61.42 0 .98.13 1.67.39.69.26 1.13.39 1.32.39.15 0 .65-.15 1.49-.46.8-.28 1.47-.4 2.02-.36 1.49.12 2.61.71 3.35 1.77-1.33.81-1.99 1.94-1.98 3.38.01 1.13.42 2.07 1.22 2.81.36.34.77.61 1.22.79l-.06.17zM9.4.32C9.4 1.2 9.09 2.02 8.48 2.77 7.73 3.67 6.82 4.19 5.83 4.11c-.01-.1-.02-.2-.02-.31 0-.84.36-1.74.99-2.47C7.11.66 7.6.3 8.19.01c.59-.28 1.14-.43 1.66-.45.01.12.02.23.02.34l-.47-.58z" fill="#1a1a1a"/></svg> Pay
-                  </button>
                   <button
                     onClick={() => { setShowCardForm(true); onCardExpand?.(true); }}
                     disabled={payInFlight}
