@@ -2616,9 +2616,7 @@ export default function ExpressCheckoutPage() {
                     <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
-                <button onClick={goBack} style={{ width: "100%", height: "44px", borderRadius: "12px", border: "1px solid #d8d3d1", background: "#f7f4f4", color: "#262626", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "14px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
-              <ConfirmBelowContent isReturn={true} />
             </div>
           ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !isReturningPatient ? (
             /* ── NEW PATIENT: compacted header + fields + payment ── */
@@ -2735,9 +2733,7 @@ export default function ExpressCheckoutPage() {
                     <p className="text-gray-400 text-[10px]">Setting up payment…</p>
                   </div>
                 )}
-                <button onClick={goBack} style={{ width: "100%", height: "44px", borderRadius: "12px", border: "1px solid #d8d3d1", background: "#f7f4f4", color: "#262626", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif", fontSize: "14px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}><span style={{ fontSize: "13px", lineHeight: 1 }}>←</span> Back</button>
               </div>
-              <ConfirmBelowContent isReturn={false} />
             </div>
           ) : null}
 
