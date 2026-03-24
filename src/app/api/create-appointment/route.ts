@@ -342,6 +342,8 @@ export async function POST(request: Request) {
     let doctorEmail = "doctor@medazonhealth.com";
     let doctorPhone = null;
     let doctorName = "Doctor";
+    let notificationEmail: string | null = null;
+    let notificationPhone: string | null = null;
 
     if (!existingDoctor) {
       // Doctor doesn't exist - return error
@@ -355,6 +357,16 @@ export async function POST(request: Request) {
       doctorPhone = existingDoctor.phone;
       if (existingDoctor.first_name && existingDoctor.last_name) {
         doctorName = `${existingDoctor.first_name} ${existingDoctor.last_name}`;
+      }
+      // Load secondary notification recipients from practice_settings
+      const { data: practiceSettings } = await supabase
+        .from("practice_settings")
+        .select("notification_email, notification_phone")
+        .eq("doctor_id", DOCTOR_ID)
+        .single();
+      if (practiceSettings) {
+        notificationEmail = practiceSettings.notification_email || null;
+        notificationPhone = practiceSettings.notification_phone || null;
       }
     }
 
@@ -1638,6 +1650,40 @@ export async function POST(request: Request) {
           });
         } catch (doctorSMSError) {
           console.error("[NOTIFY] Doctor SMS failed:", doctorSMSError);
+        }
+      }
+
+      // Send to secondary notification recipients (if set in practice_settings)
+      if (notificationEmail) {
+        try {
+          await sendEmail({
+            to: notificationEmail,
+            subject: `New Appointment Scheduled - ${patientName} - ${formattedDate}`,
+            html: generateDoctorAppointmentEmailHTML({
+              patientName,
+              appointmentDate: formattedDate,
+              appointmentTime: formattedTime,
+              visitType,
+              doctorPanelLink,
+              dailyMeetingUrl: dailyMeeting?.url || null,
+              patientEmail: patientEmail || null,
+              patientPhone: patientPhone || null,
+            }),
+          });
+          console.log("[NOTIFY] Secondary email sent to:", notificationEmail);
+        } catch (secEmailErr) {
+          console.error("[NOTIFY] Secondary email failed:", secEmailErr);
+        }
+      }
+      if (notificationPhone) {
+        try {
+          await sendSMS({
+            to: notificationPhone,
+            message: `New appointment scheduled: ${patientName} on ${formattedDate} at ${formattedTime}. ${visitTypeDisplay}. View: ${doctorPanelLink}`,
+          });
+          console.log("[NOTIFY] Secondary SMS sent to:", notificationPhone);
+        } catch (secSMSErr) {
+          console.error("[NOTIFY] Secondary SMS failed:", secSMSErr);
         }
       }
 
