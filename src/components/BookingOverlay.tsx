@@ -167,24 +167,31 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // ── Patient — pre-load from sessionStorage if already looked up on landing ──
+  // ── Patient — pre-load from sessionStorage if already looked up this session ──
   useEffect(() => {
     try {
       const s = sessionStorage.getItem("expressPatient");
       if (s) {
         const p = JSON.parse(s);
-        // Only skip email step if patient has a confirmed Supabase ID
-        // or came from landing page email lookup with a real email this session
+        // Only skip email step if patient has confirmed Supabase ID
+        // OR has a real email from a lookup this session (not source:"new")
         if (p?.id || (p?.email && p?.source && p.source !== "new")) {
           setPatient(p);
           if (p.email) setEmail(p.email);
           setStep(1);
         } else {
-          // Stale or partial — clear it and show email step
+          // No valid patient — clear and show email step
           sessionStorage.removeItem("expressPatient");
+          setStep(0);
         }
+      } else {
+        // Nothing in storage — show email step
+        setStep(0);
       }
-    } catch {}
+    } catch {
+      sessionStorage.removeItem("expressPatient");
+      setStep(0);
+    }
   }, []);
   useEffect(() => {
     if(isReturning && patient?.pharmacy && !pharmacy) {
@@ -414,7 +421,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const fieldBorder = (valid:boolean) => `2px solid ${valid ? "rgba(45,212,160,.55)" : col.border}`;
   const contDisabled =
     (step===0 && (!email.trim().includes("@"))) ||
-    (step===1 && !isReturning && (symptoms.trim().length < 3 || !selectedVisitType)) ||
+    (step===1 && !isReturning && symptoms.trim().length < 3) ||
     (step===1 && isReturning  && !reason.trim()) ||
     (step===2 && !isReturning && !pharmacy) ||
     (isCalStep && false); // cal step uses pulse validation, not disabled state
@@ -498,9 +505,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#16A34A",marginTop:3,fontWeight:600}}>
                 {step===0
                   ? "Let's get you started"
-                  : step === 1 && !isReturning && !selectedVisitType
-                    ? `Step ${step} of ${totalSteps}`
-                    : `${VISIT_LABELS[selectedVisitType || visitType]} · Step ${step} of ${totalSteps}`}
+                  : `${VISIT_LABELS[selectedVisitType || visitType]} · Step ${step} of ${totalSteps}`}
               </div>
             </div>
             <button onClick={onClose} style={{
@@ -563,51 +568,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   }}
                 />
                 <div style={{fontSize:12,color:"#16A34A",fontWeight:500}}>Describe why you&apos;re booking today</div>
-                {/* Line 1+2: char counter below 3 chars, visit type selector at 3+ */}
-                {symptoms.trim().length < 3 ? (
+                {symptoms.trim().length < 3 && (
                   <div style={{fontSize:12,color:"#6B7280"}}>
                     <b style={{color:"#16A34A",fontSize:14}}>{Math.max(0,3-symptoms.trim().length)}</b> more characters needed
-                  </div>
-                ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:6,
-                    outline:pulseVisitType?"2px solid rgba(249,115,22,.6)":"none",
-                    borderRadius:8,
-                    animation:pulseVisitType?"calPulse .6s ease":"stepFade .15s ease",
-                  }}>
-                    <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>Select visit type</div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
-                      {(["async","sms","refill","video","phone","instant"] as const).map((vt) => {
-                        const vtColors: Record<string,{bg:string;border:string;text:string;activeBg:string}> = {
-                          async:   {bg:"transparent",border:"rgba(236,72,153,0.3)",  text:"#f472b6", activeBg:"#ec4899"},
-                          sms:     {bg:"transparent",border:"rgba(168,85,247,0.3)",  text:"#c084fc", activeBg:"#a855f7"},
-                          refill:  {bg:"transparent",border:"rgba(34,197,94,0.3)",   text:"#4ade80", activeBg:"#22c55e"},
-                          video:   {bg:"transparent",border:"rgba(59,130,246,0.3)",  text:"#60a5fa", activeBg:"#3b82f6"},
-                          phone:   {bg:"transparent",border:"rgba(6,182,212,0.3)",   text:"#22d3ee", activeBg:"#0891b2"},
-                          instant: {bg:"transparent",border:"rgba(249,115,22,0.3)",  text:"#fb923c", activeBg:"#f97316"},
-                        };
-                        const vtLabels: Record<string,string> = {
-                          async:"Async", sms:"SMS", refill:"Rx Refill",
-                          video:"Video", phone:"Phone", instant:"Instant",
-                        };
-                        const isSelected = selectedVisitType === vt;
-                        const c = vtColors[vt];
-                        return (
-                          <button key={vt} onClick={()=>setSelectedVisitType(vt)} style={{
-                            padding:"7px 4px",
-                            borderRadius:8,
-                            border:`1.5px solid ${isSelected ? c.activeBg : c.border}`,
-                            background:isSelected ? c.activeBg : "rgba(255,255,255,0.05)",
-                            color:isSelected ? "#fff" : c.text,
-                            fontSize:11,fontWeight:700,
-                            cursor:"pointer",
-                            transition:"all .15s",
-                            boxShadow:isSelected ? `0 2px 8px ${c.border}` : "none",
-                          }}>
-                            {vtLabels[vt]}
-                          </button>
-                        );
-                      })}
-                    </div>
                   </div>
                 )}
               {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
