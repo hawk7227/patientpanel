@@ -498,9 +498,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
             background:isCalStep?"#0d1117":"#FFFFFF",zIndex:2,
           }}>
             <div style={{flex:1,marginRight:10}}>
-              <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:isCalStep?"#FFFFFF":"#111827",lineHeight:1.1}}
-                   key={step}>
-                {step===0 ? "Welcome" : getStepTitle(step, isReturning)}
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:isCalStep?"#FFFFFF":"#111827",lineHeight:1.1}}
+                     key={step}>
+                  {step===0 ? "Welcome" : getStepTitle(step, isReturning)}
+                </div>
+                {isCalStep && calDay && calTime && (
+                  <div style={{fontSize:11,fontWeight:700,color:"#2dd4a0",background:"rgba(45,212,160,0.12)",border:"1px solid rgba(45,212,160,0.3)",borderRadius:6,padding:"2px 8px",whiteSpace:"nowrap"}}>
+                    ✓ {SHORT_MO[new Date(calDay+"T12:00:00").getMonth()]} {new Date(calDay+"T12:00:00").getDate()} @ {formatTime(calTime)}
+                  </div>
+                )}
               </div>
               <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#16A34A",marginTop:3,fontWeight:600}}>
                 {step===0
@@ -867,16 +874,22 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         const badge  = selectedDayObj ? getSlotBadge(slot,selectedDayObj) : null;
                         return (
                           <button key={slot} onClick={()=>{setCalTime(to24(slot));setCalMissingMsg("");}} style={{
-                            padding:badge?"6px 4px":"10px 4px",borderRadius:9,cursor:"pointer",
+                            padding:"6px 4px",borderRadius:9,cursor:"pointer",
                             border:isAct?"2px solid #16A34A":badge?"2px solid rgba(249,115,22,.55)":"1.5px solid rgba(255,255,255,.1)",
                             background:isAct?"#16A34A":badge?"rgba(22,13,4,.95)":"rgba(255,255,255,.05)",
                             color:isAct?"#fff":badge?"#fff":"#e2e8f0",fontSize:13,fontWeight:700,
                             display:"flex",flexDirection:"column",alignItems:"center",gap:1,
                             animation:`slotIn .2s ease ${i*0.025}s both`,
                           }}>
-                            {badge && <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"#f97316",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>{badge.label}</span>}
+                            {badge
+                              ? <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"#f97316",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>{badge.label}</span>
+                              : <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"rgba(45,212,160,0.7)",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>Reg. Bus. Hrs</span>
+                            }
                             <span>{slot}</span>
-                            {badge && <span style={{fontSize:8,fontWeight:700,color:isAct?"#d1fae5":"#4ade80",lineHeight:1}}>I'm available</span>}
+                            {badge
+                              ? <span style={{fontSize:8,fontWeight:700,color:isAct?"#d1fae5":"#4ade80",lineHeight:1}}>I'm available</span>
+                              : <span style={{fontSize:8,fontWeight:700,color:isAct?"#d1fae5":"#4ade80",lineHeight:1}}>I'm available</span>
+                            }
                           </button>
                         );
                       })}
