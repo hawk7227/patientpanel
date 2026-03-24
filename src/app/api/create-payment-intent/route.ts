@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         const pi = await stripe.paymentIntents.create({
           amount: BOOKING_FEE,
           currency: "usd",
-          payment_method_types: ['card', 'link'],
+          payment_method_types: ['card'],
           description: "Medazon Health — Booking reserve fee",
           metadata: { type: "booking_fee" },
         });
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         const pi = await stripe.paymentIntents.create({
           amount: amountInCents,
           currency: "usd",
-          payment_method_types: ['card', 'link'],
+          payment_method_types: ['card'],
           transfer_data: { amount: split, destination: CONNECTED_ACCOUNT_ID },
           transfer_group: `legacy_${Date.now()}`,
           description: "Medazon Health telehealth visit",
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       amount: visitAmountCents,
       currency: "usd",
       capture_method: "manual",
-      payment_method_types: ['card', 'link'],
+      payment_method_types: ['card'],
       transfer_data: {
         amount: visitSplit,
         destination: CONNECTED_ACCOUNT_ID,
@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       amount: BOOKING_FEE,
       currency: "usd",
       capture_method: "manual",
-      payment_method_types: ['card', 'link'],
+      payment_method_types: ['card'],
       transfer_data: {
         amount: bookingSplit,
         destination: CONNECTED_ACCOUNT_ID,
