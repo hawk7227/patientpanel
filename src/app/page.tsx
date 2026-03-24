@@ -457,6 +457,42 @@ export default function AssessmentPageContent() {
                 </div>
               </div>
 
+              {/* VISIT TYPE CARDS — primary entry point, above fold */}
+              <div className="p-4">
+                <div style={{ position: "relative" }}>
+                  <VisitCards onCardClick={(type) => handleConditionClick(type)} />
+                  {/* Vertical indicator — right side, 3 segments */}
+                  <div className="md:hidden" style={{
+                    position: "absolute",
+                    right: -10,
+                    top: 4,
+                    bottom: 4,
+                    width: 3,
+                    borderRadius: 99,
+                    background: "rgba(255,255,255,0.08)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                    pointerEvents: "none",
+                  }}>
+                    {[0,1,2].map(i => (
+                      <div key={i} style={{
+                        flex: 1,
+                        borderRadius: 99,
+                        background: i===visitCardsRow ? "#2dd4a0" : "rgba(255,255,255,0.15)",
+                        transition: "background .2s",
+                      }} />
+                    ))}
+                  </div>
+                </div>
+                {overlayOpen && (
+                  <BookingOverlay
+                    visitType={overlayVisitType}
+                    onClose={() => setOverlayOpen(false)}
+                  />
+                )}
+              </div>
+
               {/* WHAT WE TREAT — moved above visit cards */}
               <div className="px-4 pb-4 pt-5">
            <div className="relative max-w-4xl mx-auto">
@@ -621,47 +657,6 @@ export default function AssessmentPageContent() {
                  <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
               </div>
               </div>
-              </div>
-
-              {/* FAST TREATMENT NOW OPTIONS — visit cards grid */}
-              <div className="p-4" style={{ borderTop: '1px solid rgba(45,245,198,0.1)' }}>
-                <h2 className="text-white font-black text-center mb-6" style={{ fontSize: 'clamp(16px,3.5vw,22px)', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                  <span className="block text-teal-400">RIGHT NOW</span>
-                  <span className="block">TREATMENT OPTIONS</span>
-                </h2>
-                {/* Visit cards — snap scroll with vertical indicator */}
-                <div style={{ position: "relative" }}>
-                  <VisitCards onCardClick={(type) => handleConditionClick(type)} />
-                  {/* Vertical indicator — right side, 3 segments */}
-                  <div className="md:hidden" style={{
-                    position: "absolute",
-                    right: -10,
-                    top: 4,
-                    bottom: 4,
-                    width: 3,
-                    borderRadius: 99,
-                    background: "rgba(255,255,255,0.08)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 3,
-                    pointerEvents: "none",
-                  }}>
-                    {[0,1,2].map(i => (
-                      <div key={i} style={{
-                        flex: 1,
-                        borderRadius: 99,
-                        background: i===visitCardsRow ? "#2dd4a0" : "rgba(255,255,255,0.15)",
-                        transition: "background .2s",
-                      }} />
-                    ))}
-                  </div>
-                </div>
-                {overlayOpen && (
-                  <BookingOverlay
-                    visitType={overlayVisitType}
-                    onClose={() => setOverlayOpen(false)}
-                  />
-                )}
               </div>
 
             </div>
