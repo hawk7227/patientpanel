@@ -1400,9 +1400,16 @@ export default function ExpressCheckoutPage() {
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "async";
   const isReturningPatient = !!patient?.id;
-  // Known patient: has pre-filled data from local JSON index or Supabase lookup
-  // These patients don't need to fill in identity fields on payment page
-  const isKnownPatient = !!(patient?.firstName && patient?.email);
+  // Known patient: has a COMPLETE record from local JSON or Supabase lookup.
+  // Must have all clinical identity fields — not just name + email.
+  // Partial records (name+email only) still go through identity fields to fill gaps.
+  const isKnownPatient = !!(
+    patient?.firstName &&
+    patient?.email &&
+    patient?.phone &&
+    patient?.dateOfBirth &&
+    patient?.address
+  );
 
   // ── Arizona time helpers for instant visit after-hours cutoff ──
   const getArizonaHour = (): number => {
