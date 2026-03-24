@@ -923,7 +923,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                           }}>
                             {badge
                               ? <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"#f97316",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>{badge.label}</span>
-                              : <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"rgba(45,212,160,0.7)",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>Reg. Bus. Hrs</span>
+                              : <span style={{fontSize:9,fontWeight:800,color:isAct?"#fff":"#f97316",lineHeight:1,letterSpacing:".03em",textTransform:"uppercase"}}>Reg. Bus. Hrs</span>
                             }
                             <span>{slot}</span>
                             {badge
@@ -1024,7 +1024,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               boxShadow:isCalStep?(calDay&&calTime?"0 4px 16px rgba(22,163,74,0.4)":"0 4px 16px rgba(249,115,22,0.3)"):(contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)"),
               transition:"all .25s",
             }}>
-              {step===totalSteps ? "Book My Visit →" : "Continue →"}
+              {step===totalSteps ? (calDay && calTime ? `Book My Visit · ${formatTime(calTime)} →` : "Book My Visit →") : "Continue →"}
             </button>
           </div>
 
