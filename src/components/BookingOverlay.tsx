@@ -539,7 +539,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     zIndex:10,
                     boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
                     ...(dropUp
-                      ? { bottom:"calc(100% + 4px)" }
+                      ? { top:"calc(100% + 4px)" }
                       : { top:"calc(100% + 4px)" }
                     ),
                   }}>
@@ -552,10 +552,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         <div key={i}
                           onMouseDown={(e:React.MouseEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
                           onTouchEnd={(e:React.TouchEvent)=>{e.preventDefault();setPharmacy(p.name);setPharmacyAddress(p.address);setPharmaQuery(p.name);setShowDrop(false);}}
-                          style={{padding:"10px 12px",cursor:"pointer",borderBottom:"1px solid #F3F4F6"}}
+                          style={{padding:"5px 12px",cursor:"pointer",borderBottom:"1px solid #F3F4F6"}}
                         >
-                          <div style={{fontSize:13,color:"#111827",fontWeight:600}}>{p.name}</div>
-                          <div style={{fontSize:11,color:"#6B7280",marginTop:2}}>
+                          <div style={{fontSize:12,color:"#111827",fontWeight:600}}>{p.name}</div>
+                          <div style={{fontSize:10,color:"#6B7280",marginTop:1}}>
                             {p.address.length > 40 ? p.address.slice(0,40)+"…" : p.address}
                           </div>
                         </div>
