@@ -402,7 +402,9 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 {getStepTitle(step, isReturning)}
               </div>
               <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#16A34A",marginTop:3,fontWeight:600}}>
-                {VISIT_LABELS[visitType]} · Step {step} of {totalSteps}
+                {step === 1 && !isReturning && !selectedVisitType
+                  ? `Step ${step} of ${totalSteps}`
+                  : `${VISIT_LABELS[selectedVisitType || visitType]} · Step ${step} of ${totalSteps}`}
               </div>
             </div>
             <button onClick={onClose} style={{
@@ -863,13 +865,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           }}>
             <button onClick={goBack} style={{
               flex:1,height:48,borderRadius:12,
-              background:isCalStep?"#16A34A":"#FFFFFF",
-              border:isCalStep?"none":"1.5px solid #E5E7EB",
-              color:isCalStep?"#fff":"#374151",fontSize:14,fontWeight:700,cursor:"pointer",
+              background:isCalStep?"#16A34A":"#374151",
+              border:"none",
+              color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
             }}>← Back</button>
             <button onClick={goContinue} disabled={!isCalStep && contDisabled} style={{
               flex:2,height:48,borderRadius:12,
-              border:isCalStep?(calDay&&calTime?"2.5px solid #16A34A":"2.5px solid rgba(255,255,255,0.5)"):"none",
+              border:isCalStep?(calDay&&calTime?"2.5px solid #16A34A":"2.5px solid rgba(255,255,255,0.5)"):(!isCalStep&&contDisabled?"1.5px solid #16A34A":"none"),
               background:(!isCalStep&&contDisabled)?"#F3F4F6":isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
               color:(!isCalStep&&contDisabled)?"#16A34A":"#fff",
               fontSize:14,fontWeight:900,
