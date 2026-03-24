@@ -404,6 +404,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         visitType: selectedVisitType || visitType, visitTypeChosen: true, visitTypeConfirmed: true,
         appointmentDate: calDay, appointmentTime: calTime,
         confirmReviewed: true,
+        healthScreenDone: true, // health screen moved post-payment
       }));
     } catch {}
     window.location.href = "/express-checkout";

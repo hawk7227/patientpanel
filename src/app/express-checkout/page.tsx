@@ -1834,14 +1834,13 @@ export default function ExpressCheckoutPage() {
   };
 
   // ═══ GUIDED STEP LOGIC ═══
-  // 1=Reason, 2=Symptoms, 2.5=Health Screen (new patient), 3=Pharmacy, 4=VisitType browse,
+  // 1=Reason, 2=Symptoms, 3=Pharmacy, 4=VisitType browse,
   // 4.5=Confirm summary (new patient review) / Summary+Pay (returning),
   // 4.75=Payment form (new patient only, after CONTINUE),
   // 5=Phone/contact (new patient), 6=Pay (returning)
   const activeGuideStep = useMemo((): number => {
     if (!reason) return 1;
     if (!symptomsDone) return 2;
-    if (!isReturningPatient && !isKnownPatient && !healthScreenDone) return 2.5;
     if (!pharmacy) return 3;
     if (!visitTypeChosen) return 4;
     if (!visitTypeConfirmed) return 4.5;
@@ -1851,7 +1850,7 @@ export default function ExpressCheckoutPage() {
     if (!isReturningPatient && !isKnownPatient && !phoneConfirmed) return 4.75;
     // Returning patient: skip straight to pay (summary+wallets at 4.5)
     return 6;
-  }, [reason, symptomsDone, healthScreenDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient, isKnownPatient]);
+  }, [reason, symptomsDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient, isKnownPatient]);
 
   const totalSteps = 5;
 
@@ -1909,21 +1908,10 @@ export default function ExpressCheckoutPage() {
       saveAnswers({ reason: "", chiefComplaint: "", symptomsDone: false });
       return;
     }
-    if (step === 2.5) {
-      // Back from health screen → symptoms
-      setSymptomsDone(false);
-      saveAnswers({ symptomsDone: false });
-      return;
-    }
     if (step === 3) {
       // Back from pharmacy → health screen (new patient) or symptoms (returning)
-      if (!isReturningPatient && !isKnownPatient) {
-        setHealthScreenDone(false);
-        saveAnswers({ healthScreenDone: false });
-      } else {
-        setSymptomsDone(false);
-        saveAnswers({ symptomsDone: false });
-      }
+      setSymptomsDone(false);
+      saveAnswers({ symptomsDone: false });
       return;
     }
     if (step === 4) {
@@ -2501,109 +2489,8 @@ export default function ExpressCheckoutPage() {
             </div>
           ) : null}
 
-          {/* STEP 2.5: Quick Health Screen — new patients only, between symptoms and pharmacy */}
-          {reason && symptomsDone && !isReturningPatient && !isKnownPatient && !healthScreenDone ? (
-            <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
-              <div className="rounded-xl p-4 space-y-4 transition-all mt-3" style={{ background: "#f7f4f4", border: "1px solid #d8d3d1", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#2d7a5f]">HEALTH SCREEN</p>
-                  <p className="text-[#6b7280] text-[12px] mt-0.5">Quick questions for your provider</p>
-                </div>
-
-                {/* Allergies */}
-                <div className="space-y-2">
-                  <p className="text-[13px] font-semibold text-[#262626]">Any allergies?</p>
-                  <div className="flex gap-2">
-                    {([false, true] as const).map((val) => (
-                      <button key={String(val)} onClick={() => { setHasAllergies(val); if (!val) setAllergiesDetail(""); }}
-                        className="flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all"
-                        style={{ border: hasAllergies === val ? "2px solid #2d7a5f" : "1.5px solid #c8d3d0", background: hasAllergies === val ? "rgba(45,122,95,0.08)" : "#fff", color: hasAllergies === val ? "#2d7a5f" : "#6b7280" }}>
-                        {val ? "Yes" : "No"}
-                      </button>
-                    ))}
-                  </div>
-                  {hasAllergies === true && (
-                    <textarea value={allergiesDetail} onChange={e => setAllergiesDetail(e.target.value)}
-                      placeholder="e.g. penicillin, sulfa drugs, latex..."
-                      rows={2} style={{ width: "100%", background: "#fff", border: "1.5px solid #c8d8cb", borderRadius: "8px", padding: "8px 10px", fontSize: "13px", color: "#1a1a1a", resize: "none", outline: "none", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}
-                      className="focus:border-[#2d7a5f] placeholder:text-[#3f8464]" />
-                  )}
-                </div>
-
-                {/* Current Medications */}
-                <div className="space-y-2">
-                  <p className="text-[13px] font-semibold text-[#262626]">Current medications?</p>
-                  <div className="flex gap-2">
-                    {([false, true] as const).map((val) => (
-                      <button key={String(val)} onClick={() => { setHasMedications(val); if (!val) setMedicationsDetail(""); }}
-                        className="flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all"
-                        style={{ border: hasMedications === val ? "2px solid #2d7a5f" : "1.5px solid #c8d3d0", background: hasMedications === val ? "rgba(45,122,95,0.08)" : "#fff", color: hasMedications === val ? "#2d7a5f" : "#6b7280" }}>
-                        {val ? "Yes" : "No"}
-                      </button>
-                    ))}
-                  </div>
-                  {hasMedications === true && (
-                    <textarea value={medicationsDetail} onChange={e => setMedicationsDetail(e.target.value)}
-                      placeholder="e.g. metformin 500mg, lisinopril 10mg..."
-                      rows={2} style={{ width: "100%", background: "#fff", border: "1.5px solid #c8d8cb", borderRadius: "8px", padding: "8px 10px", fontSize: "13px", color: "#1a1a1a", resize: "none", outline: "none", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}
-                      className="focus:border-[#2d7a5f] placeholder:text-[#3f8464]" />
-                  )}
-                </div>
-
-                {/* Medical Conditions */}
-                <div className="space-y-2">
-                  <p className="text-[13px] font-semibold text-[#262626]">Medical conditions?</p>
-                  <div className="flex gap-2">
-                    {([false, true] as const).map((val) => (
-                      <button key={String(val)} onClick={() => { setHasMedicalIssues(val); if (!val) setMedicalIssuesDetail(""); }}
-                        className="flex-1 py-2 rounded-lg text-[13px] font-semibold transition-all"
-                        style={{ border: hasMedicalIssues === val ? "2px solid #2d7a5f" : "1.5px solid #c8d3d0", background: hasMedicalIssues === val ? "rgba(45,122,95,0.08)" : "#fff", color: hasMedicalIssues === val ? "#2d7a5f" : "#6b7280" }}>
-                        {val ? "Yes" : "No"}
-                      </button>
-                    ))}
-                  </div>
-                  {hasMedicalIssues === true && (
-                    <textarea value={medicalIssuesDetail} onChange={e => setMedicalIssuesDetail(e.target.value)}
-                      placeholder="e.g. diabetes, hypertension, asthma..."
-                      rows={2} style={{ width: "100%", background: "#fff", border: "1.5px solid #c8d8cb", borderRadius: "8px", padding: "8px 10px", fontSize: "13px", color: "#1a1a1a", resize: "none", outline: "none", fontFamily: "'Avenir Next', Inter, -apple-system, sans-serif" }}
-                      className="focus:border-[#2d7a5f] placeholder:text-[#3f8464]" />
-                  )}
-                </div>
-
-                {/* Nav */}
-                <div className="flex gap-2 pt-1">
-                  <button onClick={goBack}
-                    className="flex-1 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1.5 border border-[#2d7a5f]/30"
-                    style={{ background: "rgba(45,122,95,0.12)" }}>
-                    <span style={{ fontSize: "14px", lineHeight: 1 }}>←</span> Back
-                  </button>
-                  <button onClick={() => {
-                    // Validate: if Yes selected, detail required
-                    if (hasAllergies === true && !allergiesDetail.trim()) return;
-                    if (hasMedications === true && !medicationsDetail.trim()) return;
-                    if (hasMedicalIssues === true && !medicalIssuesDetail.trim()) return;
-                    // Default unselected to No
-                    if (hasAllergies === null) setHasAllergies(false);
-                    if (hasMedications === null) setHasMedications(false);
-                    if (hasMedicalIssues === null) setHasMedicalIssues(false);
-                    setHealthScreenDone(true);
-                    saveAnswers({ healthScreenDone: true,
-                      allergies: hasAllergies ?? false, allergiesDetails: allergiesDetail,
-                      medications: hasMedications ?? false, medicationsDetails: medicationsDetail,
-                      medicalIssues: hasMedicalIssues ?? false, medicalIssuesDetails: medicalIssuesDetail,
-                    });
-                  }}
-                    className="flex-2 py-3 rounded-xl text-white font-bold text-[14px] transition-all active:scale-95 flex items-center justify-center gap-1 border-2 border-[#2d6b4f]"
-                    style={{ flex: 2, background: "#2d6b4f", boxShadow: "0 4px 16px rgba(45,107,79,0.25)" }}>
-                    Continue →
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
           {/* STEP 3: Preferred Pharmacy — inline, no modal */}
-          {reason && symptomsDone && (isReturningPatient || isKnownPatient || healthScreenDone) && !pharmacy ? (
+          {reason && symptomsDone && !pharmacy ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 relative z-10 ${activeOrangeBorder}`}>
                 <PharmacySelector
