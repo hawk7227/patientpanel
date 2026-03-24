@@ -360,6 +360,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       navigateToCheckout(); return;
     }
     if(step===1) {
+      if(!emailConfirmed) {
+        setSymPulseEmail(true); setTimeout(()=>setSymPulseEmail(false), 900);
+        emailRef.current?.focus();
+        return;
+      }
       if(symptoms.trim().length < 3) {
         setStep1ErrorMsg("⚠ Please describe your symptoms — at least a few words so your provider understands your concern.");
         setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
@@ -535,7 +540,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   <div style={{fontSize:12,fontWeight:700,color:"#374151",letterSpacing:".01em"}}>
                     📧 Confirm Your Email
                   </div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center",maxWidth:480}}>
                     <input
                       ref={emailRef}
                       type="email"
