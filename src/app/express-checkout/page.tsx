@@ -1546,11 +1546,11 @@ export default function ExpressCheckoutPage() {
     const timer = setTimeout(() => {
       // Read from DOM refs — uncontrolled inputs may have been autofilled
       // Sync to state so payment form has values — do NOT set errors pre-emptively
-      const fn = npFirstNameRef.current?.value?.trim() || "";
-      const ln = npLastNameRef.current?.value?.trim()  || "";
-      const em = npEmailRef.current?.value?.trim()     || "";
-      const ph = (npPhoneRef.current?.value || "").replace(/\D/g,"");
-      const ad = npAddressRef.current?.value?.trim()   || "";
+      const fn = npFirstNameRef.current?.value?.trim() || (document.getElementById("np-first-name") as HTMLInputElement)?.value?.trim() || "";
+      const ln = npLastNameRef.current?.value?.trim()  || (document.getElementById("np-last-name") as HTMLInputElement)?.value?.trim()  || "";
+      const em = npEmailRef.current?.value?.trim()     || (document.getElementById("np-email") as HTMLInputElement)?.value?.trim()     || "";
+      const ph = (npPhoneRef.current?.value || (document.getElementById("np-phone") as HTMLInputElement)?.value || "").replace(/\D/g,"");
+      const ad = npAddressRef.current?.value?.trim()   || (document.getElementById("np-address") as HTMLInputElement)?.value?.trim()   || "";
       if (fn) setNpFirstName(fn);
       if (ln) setNpLastName(ln);
       if (em) setNpEmail(em);
@@ -2111,6 +2111,14 @@ export default function ExpressCheckoutPage() {
           @keyframes fadeInStep { from { opacity:0; transform:translateY(24px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
           @keyframes onAutofill { from {} to {} }
           input:-webkit-autofill { animation-name: onAutofill; animation-duration: 1ms; }
+          input:-webkit-autofill,
+          input:-webkit-autofill:hover,
+          input:-webkit-autofill:focus,
+          input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0px 9999px #ffffff inset !important;
+            -webkit-text-fill-color: #1a1a1a !important;
+            transition: background-color 9999s ease-in-out 0s !important;
+          }
         `}</style>
         <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop: "env(safe-area-inset-top, 12px)", paddingBottom: "env(safe-area-inset-bottom, 20px)", paddingLeft: "16px", paddingRight: "16px", background: "#ffffff" }}>
 
@@ -2609,7 +2617,7 @@ export default function ExpressCheckoutPage() {
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.firstName && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.firstName}</span>}
                       <input type="text" autoComplete="given-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                        name="given-name" ref={npFirstNameRef} placeholder="First name" defaultValue=""
+                        name="given-name" id="np-first-name" ref={npFirstNameRef} placeholder="First name" defaultValue=""
                         aria-invalid={!!npErrors.firstName}
                         className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
@@ -2620,7 +2628,7 @@ export default function ExpressCheckoutPage() {
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.lastName && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.lastName}</span>}
                       <input type="text" autoComplete="family-name" autoCorrect="off" autoCapitalize="words" spellCheck={false}
-                        name="family-name" ref={npLastNameRef} placeholder="Last name" defaultValue=""
+                        name="family-name" id="np-last-name" ref={npLastNameRef} placeholder="Last name" defaultValue=""
                         aria-invalid={!!npErrors.lastName}
                         className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
@@ -2658,7 +2666,7 @@ export default function ExpressCheckoutPage() {
                     <div style={{flex:3,minWidth:0}} className="flex flex-col gap-0.5">
                       {npErrors.address && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.address}</span>}
                       <input type="text" autoComplete="address-line1" autoCorrect="off" spellCheck={false}
-                        name="address1" ref={npAddressRef} placeholder="Street address" defaultValue=""
+                        name="street-address" id="np-address" ref={npAddressRef} placeholder="Street address" defaultValue=""
                         aria-invalid={!!npErrors.address}
                         className={`rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
@@ -2669,7 +2677,7 @@ export default function ExpressCheckoutPage() {
                     <div style={{flex:2,minWidth:0}} className="flex flex-col gap-0.5">
                       {npErrors.dob && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.dob}</span>}
                       <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
-                        name="bday" ref={npDobRef} placeholder="DOB MM/DD/YYYY" defaultValue=""
+                        name="bday" id="np-dob" ref={npDobRef} placeholder="DOB MM/DD/YYYY" defaultValue=""
                         aria-invalid={!!npErrors.dob}
                         className={`rounded-lg px-3 text-[#1a1a1a] text-center focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
