@@ -1,30 +1,22 @@
 // ═══════════════════════════════════════════════════════════════
 // DUAL PAYMENT INTENT API
 //
-// Creates TWO Stripe PaymentIntents:
-//   1. Visit fee ($189/$199/$249) — capture_method: manual (pre-auth hold)
-//   2. Booking fee ($1.89) — capture_method: automatic (charges immediately)
+// Stripe Customer:
+//   Created or retrieved by email. Both intents attach to the Customer
+//   with setup_future_usage: "off_session" so Apple Pay / Google Pay
+//   single-use tokens are saved as reusable PaymentMethods.
+//   This allows confirm-visit-hold to reuse the same PaymentMethod
+//   for the second intent — fixing "PaymentMethod used without Customer".
 //
-// Pricing:
-//   Business hours (Mon-Fri 9am-9pm patient local time):
-//     Instant/Refill: $189, Video/Phone: $199
-//   After-hours/weekends/holidays: $249
-//   Step 1: PaymentElement confirms visitIntent → requires_capture (hold cleared, funds verified)
-//   Step 2: /api/confirm-booking-fee confirms bookingIntent server-side → $1.89 charged
-//   Step 3: create-appointment
-//
-// If the $189 hold fails → decline message shown, $1.89 never charged.
-// Patient always knows their card works before any money moves.
-//
-// Capture triggers (post-visit):
-//   - Video/Phone: both parties connected 30s+
-//   - Instant/Refill (no controlled): provider marks completed/rx_sent
-//   - Controlled substances: live eval connected 30s+
-//   - 7-day expiry if never captured → hold releases automatically
+// Flow:
+//   1. Elements confirms bookingIntent ($1.89) via Apple/Google Pay
+//   2. Server confirms visitIntent ($189) using same paymentMethodId (now reusable)
+//   3. Server captures $1.89
+//   4. create-appointment
 //
 // Split: 50/50 via transfer_data to connected account
-// Platform: acct_1GTDqCJkJttkJ55H (MEDAZON HEALTH)
-// Connected: acct_1S9kcMJ9YkO0Dy3z (Medazonhealth doctor)
+// Platform: acct_1GTDqCJkJttkJ55H
+// Connected: acct_1S9kcMJ9YkO0Dy3z
 // ═══════════════════════════════════════════════════════════════
 
 import { NextResponse } from "next/server";
@@ -34,116 +26,135 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-11-17.clover",
 });
 
-const CONNECTED_ACCOUNT_ID = process.env.STRIPE_CONNECTED_ACCOUNT_ID || "acct_1S9kcMJ9YkO0Dy3z";
+const CONNECTED_ACCOUNT_ID =
+  process.env.STRIPE_CONNECTED_ACCOUNT_ID || "acct_1S9kcMJ9YkO0Dy3z";
 
-// Valid visit fee amounts in cents
 const VALID_VISIT_AMOUNTS = new Set([
-  18900,  // $189 — all types business hours
-  24900,  // $249 — all types after-hours/weekends/holidays
+  18900, // $189 business hours
+  24900, // $249 after-hours
 ]);
 
 const BOOKING_FEE = 189; // $1.89 in cents
 
+async function getOrCreateCustomer(email: string): Promise<string | null> {
+  try {
+    const existing = await stripe.customers.list({ email, limit: 1 });
+    if (existing.data.length > 0) {
+      console.log(`[Payment] Existing customer: ${existing.data[0].id}`);
+      return existing.data[0].id;
+    }
+    const customer = await stripe.customers.create({ email });
+    console.log(`[Payment] Created customer: ${customer.id}`);
+    return customer.id;
+  } catch (err: any) {
+    console.warn("[Payment] Customer lookup failed:", err.message);
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    const { amount, visit_amount } = await request.json();
+    const body = await request.json();
+    const { amount, visit_amount, email } = body;
 
-    // ── Legacy support: single amount = old flow ──
+    const customerId = email ? await getOrCreateCustomer(String(email)) : null;
+    const customerFields = customerId
+      ? { customer: customerId, setup_future_usage: "off_session" as const }
+      : {};
+
+    // ── Legacy single-amount flow ────────────────────────────────
     if (!visit_amount && amount) {
-      const amountInCents = Math.round(Number(amount));
-      if (amountInCents === BOOKING_FEE) {
-        // Just booking fee (old express checkout path before dual-intent)
+      const cents = Math.round(Number(amount));
+
+      if (cents === BOOKING_FEE) {
         const pi = await stripe.paymentIntents.create({
           amount: BOOKING_FEE,
           currency: "usd",
-          payment_method_types: ['card'],
+          payment_method_types: ["card"],
+          ...customerFields,
           description: "Medazon Health — Booking reserve fee",
           metadata: { type: "booking_fee" },
         });
-        console.log(`[Payment] Booking-only intent: ${pi.id} for $1.89`);
+        console.log(`[Payment] Booking-only: ${pi.id}`);
         return NextResponse.json({ clientSecret: pi.client_secret, id: pi.id });
       }
-      // Legacy full-amount flow (other checkout pages)
-      if (VALID_VISIT_AMOUNTS.has(amountInCents)) {
-        const split = Math.round(amountInCents * 0.5);
+
+      if (VALID_VISIT_AMOUNTS.has(cents)) {
+        const split = Math.round(cents * 0.5);
         const pi = await stripe.paymentIntents.create({
-          amount: amountInCents,
+          amount: cents,
           currency: "usd",
-          payment_method_types: ['card'],
+          payment_method_types: ["card"],
+          ...customerFields,
           transfer_data: { amount: split, destination: CONNECTED_ACCOUNT_ID },
           transfer_group: `legacy_${Date.now()}`,
           description: "Medazon Health telehealth visit",
           metadata: { type: "legacy_visit" },
         });
-        console.log(`[Payment] Legacy intent: ${pi.id} for $${(amountInCents / 100).toFixed(2)}`);
+        console.log(`[Payment] Legacy: ${pi.id} $${(cents / 100).toFixed(2)}`);
         return NextResponse.json({ clientSecret: pi.client_secret, id: pi.id });
       }
+
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 
-    // ── Dual intent: booking fee + visit fee pre-auth ──
-    const visitAmountCents = Math.round(Number(visit_amount));
+    // ── Dual intent ──────────────────────────────────────────────
+    const visitCents = Math.round(Number(visit_amount));
 
-    if (!VALID_VISIT_AMOUNTS.has(visitAmountCents)) {
-      console.error(`[Payment] Invalid visit amount: ${visitAmountCents}. Valid: ${Array.from(VALID_VISIT_AMOUNTS).join(', ')}`);
+    if (!VALID_VISIT_AMOUNTS.has(visitCents)) {
       return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
     }
 
     const transferGroup = `booking_${Date.now()}`;
+    const visitSplit = Math.round(visitCents * 0.5);
+    const bookingSplit = Math.round(BOOKING_FEE * 0.5);
 
-    // 1️⃣ Visit fee — MANUAL capture (pre-auth hold, NOT charged yet)
-    //    Created FIRST: if card lacks funds, fail before charging $1.89
-    //    50/50 split on capture
-    const visitSplit = Math.round(visitAmountCents * 0.5);
+    // 1. Visit fee hold — manual capture, NOT charged yet
     const visitIntent = await stripe.paymentIntents.create({
-      amount: visitAmountCents,
+      amount: visitCents,
       currency: "usd",
       capture_method: "manual",
-      payment_method_types: ['card'],
-      transfer_data: {
-        amount: visitSplit,
-        destination: CONNECTED_ACCOUNT_ID,
-      },
+      payment_method_types: ["card"],
+      ...customerFields,
+      transfer_data: { amount: visitSplit, destination: CONNECTED_ACCOUNT_ID },
       transfer_group: transferGroup,
       description: "Medazon Health — Visit fee (held pending treatment)",
       metadata: {
         type: "visit_fee_hold",
         transfer_group: transferGroup,
         split_amount: String(visitSplit),
+        ...(customerId ? { stripe_customer_id: customerId } : {}),
       },
     });
+    console.log(`[Payment] Visit hold: ${visitIntent.id} $${(visitCents / 100).toFixed(2)} customer:${customerId || "none"}`);
 
-    console.log(`[Payment] Visit fee hold: ${visitIntent.id} for $${(visitAmountCents / 100).toFixed(2)} (split: $${(visitSplit / 100).toFixed(2)})`);
-
-    // 2️⃣ Booking fee — MANUAL capture (held, charged only after visit fee hold succeeds)
-    const bookingSplit = Math.round(BOOKING_FEE * 0.5);
+    // 2. Booking fee hold — manual capture, same Customer
     const bookingIntent = await stripe.paymentIntents.create({
       amount: BOOKING_FEE,
       currency: "usd",
       capture_method: "manual",
-      payment_method_types: ['card'],
-      transfer_data: {
-        amount: bookingSplit,
-        destination: CONNECTED_ACCOUNT_ID,
-      },
+      payment_method_types: ["card"],
+      ...customerFields,
+      transfer_data: { amount: bookingSplit, destination: CONNECTED_ACCOUNT_ID },
       transfer_group: transferGroup,
       description: "Medazon Health — Booking reserve fee",
       metadata: {
         type: "booking_fee",
         transfer_group: transferGroup,
         visit_intent_id: visitIntent.id,
+        ...(customerId ? { stripe_customer_id: customerId } : {}),
       },
     });
-
-    console.log(`[Payment] Booking fee hold: ${bookingIntent.id} for $1.89 (manual capture)`);
+    console.log(`[Payment] Booking hold: ${bookingIntent.id} $1.89 customer:${customerId || "none"}`);
 
     return NextResponse.json({
-      // bookingIntent clientSecret — Elements shows $1.89 to patient
       clientSecret: bookingIntent.client_secret,
       bookingIntentId: bookingIntent.id,
       visitIntentId: visitIntent.id,
       transferGroup: transferGroup,
+      customerId: customerId || null,
     });
+
   } catch (err: any) {
     console.error("[Payment] Stripe Error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });

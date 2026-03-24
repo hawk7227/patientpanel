@@ -1587,7 +1587,7 @@ export default function ExpressCheckoutPage() {
     fetch("/api/create-payment-intent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: currentPrice.amount, visit_amount: visitFeePrice.amount }),
+      body: JSON.stringify({ amount: currentPrice.amount, visit_amount: visitFeePrice.amount, email: contactEmail || patient?.email || "" }),
       signal: controller.signal,
     })
       .then((res) => {
@@ -1878,7 +1878,7 @@ export default function ExpressCheckoutPage() {
       fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: currentPrice.amount, visit_amount: visitFeePrice.amount }),
+        body: JSON.stringify({ amount: currentPrice.amount, visit_amount: visitFeePrice.amount, email: contactEmail || patient?.email || "" }),
         signal: controller.signal,
       })
         .then((res) => { if (!res.ok) throw new Error(`Payment API returned ${res.status}`); return res.json(); })
