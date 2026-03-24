@@ -1062,7 +1062,17 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               boxShadow:isCalStep?(calDay&&calTime?"0 4px 16px rgba(22,163,74,0.4)":"0 4px 16px rgba(249,115,22,0.3)"):(contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)"),
               transition:"all .25s",
             }}>
-              {step===totalSteps ? (calDay && calTime ? `Book My Visit · ${formatTime(calTime)} →` : "Book My Visit →") : "Continue →"}
+              {step===totalSteps ? (
+                calDay && calTime ? (
+                  <span style={{display:"flex",alignItems:"center",gap:8,justifyContent:"center"}}>
+                    Book My Visit
+                    <span style={{fontSize:11,fontWeight:800,color:"#2dd4a0",background:"rgba(13,17,23,0.5)",border:"1px solid rgba(45,212,160,0.4)",borderRadius:6,padding:"2px 8px",whiteSpace:"nowrap",letterSpacing:"0.01em"}}>
+                      ✓ {FULL_DAYS[new Date(calDay+"T12:00:00").getDay()]}, {SHORT_MO[new Date(calDay+"T12:00:00").getMonth()]} {new Date(calDay+"T12:00:00").getDate()} @ {formatTime(calTime)}
+                    </span>
+                    →
+                  </span>
+                ) : "Book My Visit →"
+              ) : "Continue →"}
             </button>
           </div>
 
