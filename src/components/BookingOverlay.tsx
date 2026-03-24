@@ -670,13 +670,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     animation:pulsePharmacy?"calPulse .6s ease":"none",
                   }}
                 />
-                {/* Dropdown — inline flow, pushes content below down */}
+                {/* Dropdown — capped at 2 visible rows so keyboard doesn't push CTAs off screen */}
                 {showDrop && !pharmacy && (
                   <div style={{
                     background:isCalStep?"#0d1117":"#FFFFFF",
                     border:"1px solid #E5E7EB",
                     borderRadius:10,overflow:"hidden",
-                    maxHeight:180,
+                    maxHeight:96,
                     overflowY:"auto",
                     boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
                   }}>
