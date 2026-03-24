@@ -39,9 +39,11 @@ const getPillColorClass = (color: string) => {
 function PairedCTABlock({
   showSteps,
   onBookClick,
+  onOpenOverlay,
 }: {
   showSteps: boolean;
   onBookClick: () => void;
+  onOpenOverlay?: (email: string, patient: object | null) => void;
 }) {
   const [returningEmail, setReturningEmail] = useState("");
   const [searching, setSearching] = useState(false);
@@ -64,8 +66,6 @@ function PairedCTABlock({
     setSearching(true);
     setSearchError(null);
 
-    try { sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo())); } catch {}
-
     try {
       const res = await fetch("/api/express-lookup", {
         method: "POST",
@@ -74,73 +74,45 @@ function PairedCTABlock({
       });
       const data = await res.json();
 
+      let patient = null;
       if (res.ok && data.found && data.patient) {
-        sessionStorage.setItem("expressPatient", JSON.stringify({
+        patient = {
           id: data.patient.id || null,
           firstName: data.patient.firstName || "",
           lastName: data.patient.lastName || "",
-          email: email,
+          email,
           phone: data.patient.phone || "",
           dateOfBirth: data.patient.dateOfBirth || "",
           address: data.patient.address || "",
-          source: data.source || "new",
+          source: data.source || "local",
           pharmacy: data.patient.pharmacy || "",
-        }));
-      } else {
-        sessionStorage.setItem("expressPatient", JSON.stringify({
-          id: null,
-          firstName: "",
-          lastName: "",
-          email: email,
-          phone: "",
-          dateOfBirth: "",
-          address: "",
-          source: "new",
-          pharmacy: "",
-        }));
+        };
       }
-
-      try { localStorage.removeItem("medazon_express_answers"); } catch {}
-      window.location.href = "/express-checkout";
-    } catch (err) {
-      console.error("Patient lookup error:", err);
-      sessionStorage.setItem("expressPatient", JSON.stringify({
-        id: null, firstName: "", lastName: "", email: email,
-        phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "",
-      }));
-      try { localStorage.removeItem("medazon_express_answers"); } catch {}
-      window.location.href = "/express-checkout";
+      // Open overlay — it handles patient detection from step 0
+      onOpenOverlay?.(email, patient);
+    } catch {
+      onOpenOverlay?.(email, null);
+    } finally {
+      setSearching(false);
     }
   };
 
-  // CTA click — first click shows steps, second click navigates
+  // CTA click — opens overlay
   const handleCTAClick = (e: React.MouseEvent) => {
-    if (!showSteps) {
-      e.preventDefault();
-      onBookClick();
-      return;
-    }
-    // showSteps is true — navigate normally
-    try {
-      localStorage.removeItem("medazon_express_answers");
-      sessionStorage.setItem("browserInfo", JSON.stringify(getBrowserInfo()));
-      sessionStorage.setItem("expressPatient", JSON.stringify({
-        id: null, firstName: "", lastName: "", email: "", phone: "",
-        dateOfBirth: "", address: "", source: "new", pharmacy: "",
-      }));
-    } catch {}
+    e.preventDefault();
+    if (!showSteps) { onBookClick(); }
+    onOpenOverlay?.("", null);
   };
 
   return (
     <div className="flex flex-col items-center gap-5 w-full">
-      <Link
-        href="/express-checkout"
+      <button
         onClick={handleCTAClick}
         className="bg-orange-500 text-white font-bold px-6 py-4 rounded-xl hover:bg-orange-400 transition-all flex items-center gap-2 w-full justify-center text-center leading-tight"
         style={{ fontSize: 'clamp(15px, 4.2vw, 20px)', letterSpacing: '-0.01em' }}
       >
         {showSteps ? "Book Now — $1.89 Reserve Fee →" : "Book My 1st Visit — $1.89 Reserve Fee →"} <ArrowRight size={20} className="flex-shrink-0" />
-      </Link>
+      </button>
       <div className="w-full max-w-lg">
         <div className="text-center mb-3">
           <span className="text-sm font-bold text-orange-400 flex items-center justify-center gap-1.5">
@@ -330,6 +302,21 @@ export default function AssessmentPageContent() {
     setOverlayOpen(true);
   };
 
+  // Called from PairedCTABlock — email already looked up, open overlay with context
+  const handleOverlayOpen = (email: string, patient: object | null) => {
+    if (patient) {
+      try { sessionStorage.setItem("expressPatient", JSON.stringify(patient)); } catch {}
+    } else if (email) {
+      // New patient — store email only, overlay will detect as new
+      try { sessionStorage.setItem("expressPatient", JSON.stringify({
+        id: null, firstName: "", lastName: "", email,
+        phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "",
+      })); } catch {}
+    }
+    setOverlayVisitType("async");
+    setOverlayOpen(true);
+  };
+
   return (
     <main className="min-h-screen bg-[#040807] text-white font-sans selection:bg-teal-500/30">
       <StateGate />
@@ -363,9 +350,9 @@ export default function AssessmentPageContent() {
                 <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">How It Works</a>
                 <a href="#provider" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">About Your Provider</a>
                 <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-sm text-gray-300 hover:text-white py-1.5 transition-colors">FAQ</a>
-                <Link href="/express-checkout" onClick={() => { try { localStorage.removeItem("medazon_express_answers"); sessionStorage.setItem("expressPatient", JSON.stringify({ id: null, firstName: "", lastName: "", email: "", phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" })); } catch {} }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-1 w-full whitespace-nowrap">
+                <button onClick={() => { setMobileMenuOpen(false); setOverlayOpen(true); }} className="bg-orange-500 text-white font-bold px-5 py-3 rounded-xl text-sm hover:bg-orange-400 transition-all flex items-center justify-center gap-2 mt-1 w-full whitespace-nowrap">
                   Book My 1st Visit — $1.89 Reserve Fee <ArrowRight size={16} />
-                </Link>
+                </button>
               </div>
             </div>
           )}
@@ -645,7 +632,7 @@ export default function AssessmentPageContent() {
                    </div>
                  </div>
 
-                 <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
+                 <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} onOpenOverlay={handleOverlayOpen} />
               </div>
               </div>
               </div>
@@ -655,7 +642,7 @@ export default function AssessmentPageContent() {
 
           {/* CTA + Email + Return Patient */}
           <div className="mb-4">
-            <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} />
+            <PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} onOpenOverlay={handleOverlayOpen} />
           </div>
 
           {/* Trust bar */}
@@ -723,7 +710,7 @@ export default function AssessmentPageContent() {
               <p className="text-gray-400 text-sm">Your provider treats your case and sends your prescription to your pharmacy. You&apos;re only billed after your visit is complete or your treatment has been delivered.</p>
             </div>
           </div>
-          <div className="flex justify-center"><PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} /></div>
+          <div className="flex justify-center"><PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} onOpenOverlay={handleOverlayOpen} /></div>
         </div>
       </section>
 
@@ -861,7 +848,7 @@ export default function AssessmentPageContent() {
                <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
                  Private practice providers who put your privacy and discretion before everything else. Only charged if your provider accepts and treats your case.
                </p>
-               <div className="mb-8"><PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} /></div>
+               <div className="mb-8"><PairedCTABlock showSteps={showSteps} onBookClick={() => setShowSteps(true)} onOpenOverlay={handleOverlayOpen} /></div>
                <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
                   <span className="flex items-center gap-2"><Lock size={16} className="text-teal-400" /> HIPAA Compliant</span>
                   <span className="flex items-center gap-2"><Shield size={16} className="text-teal-400" /> 256-bit Encrypted</span>
