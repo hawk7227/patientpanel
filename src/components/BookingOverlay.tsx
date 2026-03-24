@@ -39,6 +39,7 @@ function getStepTitle(s:number, r:boolean): string {
   return "Pick Date & Time";
 }
 const TOTAL_STEPS = 3;
+const isValidEmail = (v:string) => v.includes("@") && v.includes(".");
 
 // ─── Calendar helpers ─────────────────────────────────────────
 const DAY_ABBR = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
@@ -531,8 +532,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                 {/* Email field + Confirm button inline */}
                 <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#6B7280",letterSpacing:".04em",textTransform:"uppercase"}}>
-                    Your Email <span style={{color:"#DC2626"}}>*</span>
+                  <div style={{fontSize:12,fontWeight:700,color:"#374151",letterSpacing:".01em"}}>
+                    📧 Confirm Your Email
                   </div>
                   <div style={{display:"flex",gap:8,alignItems:"center"}}>
                     <input
@@ -547,7 +548,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         setEmailConfirmed(false);
                         setWelcomeMsg("");
                       }}
-                      onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>) => { if(e.key==="Enter"){ e.preventDefault(); if(email.trim().includes("@")) handleEmailLookup(); } }}
+                      onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>) => { if(e.key==="Enter"){ e.preventDefault(); if(email.trim().includes("@") && email.trim().includes(".")) handleEmailLookup(); } }}
                       placeholder="your@email.com"
                       style={{
                         flex:1,
@@ -574,15 +575,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         flexShrink:0,
                         padding:"11px 16px",
                         borderRadius:10,
-                        border:"none",
-                        background: emailConfirmed ? "#16A34A" : emailLooking ? "#9CA3AF" : "#16A34A",
+                        border: emailConfirmed ? "2px solid #16A34A" : emailLooking ? "2px solid #9CA3AF" : isValidEmail(email) ? "2px solid #fff" : "2px solid rgba(255,255,255,0.3)",
+                        background: emailConfirmed ? "#16A34A" : emailLooking ? "#9CA3AF" : isValidEmail(email) ? "#f97316" : "rgba(249,115,22,0.3)",
                         color:"#fff",
                         fontSize:13,
                         fontWeight:700,
                         cursor: emailLooking || emailConfirmed ? "default" : "pointer",
                         whiteSpace:"nowrap",
                         display:"flex",alignItems:"center",gap:6,
-                        transition:"background .2s",
+                        transition:"all .2s",
+                        animation: isValidEmail(email) && !emailConfirmed && !emailLooking ? "ctaPulse 1.4s ease-in-out infinite" : "none",
                       }}
                     >
                       {emailLooking ? (
@@ -590,7 +592,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                       ) : emailConfirmed ? (
                         <>✓ Confirmed</>
                       ) : (
-                        <>Confirm Email →</>
+                        <>Click to Confirm</>
                       )}
                     </button>
                   </div>
@@ -602,13 +604,19 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <div style={{position:"relative"}}>
                   {!emailConfirmed && (
                     <div
-                      style={{position:"absolute",inset:0,zIndex:2,cursor:"not-allowed",borderRadius:10}}
+                      style={{position:"absolute",inset:0,zIndex:2,cursor:"not-allowed",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}
                       onClick={() => {
                         setSymPulseEmail(true);
                         setTimeout(() => setSymPulseEmail(false), 900);
                         emailRef.current?.focus();
                       }}
-                    />
+                    >
+                      {symPulseEmail && (
+                        <span style={{fontSize:12,fontWeight:700,color:"#f97316",background:"rgba(255,255,255,0.95)",padding:"4px 12px",borderRadius:20,boxShadow:"0 2px 8px rgba(0,0,0,0.1)",animation:"stepFade .2s ease",pointerEvents:"none"}}>
+                          📧 Confirm your email first
+                        </span>
+                      )}
+                    </div>
                   )}
                   <textarea
                     ref={symRef}
@@ -644,11 +652,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     )}
                   </>
                 )}
-                {!emailConfirmed && (
-                  <div style={{fontSize:12,color:"#6B7280",fontWeight:500,textAlign:"center",padding:"4px 0"}}>
-                    📧 Confirm your email above to unlock this field
-                  </div>
-                )}
+
                 {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
               </div>
             )}
