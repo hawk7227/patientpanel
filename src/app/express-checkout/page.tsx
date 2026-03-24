@@ -2771,9 +2771,17 @@ export default function ExpressCheckoutPage() {
                       <input type="text" inputMode="numeric" autoComplete="bday" autoCorrect="off" spellCheck={false}
                         name="bday" id="np-dob" ref={npDobRef} placeholder="DOB MM/DD/YYYY" defaultValue=""
                         aria-invalid={!!npErrors.dob}
-                        className={`rounded-lg px-3 text-[#1a1a1a] text-center focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
-                        style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
+                        className={`rounded-lg px-3 text-center focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1" : "py-2.5"}`}
+                        style={{ width: "100%", background: "#ffffff", border: npErrors.dob ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb", fontSize: "12px", color: "#7aab8a" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; e.target.style.boxShadow = "0 0 0 2px rgba(45,122,95,0.15)"; }}
+                        onInput={(e) => {
+                          const el = e.target as HTMLInputElement;
+                          const raw = el.value.replace(/\D/g,"");
+                          let formatted = raw;
+                          if (raw.length > 2) formatted = raw.slice(0,2) + "/" + raw.slice(2);
+                          if (raw.length > 4) formatted = raw.slice(0,2) + "/" + raw.slice(2,4) + "/" + raw.slice(4,8);
+                          el.value = formatted;
+                        }}
                         onBlur={(e) => {
                           const raw = e.target.value.replace(/\D/g,"").slice(0,8);
                           const mm = raw.slice(0,2); const dd = raw.slice(2,4); const yyyy = raw.slice(4,8);
