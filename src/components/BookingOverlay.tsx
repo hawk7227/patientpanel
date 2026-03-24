@@ -359,11 +359,6 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
         return;
       }
-      if(!selectedVisitType) {
-        setStep1ErrorMsg("Please select a visit type");
-        setPulseVisitType(true); setTimeout(()=>setPulseVisitType(false), 900);
-        return;
-      }
       setStep1ErrorMsg(""); setStep(2); return;
     }
     if(step===2) {
