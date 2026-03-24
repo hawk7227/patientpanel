@@ -350,7 +350,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     if(isReturning) {
       if(step===1) {
         if(!reason.trim()) {
-          setStep1ErrorMsg("Please describe your reason for visit");
+          setStep1ErrorMsg("⚠ Please describe your reason for this visit before continuing.");
           setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
           return;
         }
@@ -360,7 +360,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     }
     if(step===1) {
       if(symptoms.trim().length < 3) {
-        setStep1ErrorMsg("Please describe your symptoms (3+ characters)");
+        setStep1ErrorMsg("⚠ Please describe your symptoms — at least a few words so your provider understands your concern.");
         setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
         return;
       }
@@ -368,7 +368,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     }
     if(step===2) {
       if(!pharmacy) {
-        setStep2ErrorMsg("Please select a pharmacy");
+        setStep2ErrorMsg("⚠ Select a pharmacy so we know where to send your prescription.");
         setPulsePharmacy(true); setTimeout(()=>setPulsePharmacy(false), 900);
         return;
       }
@@ -376,17 +376,17 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     }
     // Cal step — pulse missing items instead of silently blocking
     if(!calDay && !calTime) {
-      setCalMissingMsg("Please select a date and time");
+      setCalMissingMsg("⚠ Pick a date and time slot to book your visit.");
       setCalPulseDay(true); setTimeout(()=>setCalPulseDay(false), 900);
       return;
     }
     if(!calDay) {
-      setCalMissingMsg("Please select a date first");
+      setCalMissingMsg("⚠ Select a date above first, then choose a time.");
       setCalPulseDay(true); setTimeout(()=>setCalPulseDay(false), 900);
       return;
     }
     if(!calTime) {
-      setCalMissingMsg("Please select a time slot");
+      setCalMissingMsg("⚠ Choose a time slot to complete your booking.");
       setCalPulseTime(true); setTimeout(()=>setCalPulseTime(false), 900);
       return;
     }
@@ -529,16 +529,17 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                {/* Email field — required before symptoms */}
-                <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#6B7280",letterSpacing:".04em",textTransform:"uppercase"}}>Email</div>
-                  <div style={{position:"relative"}}>
+                {/* Email field + Confirm button inline */}
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#6B7280",letterSpacing:".04em",textTransform:"uppercase"}}>
+                    Your Email <span style={{color:"#DC2626"}}>*</span>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
                     <input
                       ref={emailRef}
                       type="email"
                       inputMode="email"
                       autoComplete="email"
-                      autoFocus
                       value={email}
                       onChange={(e:React.ChangeEvent<HTMLInputElement>) => {
                         setEmail(e.target.value);
@@ -546,26 +547,54 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         setEmailConfirmed(false);
                         setWelcomeMsg("");
                       }}
-                      onBlur={() => { if(email.trim().includes("@") && email.trim().includes(".")) handleEmailLookup(); }}
                       onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>) => { if(e.key==="Enter"){ e.preventDefault(); if(email.trim().includes("@")) handleEmailLookup(); } }}
                       placeholder="your@email.com"
                       style={{
-                        width:"100%",
-                        background: emailConfirmed ? "#F0FDF4" : (isMobile ? "#F0FDF4" : "transparent"),
-                        border: emailError ? "2px solid #DC2626" : emailConfirmed ? "2px solid #16A34A" : email.includes("@") ? "1.5px solid #BBF7D0" : "1.5px solid #BBF7D0",
+                        flex:1,
+                        background: emailConfirmed ? "#F0FDF4" : (isMobile ? "#F0FDF4" : "#fff"),
+                        border: emailError ? "2px solid #DC2626" : emailConfirmed ? "2px solid #16A34A" : "1.5px solid #D1D5DB",
                         borderRadius:10, padding:"11px 12px", color:"#111827", fontSize:14,
                         outline:"none", fontFamily:"system-ui",
+                        minWidth:0,
                       }}
                       className="booking-textarea"
                     />
-                    {emailLooking && (
-                      <div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",display:"flex",alignItems:"center",gap:4}}>
-                        <div style={{width:12,height:12,border:"2px solid rgba(22,163,74,.3)",borderTop:"2px solid #16A34A",borderRadius:"50%",animation:"spin 1s linear infinite"}} />
-                        <span style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Checking...</span>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => {
+                        const em = email.trim();
+                        if(!em.includes("@") || !em.includes(".")) {
+                          setEmailError("Enter a valid email first");
+                          emailRef.current?.focus();
+                          return;
+                        }
+                        handleEmailLookup();
+                      }}
+                      disabled={emailLooking || emailConfirmed}
+                      style={{
+                        flexShrink:0,
+                        padding:"11px 16px",
+                        borderRadius:10,
+                        border:"none",
+                        background: emailConfirmed ? "#16A34A" : emailLooking ? "#9CA3AF" : "#16A34A",
+                        color:"#fff",
+                        fontSize:13,
+                        fontWeight:700,
+                        cursor: emailLooking || emailConfirmed ? "default" : "pointer",
+                        whiteSpace:"nowrap",
+                        display:"flex",alignItems:"center",gap:6,
+                        transition:"background .2s",
+                      }}
+                    >
+                      {emailLooking ? (
+                        <><div style={{width:12,height:12,border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid #fff",borderRadius:"50%",animation:"spin 1s linear infinite"}} /> Checking</>
+                      ) : emailConfirmed ? (
+                        <>✓ Confirmed</>
+                      ) : (
+                        <>Confirm Email →</>
+                      )}
+                    </button>
                   </div>
-                  {emailError && <p style={{fontSize:11,color:"#DC2626",fontWeight:600,margin:0}}>{emailError}</p>}
+                  {emailError && <p style={{fontSize:11,color:"#DC2626",fontWeight:600,margin:0}}>⚠ {emailError}</p>}
                   {welcomeMsg && <p style={{fontSize:12,color:"#16A34A",fontWeight:700,margin:0,animation:"stepFade .3s ease"}}>{welcomeMsg}</p>}
                 </div>
 
@@ -616,8 +645,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   </>
                 )}
                 {!emailConfirmed && (
-                  <div style={{fontSize:11,color:"#9CA3AF",fontWeight:500,textAlign:"center"}}>
-                    Enter your email above to continue
+                  <div style={{fontSize:12,color:"#6B7280",fontWeight:500,textAlign:"center",padding:"4px 0"}}>
+                    📧 Confirm your email above to unlock this field
                   </div>
                 )}
                 {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
