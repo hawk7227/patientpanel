@@ -326,15 +326,6 @@ export default function AssessmentPageContent() {
       video:"video", phone:"phone", instant:"instant",
     };
     const vt = typeMap[condition] || "async";
-    // Set patient as new if no session exists yet
-    try {
-      if (!sessionStorage.getItem("expressPatient")) {
-        sessionStorage.setItem("expressPatient", JSON.stringify({
-          id:null,firstName:"",lastName:"",email:"",phone:"",
-          dateOfBirth:"",address:"",source:"new",pharmacy:"",
-        }));
-      }
-    } catch {}
     setOverlayVisitType(vt);
     setOverlayOpen(true);
   };
