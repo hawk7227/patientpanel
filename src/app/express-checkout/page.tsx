@@ -1264,6 +1264,46 @@ export default function ExpressCheckoutPage() {
   const npAddressRef   = useRef<HTMLInputElement>(null);
   const npDobRef       = useRef<HTMLInputElement>(null);
 
+  // ── Autofill event listeners: animationstart (iOS Safari) + autocomplete (Chrome) ──
+  // React onChange/onInput miss browser AutoFill Contact — these events catch it.
+  useEffect(() => {
+    const fields: [React.RefObject<HTMLInputElement | null>, (v:string)=>void][] = [
+      [npFirstNameRef, setNpFirstName],
+      [npLastNameRef,  setNpLastName],
+      [npEmailRef,     setNpEmail],
+      [npPhoneRef,     setNpPhone],
+      [npAddressRef,   setNpAddress],
+    ];
+    const handlers: [HTMLInputElement, EventListener][] = [];
+    fields.forEach(([ref, setter]) => {
+      const el = ref.current;
+      if (!el) return;
+      const handler: EventListener = () => { setter(el.value); };
+      el.addEventListener("autocomplete", handler);
+      el.addEventListener("animationstart", handler);
+      handlers.push([el, handler]);
+    });
+    const dobEl = npDobRef.current;
+    if (dobEl) {
+      const dobHandler: EventListener = () => {
+        const raw = dobEl.value.replace(/\D/g,"").slice(0,8);
+        setNpDobMonth(raw.slice(0,2));
+        setNpDobDay(raw.slice(2,4));
+        setNpDobYear(raw.slice(4,8));
+      };
+      dobEl.addEventListener("autocomplete", dobHandler);
+      dobEl.addEventListener("animationstart", dobHandler);
+      handlers.push([dobEl, dobHandler]);
+    }
+    return () => {
+      handlers.forEach(([el, handler]) => {
+        el.removeEventListener("autocomplete", handler);
+        el.removeEventListener("animationstart", handler);
+      });
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   // Validate np fields — returns true if all valid, false + sets errors if not
   // Safe to call at any time — only marks fields that are actually empty/invalid
@@ -2609,6 +2649,15 @@ export default function ExpressCheckoutPage() {
           ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !isReturningPatient ? (
             /* ── NEW PATIENT: compacted header + fields + payment ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
+              {/* Hidden honeypot form — browser scans on page load, offers AutoFill Contact */}
+              <form autoComplete="on" onSubmit={e=>e.preventDefault()} aria-hidden="true" style={{display:"none"}}>
+                <input autoComplete="given-name"     name="given-name"     tabIndex={-1} readOnly value={npFirstName} onInput={e=>setNpFirstName((e.target as HTMLInputElement).value)} onChange={e=>setNpFirstName(e.target.value)} />
+                <input autoComplete="family-name"    name="family-name"    tabIndex={-1} readOnly value={npLastName}  onInput={e=>setNpLastName((e.target as HTMLInputElement).value)}  onChange={e=>setNpLastName(e.target.value)} />
+                <input autoComplete="email"          name="email"          tabIndex={-1} readOnly value={npEmail}     onInput={e=>setNpEmail((e.target as HTMLInputElement).value)}     onChange={e=>setNpEmail(e.target.value)} />
+                <input autoComplete="tel"            name="tel"            tabIndex={-1} readOnly value={npPhone}     onInput={e=>setNpPhone((e.target as HTMLInputElement).value)}     onChange={e=>setNpPhone(e.target.value)} />
+                <input autoComplete="street-address" name="street-address" tabIndex={-1} readOnly value={npAddress}   onInput={e=>setNpAddress((e.target as HTMLInputElement).value)}   onChange={e=>setNpAddress(e.target.value)} />
+                <input autoComplete="bday"           name="bday"           tabIndex={-1} readOnly />
+              </form>
               <div className="rounded-xl p-4 space-y-3 transition-all mt-3" style={{ background: "#f7f4f4", border: "1px solid #d8d3d1", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                 {/* ── NEW PATIENT INFO FIELDS ── */}
                 <form autoComplete="on" onSubmit={e => e.preventDefault()} className={`space-y-1 rounded-lg transition-all ${npFormPulse ? "ring-2 ring-[#2d6b4f] animate-pulse" : ""}`} style={{ padding: npFormPulse ? "6px" : "0" }}>
@@ -2622,6 +2671,7 @@ export default function ExpressCheckoutPage() {
                         className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.firstName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onInput={(e) => setNpFirstName((e.target as HTMLInputElement).value.trim())}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpFirstName(v); if(v) setNpErrors(p=>({...p,firstName:""})); e.target.style.border = npErrors.firstName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                       />
                     </div>
@@ -2633,6 +2683,7 @@ export default function ExpressCheckoutPage() {
                         className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.lastName ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onInput={(e) => setNpLastName((e.target as HTMLInputElement).value.trim())}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpLastName(v); if(v) setNpErrors(p=>({...p,lastName:""})); e.target.style.border = npErrors.lastName && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                       />
                     </div>
@@ -2646,17 +2697,19 @@ export default function ExpressCheckoutPage() {
                         className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.email ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onInput={(e) => setNpEmail((e.target as HTMLInputElement).value.trim())}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpEmail(v); if(v.includes("@")) setNpErrors(p=>({...p,email:""})); e.target.style.border = npErrors.email && !v.includes("@") ? "1.5px solid #2d6b4f" : v.includes("@") ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                       />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       {npErrors.phone && <span className="text-[10px] font-semibold text-[#2d6b4f] px-0.5">{npErrors.phone}</span>}
                       <input type="tel" inputMode="tel" autoComplete="tel" autoCorrect="off" spellCheck={false}
-                        id="np-phone" name="phone" ref={npPhoneRef} placeholder="Phone" defaultValue=""
+                        id="np-phone" name="tel" ref={npPhoneRef} placeholder="Phone" defaultValue=""
                         aria-invalid={!!npErrors.phone}
                         className={`flex-1 min-w-0 rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ background: "#ffffff", border: npErrors.phone ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onInput={(e) => setNpPhone((e.target as HTMLInputElement).value.replace(/\D/g,""))}
                         onBlur={(e) => { const v=e.target.value.replace(/\D/g,""); setNpPhone(v); if(v.length>=10) setNpErrors(p=>({...p,phone:""})); e.target.style.border = npErrors.phone && v.length<10 ? "1.5px solid #2d6b4f" : v.length>=10 ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                       />
                     </div>
@@ -2671,6 +2724,7 @@ export default function ExpressCheckoutPage() {
                         className={`rounded-lg px-3 text-[#1a1a1a] focus:outline-none placeholder:text-[#3f8464] ${cardFormExpanded ? "py-1 text-[13px]" : "py-2.5 text-[16px]"}`}
                         style={{ flex: 3, minWidth: 0, background: "#ffffff", border: npErrors.address ? "1.5px solid #2d6b4f" : "1.5px solid #c8d8cb" }}
                         onFocus={(e) => { e.target.style.border = "1.5px solid #2d7a5f"; }}
+                        onInput={(e) => setNpAddress((e.target as HTMLInputElement).value.trim())}
                         onBlur={(e) => { const v=e.target.value.trim(); setNpAddress(v); if(v) setNpErrors(p=>({...p,address:""})); e.target.style.border = npErrors.address && !v ? "1.5px solid #2d6b4f" : v ? "1.5px solid rgba(45,122,95,0.5)" : "1.5px solid #c8d8cb"; }}
                       />
                     </div>
