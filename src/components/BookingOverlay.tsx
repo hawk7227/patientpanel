@@ -173,10 +173,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       const s = sessionStorage.getItem("expressPatient");
       if (s) {
         const p = JSON.parse(s);
-        setPatient(p);
-        if (p.email) setEmail(p.email);
-        // Skip email step if patient already identified
-        setStep(1);
+        // Only skip email step if patient has a confirmed Supabase ID
+        // or came from landing page email lookup with a real email this session
+        if (p?.id || (p?.email && p?.source && p.source !== "new")) {
+          setPatient(p);
+          if (p.email) setEmail(p.email);
+          setStep(1);
+        } else {
+          // Stale or partial — clear it and show email step
+          sessionStorage.removeItem("expressPatient");
+        }
       }
     } catch {}
   }, []);
