@@ -1400,6 +1400,9 @@ export default function ExpressCheckoutPage() {
   const needsCalendar = VISIT_TYPES.find(v => v.key === visitType)?.needsCalendar ?? false;
   const isAsync = visitType === "async";
   const isReturningPatient = !!patient?.id;
+  // Known patient: has pre-filled data from local JSON index or Supabase lookup
+  // These patients don't need to fill in identity fields on payment page
+  const isKnownPatient = !!(patient?.firstName && patient?.email);
 
   // ── Arizona time helpers for instant visit after-hours cutoff ──
   const getArizonaHour = (): number => {
@@ -1831,7 +1834,7 @@ export default function ExpressCheckoutPage() {
   const activeGuideStep = useMemo((): number => {
     if (!reason) return 1;
     if (!symptomsDone) return 2;
-    if (!isReturningPatient && !healthScreenDone) return 2.5;
+    if (!isReturningPatient && !isKnownPatient && !healthScreenDone) return 2.5;
     if (!pharmacy) return 3;
     if (!visitTypeChosen) return 4;
     if (!visitTypeConfirmed) return 4.5;
@@ -1841,7 +1844,7 @@ export default function ExpressCheckoutPage() {
     if (!isReturningPatient && !phoneConfirmed) return 4.75;
     // Returning patient: skip straight to pay (summary+wallets at 4.5)
     return 6;
-  }, [reason, symptomsDone, healthScreenDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient]);
+  }, [reason, symptomsDone, healthScreenDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient, isKnownPatient]);
 
   const totalSteps = 5;
 
@@ -1907,7 +1910,7 @@ export default function ExpressCheckoutPage() {
     }
     if (step === 3) {
       // Back from pharmacy → health screen (new patient) or symptoms (returning)
-      if (!isReturningPatient) {
+      if (!isReturningPatient && !isKnownPatient) {
         setHealthScreenDone(false);
         saveAnswers({ healthScreenDone: false });
       } else {
@@ -2492,7 +2495,7 @@ export default function ExpressCheckoutPage() {
           ) : null}
 
           {/* STEP 2.5: Quick Health Screen — new patients only, between symptoms and pharmacy */}
-          {reason && symptomsDone && !isReturningPatient && !healthScreenDone ? (
+          {reason && symptomsDone && !isReturningPatient && !isKnownPatient && !healthScreenDone ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="rounded-xl p-4 space-y-4 transition-all mt-3" style={{ background: "#f7f4f4", border: "1px solid #d8d3d1", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                 <div>
@@ -2593,7 +2596,7 @@ export default function ExpressCheckoutPage() {
           ) : null}
 
           {/* STEP 3: Preferred Pharmacy — inline, no modal */}
-          {reason && symptomsDone && (isReturningPatient || healthScreenDone) && !pharmacy ? (
+          {reason && symptomsDone && (isReturningPatient || isKnownPatient || healthScreenDone) && !pharmacy ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className={`rounded-xl bg-transparent p-4 space-y-2 transition-all mt-3 relative z-10 ${activeOrangeBorder}`}>
                 <PharmacySelector
@@ -2763,7 +2766,7 @@ export default function ExpressCheckoutPage() {
           {/* ═══ STEP 4.5 — PAYMENT PAGE (both patient types) ═══ */}
 
           {/* RETURNING PATIENT: compacted header + payment only */}
-          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && isReturningPatient ? (
+          {reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && (isReturningPatient || isKnownPatient) ? (
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               <div className="rounded-xl p-4 space-y-3 transition-all mt-3" style={{ background: "#f7f4f4", border: "1px solid #d8d3d1", borderRadius: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
                 {/* Payment */}
@@ -2787,7 +2790,7 @@ export default function ExpressCheckoutPage() {
                 )}
               </div>
             </div>
-          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !isReturningPatient ? (
+          ) : reason && symptomsDone && pharmacy && visitTypeChosen && visitTypeConfirmed && !isReturningPatient && !isKnownPatient ? (
             /* ── NEW PATIENT: compacted header + fields + payment ── */
             <div style={{ animation: "fadeInStep 1.2s cubic-bezier(0.22, 1, 0.36, 1) both" }}>
               {/* Hidden honeypot form — browser scans on page load, offers AutoFill Contact */}
