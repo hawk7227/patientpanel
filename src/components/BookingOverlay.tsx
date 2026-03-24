@@ -128,6 +128,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [calPulseDay, setCalPulseDay]   = useState(false);
   const [calPulseTime, setCalPulseTime] = useState(false);
   const [calMissingMsg, setCalMissingMsg] = useState("");
+  const [pulseSymptoms, setPulseSymptoms]     = useState(false);
+  const [pulseVisitType, setPulseVisitType]   = useState(false);
+  const [pulsePharmacy, setPulsePharmacy]     = useState(false);
+  const [step1ErrorMsg, setStep1ErrorMsg]     = useState("");
+  const [step2ErrorMsg, setStep2ErrorMsg]     = useState("");
   const [apiSlots, setApiSlots]   = useState<string[]>([]);
   const [apiLoading, setApiLoading] = useState(false);
   const [nextDaySlots, setNextDaySlots]   = useState<string[]>([]);
@@ -277,11 +282,37 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   };
   const goContinue = () => {
     if(isReturning) {
-      if(step===1) { if(!reason.trim()) return; setStep(2); return; }
+      if(step===1) {
+        if(!reason.trim()) {
+          setStep1ErrorMsg("Please describe your reason for visit");
+          setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
+          return;
+        }
+        setStep1ErrorMsg(""); setStep(2); return;
+      }
       navigateToCheckout(); return;
     }
-    if(step===1) { if(symptoms.trim().length<3 || !selectedVisitType) return; setStep(2); return; }
-    if(step===2) { if(!pharmacy) return; setStep(3); return; }
+    if(step===1) {
+      if(symptoms.trim().length < 3) {
+        setStep1ErrorMsg("Please describe your symptoms (3+ characters)");
+        setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
+        return;
+      }
+      if(!selectedVisitType) {
+        setStep1ErrorMsg("Please select a visit type");
+        setPulseVisitType(true); setTimeout(()=>setPulseVisitType(false), 900);
+        return;
+      }
+      setStep1ErrorMsg(""); setStep(2); return;
+    }
+    if(step===2) {
+      if(!pharmacy) {
+        setStep2ErrorMsg("Please select a pharmacy");
+        setPulsePharmacy(true); setTimeout(()=>setPulsePharmacy(false), 900);
+        return;
+      }
+      setStep2ErrorMsg(""); setStep(3); return;
+    }
     // Cal step — pulse missing items instead of silently blocking
     if(!calDay && !calTime) {
       setCalMissingMsg("Please select a date and time");
@@ -429,13 +460,14 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <textarea
                   ref={symRef}
                   value={symptoms}
-                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setSymptoms(e.target.value)}
+                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
                   placeholder="e.g., Burning during urination for 3 days..." className="booking-textarea"
                   style={{
                     width:"100%",height:120,background:isMobile?"#F0FDF4":"transparent",
                     border:symptoms.trim().length>=3?"2px solid #16A34A":"1.5px solid #BBF7D0",
                     borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
-                    resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
+                    resize:"none",outline:pulseSymptoms?"2px solid rgba(249,115,22,.6)":"none",fontFamily:"system-ui",lineHeight:1.5,
+                    animation:pulseSymptoms?"calPulse .6s ease":"none",
                   }}
                 />
                 <div style={{fontSize:12,color:"#16A34A",fontWeight:500}}>Describe why you&apos;re booking today</div>
@@ -445,7 +477,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     <b style={{color:"#16A34A",fontSize:14}}>{Math.max(0,3-symptoms.trim().length)}</b> more characters needed
                   </div>
                 ) : (
-                  <div style={{display:"flex",flexDirection:"column",gap:6,animation:"stepFade .15s ease"}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:6,
+                    outline:pulseVisitType?"2px solid rgba(249,115,22,.6)":"none",
+                    borderRadius:8,
+                    animation:pulseVisitType?"calPulse .6s ease":"stepFade .15s ease",
+                  }}>
                     <div style={{fontSize:12,fontWeight:600,color:"#374151"}}>Select visit type</div>
                     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
                       {(["async","sms","refill","video","phone","instant"] as const).map((vt) => {
@@ -482,6 +518,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     </div>
                   </div>
                 )}
+              {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
               </div>
             )}
 
@@ -490,19 +527,21 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
                 <textarea
                   value={reason}
-                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>setReason(e.target.value)}
+                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setReason(e.target.value);setStep1ErrorMsg("");}}
                   placeholder="e.g., Follow up for UTI, need prescription refill..." className="booking-textarea"
                   autoFocus
                   style={{
                     width:"100%",height:120,background:isMobile?"#F0FDF4":"transparent",
                     border:reason.trim().length>0?"2px solid #16A34A":"1.5px solid #BBF7D0",
                     borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
-                    resize:"none",outline:"none",fontFamily:"system-ui",lineHeight:1.5,
+                    resize:"none",outline:pulseSymptoms?"2px solid rgba(249,115,22,.6)":"none",fontFamily:"system-ui",lineHeight:1.5,
+                    animation:pulseSymptoms?"calPulse .6s ease":"none",
                   }}
                 />
                 <div style={{fontSize:12,color:reason.trim()?"#16A34A":"#9CA3AF",fontWeight:reason.trim()?700:400}}>
                   {reason.trim() ? "✓ Ready to continue" : "Describe why you're booking today"}
                 </div>
+                {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
               </div>
             )}
 
@@ -518,14 +557,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{
                     const v = e.target.value;
                     setPharmaQuery(v); setPharmacy(""); setPharmacyAddress(""); setShowDrop(true);
-                    searchPharmas(v);
+                    setStep2ErrorMsg(""); searchPharmas(v);
                   }}
                   onFocus={()=>setShowDrop(true)}
                   style={{
                     width:"100%",background:"#F9FAFB",
-                    border:pharmacy?"2px solid #16A34A":"1.5px solid #D1D5DB",
+                    border:pharmacy?"2px solid #16A34A":pulsePharmacy?"2px solid rgba(249,115,22,.8)":"1.5px solid #D1D5DB",
                     borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
-                    outline:"none",fontFamily:"system-ui",
+                    outline:pulsePharmacy?"2px solid rgba(249,115,22,.6)":"none",fontFamily:"system-ui",
+                    animation:pulsePharmacy?"calPulse .6s ease":"none",
                   }}
                 />
                 {/* Dropdown — inline flow, pushes content below down */}
@@ -534,7 +574,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     background:isCalStep?"#0d1117":"#FFFFFF",
                     border:"1px solid #E5E7EB",
                     borderRadius:10,overflow:"hidden",
-                    maxHeight:220,
+                    maxHeight:180,
                     overflowY:"auto",
                     boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
                   }}>
@@ -862,13 +902,17 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               border:"none",
               color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
             }}>← Back</button>
-            <button onClick={goContinue} disabled={!isCalStep && contDisabled} style={{
+            <button onClick={goContinue} style={{
               flex:2,height:48,borderRadius:12,
-              border:isCalStep?(calDay&&calTime?"2.5px solid #16A34A":"2.5px solid rgba(255,255,255,0.5)"):(!isCalStep&&contDisabled?"1.5px solid #16A34A":"none"),
-              background:(!isCalStep&&contDisabled)?"#F3F4F6":isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
-              color:(!isCalStep&&contDisabled)?"#16A34A":"#fff",
+              border:isCalStep
+                ? (calDay&&calTime?"2.5px solid #16A34A":"2.5px solid rgba(255,255,255,0.5)")
+                : contDisabled
+                  ? "2.5px solid rgba(255,255,255,0.6)"
+                  : "2.5px solid #16A34A",
+              background:isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
+              color:"#fff",
               fontSize:14,fontWeight:900,
-              cursor:(!isCalStep&&contDisabled)?"default":"pointer",
+              cursor:"pointer",
               boxShadow:isCalStep?(calDay&&calTime?"0 4px 16px rgba(22,163,74,0.4)":"0 4px 16px rgba(249,115,22,0.3)"):(contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)"),
               transition:"all .25s",
             }}>
