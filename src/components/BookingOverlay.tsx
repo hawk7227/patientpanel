@@ -96,7 +96,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [isMobile, setIsMobile] = useState(false);
 
   // Step state — step 0 = email, step 1+ = intake
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [patient, setPatient] = useState<PatientInfo|null>(null);
   const isReturning = !!patient?.id;
 
@@ -104,6 +104,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [email, setEmail] =  useState("");
   const [emailLooking, setEmailLooking] = useState(false);
   const [emailError, setEmailError] =  useState("");
+  const [emailConfirmed, setEmailConfirmed] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
   // Returning: only 2 steps (reason + calendar)
@@ -173,24 +174,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       const s = sessionStorage.getItem("expressPatient");
       if (s) {
         const p = JSON.parse(s);
-        // Only skip email step if patient has confirmed Supabase ID
-        // OR has a real email from a lookup this session (not source:"new")
         if (p?.id || (p?.email && p?.source && p.source !== "new")) {
           setPatient(p);
-          if (p.email) setEmail(p.email);
-          setStep(1);
+          if (p.email) { setEmail(p.email); setEmailConfirmed(true); }
         } else {
-          // No valid patient — clear and show email step
           sessionStorage.removeItem("expressPatient");
-          setStep(0);
         }
-      } else {
-        // Nothing in storage — show email step
-        setStep(0);
       }
     } catch {
       sessionStorage.removeItem("expressPatient");
-      setStep(0);
     }
   }, []);
   useEffect(() => {
@@ -303,16 +295,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     return () => vv.removeEventListener("resize", check);
   }, [showDrop]);
 
-  // ── Email lookup ──
-  const handleEmailContinue = async () => {
+  // ── Email lookup — fires on blur or when user confirms email ──
+  const [welcomeMsg, setWelcomeMsg] = useState("");
+  const [symPulseEmail, setSymPulseEmail] = useState(false);
+
+  const handleEmailLookup = async () => {
     const em = email.trim().toLowerCase();
-    if (!em.includes("@") || !em.includes(".")) {
-      setEmailError("Please enter a valid email address");
-      emailRef.current?.focus();
-      return;
-    }
+    if (!em.includes("@") || !em.includes(".")) return;
     setEmailLooking(true);
     setEmailError("");
+    setWelcomeMsg("");
     try {
       const res = await fetch("/api/express-lookup", {
         method: "POST",
@@ -324,31 +316,32 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         const p = { ...data.patient, source: data.source || "local" };
         setPatient(p);
         try { sessionStorage.setItem("expressPatient", JSON.stringify(p)); } catch {}
+        const firstName = data.patient.firstName || "";
+        setWelcomeMsg(firstName ? `Welcome back, ${firstName}! 👋` : "Welcome back! 👋");
       } else {
-        // New patient — store email only, no record created
         const p = { id: null, firstName: "", lastName: "", email: em, phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" };
         setPatient(p);
         try { sessionStorage.setItem("expressPatient", JSON.stringify(p)); } catch {}
       }
     } catch {
-      // On error, treat as new patient and continue
       const p = { id: null, firstName: "", lastName: "", email: em, phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" };
       setPatient(p);
       try { sessionStorage.setItem("expressPatient", JSON.stringify(p)); } catch {}
     } finally {
       setEmailLooking(false);
-      setStep(1);
+      setEmailConfirmed(true);
     }
   };
 
+  // Legacy — keep for goBack compat
+  const handleEmailContinue = handleEmailLookup;
+
   // ── Nav ──
   const goBack = () => {
-    if(step===0) { onClose(); return; }
-    if(step===1) { setStep(0); return; }
+    if(step===1) { onClose(); return; }
     setStep((s:number)=>s-1);
   };
   const goContinue = () => {
-    if(step===0) { handleEmailContinue(); return; }
     if(isReturning) {
       if(step===1) {
         if(!reason.trim()) {
@@ -417,11 +410,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
     window.location.href = "/express-checkout";
   };
 
-  const progressPct = step === 0 ? 0 : Math.round((step / totalSteps) * 100);
+  const progressPct = Math.round((step / totalSteps) * 100);
   const fieldBorder = (valid:boolean) => `2px solid ${valid ? "rgba(45,212,160,.55)" : col.border}`;
   const contDisabled =
-    (step===0 && (!email.trim().includes("@"))) ||
-    (step===1 && !isReturning && symptoms.trim().length < 3) ||
+    (step===1 && !isReturning && (!emailConfirmed || symptoms.trim().length < 3)) ||
     (step===1 && isReturning  && !reason.trim()) ||
     (step===2 && !isReturning && !pharmacy) ||
     (isCalStep && false); // cal step uses pulse validation, not disabled state
@@ -501,7 +493,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 <div style={{fontSize:"clamp(17px,4.5vw,21px)",fontWeight:900,color:isCalStep?"#FFFFFF":"#111827",lineHeight:1.1}}
                      key={step}>
-                  {step===0 ? "Welcome" : getStepTitle(step, isReturning)}
+                  {getStepTitle(step, isReturning)}
                 </div>
                 {isCalStep && calDay && calTime && (
                   <div style={{fontSize:11,fontWeight:700,color:"#2dd4a0",background:"rgba(45,212,160,0.12)",border:"1px solid rgba(45,212,160,0.3)",borderRadius:6,padding:"2px 8px",whiteSpace:"nowrap"}}>
@@ -510,9 +502,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 )}
               </div>
               <div style={{fontSize:11,color:isCalStep?"rgba(255,255,255,.5)":"#16A34A",marginTop:3,fontWeight:600}}>
-                {step===0
-                  ? "Let's get you started"
-                  : `${VISIT_LABELS[selectedVisitType || visitType]} · Step ${step} of ${totalSteps}`}
+                {`${VISIT_LABELS[selectedVisitType || visitType]} · Step ${step} of ${totalSteps}`}
               </div>
             </div>
             <button onClick={onClose} style={{
@@ -531,56 +521,102 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           {/* Step content */}
           <div style={{padding:"12px 16px 0"}} key={`step-${step}`}>
 
-            {/* S0 — Email */}
-            {step===0 && (
-              <div style={{display:"flex",flexDirection:"column",gap:10,animation:"stepFade .2s ease"}}>
-                <p style={{fontSize:13,color:"#6B7280",marginBottom:2}}>Enter your email to check if you&apos;re a returning patient or to get started.</p>
-                <input
-                  ref={emailRef}
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoFocus
-                  value={email}
-                  onChange={(e:React.ChangeEvent<HTMLInputElement>) => { setEmail(e.target.value); setEmailError(""); }}
-                  onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>) => { if(e.key==="Enter") goContinue(); }}
-                  placeholder="your@email.com"
-                  style={{
-                    width:"100%", background:"#F0FDF4",
-                    border: emailError ? "2px solid #DC2626" : email.includes("@") ? "2px solid #16A34A" : "1.5px solid #BBF7D0",
-                    borderRadius:10, padding:"12px 14px", color:"#111827", fontSize:16,
-                    outline:"none", fontFamily:"system-ui",
-                  }}
-                  className="booking-textarea"
-                />
-                {emailError && <p style={{fontSize:12,color:"#DC2626",fontWeight:600,margin:0}}>{emailError}</p>}
-                {emailLooking && <p style={{fontSize:12,color:"#16A34A",fontWeight:600,margin:0}}>Checking...</p>}
-              </div>
-            )}
-
-            {/* S1 NEW — Symptoms */}
+            {/* S1 NEW — Email + Symptoms */}
             {step===1 && !isReturning && (
               <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
-                <textarea
-                  ref={symRef}
-                  value={symptoms}
-                  onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
-                  placeholder="e.g., Burning during urination for 3 days..." className="booking-textarea"
-                  style={{
-                    width:"100%",height:120,background:isMobile?"#F0FDF4":"transparent",
-                    border:symptoms.trim().length>=3?"2px solid #16A34A":"1.5px solid #BBF7D0",
-                    borderRadius:10,padding:"11px 12px",color:"#111827",fontSize:14,
-                    resize:"none",outline:pulseSymptoms?"2px solid rgba(249,115,22,.6)":"none",fontFamily:"system-ui",lineHeight:1.5,
-                    animation:pulseSymptoms?"calPulse .6s ease":"none",
-                  }}
-                />
-                <div style={{fontSize:12,color:"#16A34A",fontWeight:500}}>Describe why you&apos;re booking today</div>
-                {symptoms.trim().length < 3 && (
-                  <div style={{fontSize:12,color:"#6B7280"}}>
-                    <b style={{color:"#16A34A",fontSize:14}}>{Math.max(0,3-symptoms.trim().length)}</b> more characters needed
+
+                {/* Email field — required before symptoms */}
+                <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#6B7280",letterSpacing:".04em",textTransform:"uppercase"}}>Email</div>
+                  <div style={{position:"relative"}}>
+                    <input
+                      ref={emailRef}
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      autoFocus
+                      value={email}
+                      onChange={(e:React.ChangeEvent<HTMLInputElement>) => {
+                        setEmail(e.target.value);
+                        setEmailError("");
+                        setEmailConfirmed(false);
+                        setWelcomeMsg("");
+                      }}
+                      onBlur={() => { if(email.trim().includes("@") && email.trim().includes(".")) handleEmailLookup(); }}
+                      onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>) => { if(e.key==="Enter"){ e.preventDefault(); if(email.trim().includes("@")) handleEmailLookup(); } }}
+                      placeholder="your@email.com"
+                      style={{
+                        width:"100%",
+                        background: emailConfirmed ? "#F0FDF4" : (isMobile ? "#F0FDF4" : "transparent"),
+                        border: emailError ? "2px solid #DC2626" : emailConfirmed ? "2px solid #16A34A" : email.includes("@") ? "1.5px solid #BBF7D0" : "1.5px solid #BBF7D0",
+                        borderRadius:10, padding:"11px 12px", color:"#111827", fontSize:14,
+                        outline:"none", fontFamily:"system-ui",
+                      }}
+                      className="booking-textarea"
+                    />
+                    {emailLooking && (
+                      <div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:12,height:12,border:"2px solid rgba(22,163,74,.3)",borderTop:"2px solid #16A34A",borderRadius:"50%",animation:"spin 1s linear infinite"}} />
+                        <span style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Checking...</span>
+                      </div>
+                    )}
+                  </div>
+                  {emailError && <p style={{fontSize:11,color:"#DC2626",fontWeight:600,margin:0}}>{emailError}</p>}
+                  {welcomeMsg && <p style={{fontSize:12,color:"#16A34A",fontWeight:700,margin:0,animation:"stepFade .3s ease"}}>{welcomeMsg}</p>}
+                </div>
+
+                {/* Symptoms textarea — locked until email confirmed */}
+                <div style={{position:"relative"}}>
+                  {!emailConfirmed && (
+                    <div
+                      style={{position:"absolute",inset:0,zIndex:2,cursor:"not-allowed",borderRadius:10}}
+                      onClick={() => {
+                        setSymPulseEmail(true);
+                        setTimeout(() => setSymPulseEmail(false), 900);
+                        emailRef.current?.focus();
+                      }}
+                    />
+                  )}
+                  <textarea
+                    ref={symRef}
+                    value={symptoms}
+                    onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
+                    placeholder="e.g., Burning during urination for 3 days..."
+                    className="booking-textarea"
+                    disabled={!emailConfirmed}
+                    style={{
+                      width:"100%",height:120,
+                      background: !emailConfirmed ? "rgba(0,0,0,0.04)" : isMobile ? "#F0FDF4" : "transparent",
+                      border: symPulseEmail ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #16A34A" : "1.5px solid #BBF7D0",
+                      borderRadius:10,padding:"11px 12px",
+                      color: !emailConfirmed ? "#9CA3AF" : "#111827",
+                      fontSize:14,
+                      resize:"none",
+                      outline: pulseSymptoms ? "2px solid rgba(249,115,22,.6)" : "none",
+                      fontFamily:"system-ui",lineHeight:1.5,
+                      animation: symPulseEmail ? "calPulse .6s ease" : pulseSymptoms ? "calPulse .6s ease" : "none",
+                      opacity: !emailConfirmed ? 0.5 : 1,
+                      transition:"opacity .2s,border .2s",
+                    }}
+                  />
+                </div>
+
+                {emailConfirmed && (
+                  <>
+                    <div style={{fontSize:12,color:"#16A34A",fontWeight:500}}>Describe why you&apos;re booking today</div>
+                    {symptoms.trim().length < 3 && (
+                      <div style={{fontSize:12,color:"#6B7280"}}>
+                        <b style={{color:"#16A34A",fontSize:14}}>{Math.max(0,3-symptoms.trim().length)}</b> more characters needed
+                      </div>
+                    )}
+                  </>
+                )}
+                {!emailConfirmed && (
+                  <div style={{fontSize:11,color:"#9CA3AF",fontWeight:500,textAlign:"center"}}>
+                    Enter your email above to continue
                   </div>
                 )}
-              {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
+                {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
               </div>
             )}
 
@@ -969,7 +1005,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
               background:isCalStep?"#16A34A":"#374151",
               border:"none",
               color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
-            }}>{step===0 ? "✕ Close" : "← Back"}</button>
+            }}>← Back</button>
             <button onClick={goContinue} style={{
               flex:2,height:48,borderRadius:12,
               border:isCalStep
@@ -977,14 +1013,14 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 : contDisabled
                   ? "2.5px solid rgba(255,255,255,0.6)"
                   : "2.5px solid #16A34A",
-              background:isCalStep?"#f97316":emailLooking?"#9CA3AF":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
+              background:isCalStep?"#f97316":"linear-gradient(135deg,#16A34A 0%,#15803D 100%)",
               color:"#fff",
               fontSize:14,fontWeight:900,
-              cursor:emailLooking?"default":"pointer",
+              cursor:"pointer",
               boxShadow:isCalStep?(calDay&&calTime?"0 4px 16px rgba(22,163,74,0.4)":"0 4px 16px rgba(249,115,22,0.3)"):(contDisabled?"none":"0 4px 12px rgba(22,163,74,0.3)"),
               transition:"all .25s",
             }}>
-              {emailLooking ? "Checking..." : step===0 ? "Continue →" : step===totalSteps ? "Book My Visit →" : "Continue →"}
+              {step===totalSteps ? "Book My Visit →" : "Continue →"}
             </button>
           </div>
 
