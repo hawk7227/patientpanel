@@ -528,22 +528,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     outline:"none",fontFamily:"system-ui",
                   }}
                 />
-                {/* Dropdown — flips above input when keyboard is open */}
+                {/* Dropdown — inline flow, pushes content below down */}
                 {showDrop && !pharmacy && (
                   <div style={{
                     background:isCalStep?"#0d1117":"#FFFFFF",
                     border:"1px solid #E5E7EB",
                     borderRadius:10,overflow:"hidden",
-                    maxHeight:dropUp ? 160 : 220,
+                    maxHeight:220,
                     overflowY:"auto",
-                    position:"absolute",
-                    left:0, right:0,
-                    zIndex:10,
                     boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
-                    ...(dropUp
-                      ? { top:"calc(100% + 4px)" }
-                      : { top:"calc(100% + 4px)" }
-                    ),
                   }}>
                     {pharmaLoading ? (
                       <div style={{padding:"14px 12px",fontSize:12,color:"#9CA3AF",textAlign:"center"}}>
