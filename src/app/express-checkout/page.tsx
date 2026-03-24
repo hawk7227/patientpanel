@@ -1610,7 +1610,7 @@ export default function ExpressCheckoutPage() {
   // ── Autofill scan: runs 600ms after form step becomes visible ──
   // Gives browser time to autofill, then marks any still-empty fields.
   // Only marks fields empty — never overwrites a value the user has typed.
-  const formStepVisible = !isReturningPatient && visitTypeConfirmed;
+  const formStepVisible = !isReturningPatient && !isKnownPatient && visitTypeConfirmed;
   useEffect(() => {
     if (!formStepVisible) return;
     const timer = setTimeout(() => {
@@ -1758,8 +1758,8 @@ export default function ExpressCheckoutPage() {
 
   const handleSuccess = () => {
     if (hasControlledSelected) { setShowControlledScheduler(true); return; }
-    // Returning patients skip intake — route directly to confirmation
-    if (isReturningPatient) {
+    // Returning/known patients skip intake — route directly to confirmation
+    if (isReturningPatient || isKnownPatient) {
       const stored = sessionStorage.getItem("appointmentData");
       if (stored) {
         try {
@@ -1841,7 +1841,7 @@ export default function ExpressCheckoutPage() {
     if (needsCalendar && (!appointmentDate || !appointmentTime)) return 4.5;
     // New patient: must review confirm summary before payment
     // New patient: payment form step
-    if (!isReturningPatient && !phoneConfirmed) return 4.75;
+    if (!isReturningPatient && !isKnownPatient && !phoneConfirmed) return 4.75;
     // Returning patient: skip straight to pay (summary+wallets at 4.5)
     return 6;
   }, [reason, symptomsDone, healthScreenDone, pharmacy, visitTypeChosen, visitTypeConfirmed, needsCalendar, appointmentDate, appointmentTime, phoneConfirmed, isReturningPatient, isKnownPatient]);
