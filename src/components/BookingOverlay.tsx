@@ -106,6 +106,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const [emailError, setEmailError] =  useState("");
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+  const autofillNameRef = useRef<HTMLInputElement>(null);
 
   // Returning: only 2 steps (reason + calendar)
   const totalSteps = isReturning ? 2 : TOTAL_STEPS;
@@ -316,12 +317,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         const p = { ...data.patient, source: data.source || "local" };
         setPatient(p);
         try { sessionStorage.setItem("expressPatient", JSON.stringify(p)); } catch {}
+        // Confirmed returning patient — welcome back
         const firstName = data.patient.firstName || "";
         setWelcomeMsg(firstName ? `Welcome back, ${firstName}! 👋` : "Welcome back! 👋");
       } else {
         const p = { id: null, firstName: "", lastName: "", email: em, phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" };
         setPatient(p);
         try { sessionStorage.setItem("expressPatient", JSON.stringify(p)); } catch {}
+        // New patient — always greet with Hello
+        const browserName = autofillNameRef.current?.value?.trim() || "";
+        setWelcomeMsg(browserName ? `Hello, ${browserName}! 👋` : "Hello! 👋");
       }
     } catch {
       const p = { id: null, firstName: "", lastName: "", email: em, phone: "", dateOfBirth: "", address: "", source: "new", pharmacy: "" };
@@ -519,6 +524,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
             {/* S1 NEW — Email + Symptoms */}
             {step===1 && !isReturning && (
               <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
+
+                {/* Hidden field — browser autofills name here, used for greeting */}
+                <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
+                  tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
                 {/* Email field — required before symptoms */}
                 <div style={{display:"flex",flexDirection:"column",gap:4}}>
