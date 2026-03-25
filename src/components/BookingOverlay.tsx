@@ -547,11 +547,11 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
             {/* S1 NEW — Compact card: reason + onset + severity + urgent + goal */}
             {step===1 && !isReturning && (
-              <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease",maxWidth:480,margin:"0 auto",width:"100%"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease",maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box",paddingRight:0}}>
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9}}>
+                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,width:"100%",boxSizing:"border-box",overflow:"hidden"}}>
 
                   {/* Row 1: Reason textarea — full width */}
                   <textarea
@@ -577,14 +577,16 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
                     <div>
                       <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Onset</div>
-                      <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}>
+                      <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"nowrap"}}>
                         {["1–3d","Longer"].map(o=>(
                           <button key={o} onClick={()=>setOnset(o)} style={{
                             fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
                             border:"2px solid #2d7a5f",
+                            height:36,flexShrink:0,whiteSpace:"nowrap" as const,
                             background: onset===o ? "#2d7a5f" : "#fff",
                             color: onset===o ? "#fff" : "#111",
                             cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                            display:"flex",alignItems:"center",justifyContent:"center",
                           }}>{o}</button>
                         ))}
                       </div>
@@ -610,8 +612,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   {/* Row 3: Urgent signs (left) + Goal (right) */}
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
                     <div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Urgent signs?</div>
-                      <div style={{display:"flex",gap:5}}>
+                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Urgent signs?</div>
+                      <div style={{display:"flex",gap:5,justifyContent:"center"}}>
                         {(["no","yes"] as string[]).map(v=>(
                           <button key={v} onClick={()=>setUrgentSign(v)} style={{
                             fontSize:12,fontWeight:600,padding:"6px 16px",borderRadius:999,
