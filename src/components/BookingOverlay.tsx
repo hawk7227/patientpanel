@@ -552,58 +552,63 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
                 <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                    <textarea
-                      ref={symRef}
-                      value={symptoms}
-                      autoFocus
-                      onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
-                      placeholder={"Describe why you're booking today.\n\nBurning urination, headache etc."}
-                      className="booking-textarea"
-                      style={{
-                        width:"100%",height:102,background:"#fff",
-                        border: pulseSymptoms ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #2d7a5f" : "1.5px solid #a8cfc0",
-                        borderRadius:8,padding:"7px 10px",color:"#111",fontSize:12,
-                        resize:"none",outline:"none",
-                        fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",lineHeight:1.5,
-                        animation: pulseSymptoms ? "calPulse .6s ease" : "none",
-                      }}
-                    />
-                    <div style={{display:"flex",flexDirection:"column",justifyContent:"space-between",alignSelf:"stretch"}}>
-                      <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Onset</div>
-                        <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}>
-                          {["1–3d","Longer"].map(o=>(
-                            <button key={o} onClick={()=>setOnset(o)} style={{
-                              fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
-                              border:"2px solid #2d7a5f",
-                              background: onset===o ? "#2d7a5f" : "#fff",
-                              color: onset===o ? "#fff" : "#111",
-                              cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
-                            }}>{o}</button>
-                          ))}
-                        </div>
+
+                  {/* Row 1: Reason textarea — full width */}
+                  <textarea
+                    ref={symRef}
+                    value={symptoms}
+                    autoFocus
+                    onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
+                    placeholder={"Describe why you're booking today.\n\nBurning urination, headache etc."}
+                    className="booking-textarea"
+                    style={{
+                      width:"100%",height:88,background:"#fff",
+                      border: pulseSymptoms ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #2d7a5f" : "1.5px solid #a8cfc0",
+                      borderRadius:8,padding:"7px 10px",color:"#111",fontSize:12,
+                      resize:"none",outline:"none",
+                      fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",lineHeight:1.5,
+                      animation: pulseSymptoms ? "calPulse .6s ease" : "none",
+                    }}
+                  />
+
+                  <div style={{height:1,background:"#c8e0d6"}} />
+
+                  {/* Row 2: Onset (left) + Severity (right) */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Onset</div>
+                      <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}>
+                        {["1–3d","Longer"].map(o=>(
+                          <button key={o} onClick={()=>setOnset(o)} style={{
+                            fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
+                            border:"2px solid #2d7a5f",
+                            background: onset===o ? "#2d7a5f" : "#fff",
+                            color: onset===o ? "#fff" : "#111",
+                            cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                          }}>{o}</button>
+                        ))}
                       </div>
-                      <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Severity (1–5)</div>
-                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-                          {([{v:1,c:"#2d7a5f"},{v:2,c:"#2d7a5f"},{v:3,c:"#b45309"},{v:4,c:"#b45309"},{v:5,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
-                            <button key={v} onClick={()=>setSeverity(v)} style={{
-                              fontSize:11,fontWeight:700,width:36,height:36,borderRadius:999,flexShrink:0,
-                              border:"2px solid #2d7a5f",
-                              background: severity===v ? c : "#fff",
-                              color: severity===v ? "#fff" : "#111",
-                              cursor:"pointer",textAlign:"center",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
-                            }}>{v}</button>
-                          ))}
-                        </div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Severity (1–5)</div>
+                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                        {([{v:1,c:"#2d7a5f"},{v:2,c:"#2d7a5f"},{v:3,c:"#b45309"},{v:4,c:"#b45309"},{v:5,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
+                          <button key={v} onClick={()=>setSeverity(v)} style={{
+                            fontSize:11,fontWeight:700,width:36,height:36,borderRadius:999,flexShrink:0,
+                            border:"2px solid #2d7a5f",
+                            background: severity===v ? c : "#fff",
+                            color: severity===v ? "#fff" : "#111",
+                            cursor:"pointer",textAlign:"center",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                          }}>{v}</button>
+                        ))}
                       </div>
                     </div>
                   </div>
 
                   <div style={{height:1,background:"#c8e0d6"}} />
 
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {/* Row 3: Urgent signs (left) + Goal (right) */}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
                     <div>
                       <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Urgent signs?</div>
                       <div style={{display:"flex",gap:5}}>
@@ -620,7 +625,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                       </div>
                     </div>
                     <div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Goal</div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Goal</div>
                       <div style={{display:"flex",gap:4,justifyContent:"center"}}>
                         {([{v:"treatment",l:"Treatment"},{v:"refill",l:"Refill"},{v:"advice",l:"Advice",sm:true}] as {v:string,l:string,sm?:boolean}[]).map(({v,l,sm})=>(
                           <button key={v} onClick={()=>setVisitGoal(v)} style={{
