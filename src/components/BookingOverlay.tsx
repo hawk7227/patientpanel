@@ -543,7 +543,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           </div>
 
           {/* Step content */}
-          <div style={{padding: step===1 && !isReturning ? "12px 0 0" : "12px 16px 0"}} key={`step-${step}`}>
+          <div style={{padding: step===1 && !isReturning ? "16px 16px 0" : "12px 16px 0"}} key={`step-${step}`}>
 
             {/* S1 NEW — Compact card: reason + onset + severity + urgent + goal */}
             {step===1 && !isReturning && (
@@ -551,7 +551,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,maxWidth:"calc(100% - 32px)",width:"calc(100% - 32px)",boxSizing:"border-box",overflow:"hidden",margin:"0 auto"}}>
+                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,width:"100%",boxSizing:"border-box",overflow:"hidden"}}>
 
                   {/* Row 1: Reason textarea — full width */}
                   <textarea
@@ -678,7 +678,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     border:"2px solid #5ecba1",cursor:"pointer",
                     fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
                     background:"linear-gradient(180deg,#4e9a76 0%,#3f8464 50%,#2f6f53 100%)",
-                    boxShadow:"0 3px 10px rgba(45,107,79,.4)",whiteSpace:"nowrap",marginRight:12,
+                    boxShadow:"0 3px 10px rgba(45,107,79,.4)",whiteSpace:"nowrap",marginRight:20,
                   }}>Continue →</button>
                 </div>
 
