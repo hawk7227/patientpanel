@@ -543,15 +543,15 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           </div>
 
           {/* Step content */}
-          <div style={{padding:"12px 16px 0"}} key={`step-${step}`}>
+          <div style={{padding: step===1 && !isReturning ? "12px 4px 0" : "12px 16px 0"}} key={`step-${step}`}>
 
             {/* S1 NEW — Compact card: reason + onset + severity + urgent + goal */}
             {step===1 && !isReturning && (
-              <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease",maxWidth:480,margin:"0 auto",width:"100%",boxSizing:"border-box",paddingRight:0}}>
+              <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease",width:"100%",boxSizing:"border-box"}}>
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,width:"100%",boxSizing:"border-box",overflow:"hidden"}}>
+                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 10px",display:"flex",flexDirection:"column",gap:9,width:"100%",maxWidth:"100%",boxSizing:"border-box",overflow:"hidden"}}>
 
                   {/* Row 1: Reason textarea — full width */}
                   <textarea
