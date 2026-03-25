@@ -135,7 +135,7 @@ function AppointmentContent() {
     ? "Your video session cannot start until medical intake is complete. The provider needs this information before connecting."
     : isPh
     ? "Your phone call will not be initiated until medical intake is complete."
-    : "Incomplete intake may delay your provider's review and response time, potentially costing you your booking fee.";
+    : "Incomplete intake could result in monetary loss — your provider cannot safely review or treat your case without your medical history.";
 
   const videoAppointment = {
     id: appointment.id,
@@ -246,13 +246,11 @@ function AppointmentContent() {
               </div>
             )}
 
-            {/* Chief complaint */}
-            {appointment.chief_complaint && (
-              <div className="px-3 py-2">
-                <p className="text-[10px] text-gray-500 mb-0.5">Reason for Visit</p>
-                <p className="text-[#2dd4a0] text-[11px] font-medium">{appointment.chief_complaint}</p>
-              </div>
-            )}
+            {/* Chief complaint — shown as Private to patient, provider sees full detail */}
+            <div className="px-3 py-2">
+              <p className="text-[10px] text-gray-500 mb-0.5">Reason for Visit</p>
+              <p className="text-gray-400 text-[11px] italic">Private — Provider receives full details</p>
+            </div>
           </div>
 
           {/* ═══════════════════════════════════════════════
@@ -281,7 +279,7 @@ function AppointmentContent() {
                 </p>
                 <div className="rounded-lg p-2.5 border" style={{ background:"rgba(239,68,68,.06)", borderColor:"rgba(239,68,68,.2)" }}>
                   <p className="text-red-300 text-[10px] font-semibold">
-                    ⚠️ Risk of incomplete request: Without your medical history, your provider cannot safely treat you. Incomplete requests may result in visit cancellation — no refunds apply once a provider has reviewed your case.
+                    ⚠️ Risk: Incomplete intake could result in monetary loss. Without your medical history, your provider cannot safely treat you — incomplete requests may result in visit cancellation with no refund once a provider has reviewed your case.
                   </p>
                 </div>
                 <button
@@ -307,8 +305,8 @@ function AppointmentContent() {
             </div>
           )}
 
-          {/* COUNTDOWN — only show if intake complete */}
-          {!needsIntake && timeRemaining && !timeRemaining.isPast && !isAs && (
+          {/* COUNTDOWN — always shows on page load */}
+          {timeRemaining && !timeRemaining.isPast && !isAs && (
             <div className="rounded-xl border border-[#2dd4a0]/15 p-3" style={{ background:"rgba(45,212,160,.03)" }}>
               <p className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider text-center mb-2">Time Until Your Visit</p>
               <div className="flex items-center justify-center gap-4">
@@ -334,8 +332,8 @@ function AppointmentContent() {
             </div>
           )}
 
-          {/* ASYNC message */}
-          {!needsIntake && isAs && (
+          {/* ASYNC message — always shows for async visits */}
+          {isAs && (
             <div className="rounded-xl border border-[#2dd4a0]/15 p-3" style={{ background:"rgba(45,212,160,.03)" }}>
               <p className="text-[11px] text-gray-300 text-center leading-relaxed">
                 Your provider is reviewing your information and will respond within{" "}
@@ -345,8 +343,8 @@ function AppointmentContent() {
             </div>
           )}
 
-          {/* VISIT READY */}
-          {!needsIntake && (isVid||isPh) && timeRemaining?.isPast && (
+          {/* VISIT READY — shows when time has passed and intake complete */}
+          {(isVid||isPh) && timeRemaining?.isPast && !needsIntake && (
             <div className="rounded-xl border border-green-500/30 p-3 text-center" style={{ background:"rgba(34,197,94,.08)" }}>
               <p className="text-green-400 font-bold text-[12px]">🟢 Your visit is ready to start</p>
             </div>

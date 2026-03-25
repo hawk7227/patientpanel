@@ -15,11 +15,12 @@ export async function GET(request: Request) {
 
     const supabase = createServerClient();
 
-    // Get appointment by access token — includes patient token for video
+    // Get appointment by access token
     const { data: appointment, error } = await supabase
       .from("appointments")
       .select(`
         id,
+        patient_id,
         patient_first_name,
         patient_last_name,
         requested_date_time,
@@ -36,7 +37,6 @@ export async function GET(request: Request) {
         intake_completed_at,
         preferred_pharmacy,
         pharmacy_address,
-        pharmacy_phone,
         chief_complaint
       `)
       .eq("access_token", token)
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get doctor information separately
+    // Get doctor information
     let doctor = null;
     if (appointment.doctor_id) {
       const { data: doctorData } = await supabase
@@ -57,19 +57,27 @@ export async function GET(request: Request) {
         .select("first_name, last_name, specialty, phone")
         .eq("id", appointment.doctor_id)
         .single();
-
       doctor = doctorData;
     }
 
-    // Format the appointment data
-    const formattedAppointment = {
-      ...appointment,
-      doctor: doctor,
-    };
+    // Get pharmacy phone from patients table (not stored on appointments)
+    let pharmacy_phone: string | null = null;
+    if (appointment.patient_id) {
+      const { data: patientData } = await supabase
+        .from("patients")
+        .select("preferred_pharmacy_phone")
+        .eq("id", appointment.patient_id)
+        .single();
+      pharmacy_phone = patientData?.preferred_pharmacy_phone || null;
+    }
 
     return NextResponse.json({
       success: true,
-      appointment: formattedAppointment,
+      appointment: {
+        ...appointment,
+        pharmacy_phone,
+        doctor,
+      },
     });
   } catch (error: unknown) {
     console.error("Error in get-appointment:", error);
@@ -81,6 +89,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-
-

@@ -55,6 +55,7 @@ function IntakeForm() {
   const [previousStep, setPreviousStep] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [visitType, setVisitType] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
     email: "",
     allergies: null,
@@ -71,6 +72,8 @@ function IntakeForm() {
   useEffect(() => {
     const tokenParam = searchParams.get("accessToken");
     const emailParam = searchParams.get("email");
+    const visitTypeParam = searchParams.get("visitType");
+    if (visitTypeParam) setVisitType(visitTypeParam);
     
     if (tokenParam) {
       setAccessToken(tokenParam);
@@ -307,6 +310,20 @@ function IntakeForm() {
             <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
               Your request is currently <span className="text-orange-400 font-semibold">on hold</span>. Your provider needs this information to safely review and treat your case.
             </p>
+            {visitType === 'video' && (
+              <div className="mt-2.5 p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <p className="text-blue-300 text-[11px] font-medium leading-snug">
+                  📹 Video visit: Your video session <span className="font-bold">cannot start</span> until this intake is complete. The "Click Here to Start Visit" button will remain locked.
+                </p>
+              </div>
+            )}
+            {visitType === 'phone' && (
+              <div className="mt-2.5 p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <p className="text-purple-300 text-[11px] font-medium leading-snug">
+                  📞 Phone visit: Your provider will not call until this intake is submitted.
+                </p>
+              </div>
+            )}
             <div className="mt-2.5 p-2.5 rounded-lg bg-red-500/8 border border-red-500/20">
               <p className="text-red-300 text-[11px] font-medium leading-snug">
                 ⚠️ Incomplete intake may result in your visit request being marked incomplete — which risks your booking fee and delays your care. This takes less than 2 minutes.
