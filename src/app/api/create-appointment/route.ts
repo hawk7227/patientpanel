@@ -961,9 +961,9 @@ export async function POST(request: Request) {
       .single();
 
     // P5-Trigger1: Save booking consent record to patient_consents
-    if (!error && appointment && patientId && data.consent_accepted === true) {
+    if (!error && appointment && appointment.patient_id && data.consent_accepted === true) {
       supabase.from("patient_consents").insert({
-        patient_id: patientId,
+        patient_id: appointment.patient_id,
         appointment_id: appointment.id,
         consent_type: "general_terms",
         consent_text_version: "v1",
