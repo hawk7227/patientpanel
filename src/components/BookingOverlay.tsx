@@ -114,6 +114,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
   // Answers
   const [symptoms, setSymptoms]               = useState("");
+  const [onset, setOnset]                     = useState("1–3d");
+  const [severity, setSeverity]               = useState(1);
+  const [urgentSign, setUrgentSign]           = useState("no");
+  const [visitGoal, setVisitGoal]             = useState("treatment");
   const [selectedVisitType, setSelectedVisitType] = useState<string|null>(null);
   const col = VISIT_COLORS[selectedVisitType || visitType] || VISIT_COLORS.async;
   const [reason, setReason]                   = useState("");
@@ -378,11 +382,6 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       navigateToCheckout(); return;
     }
     if(step===1) {
-      if(!emailConfirmed) {
-        setSymPulseEmail(true); setTimeout(()=>setSymPulseEmail(false), 900);
-        emailRef.current?.focus();
-        return;
-      }
       if(symptoms.trim().length < 3) {
         setStep1ErrorMsg("⚠ Please describe your symptoms — at least a few words so your provider understands your concern.");
         setPulseSymptoms(true); setTimeout(()=>setPulseSymptoms(false), 900);
@@ -423,6 +422,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
       localStorage.removeItem("medazon_express_answers");
       localStorage.setItem("medazon_express_answers", JSON.stringify({
         reason: isReturning ? reason : symptoms,
+        onset, severity, urgentSign, visitGoal,
         chiefComplaint: isReturning ? reason : symptoms,
         symptomsDone: true, pharmacy, pharmacyAddress,
         visitType: selectedVisitType || visitType, visitTypeChosen: true, visitTypeConfirmed: true,
@@ -437,7 +437,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   const progressPct = Math.round((step / totalSteps) * 100);
   const fieldBorder = (valid:boolean) => `2px solid ${valid ? "rgba(45,212,160,.55)" : col.border}`;
   const contDisabled =
-    (step===1 && !isReturning && (!emailConfirmed || symptoms.trim().length < 3)) ||
+    (step===1 && !isReturning && symptoms.trim().length < 3) ||
     (step===1 && isReturning  && !reason.trim()) ||
     (step===2 && !isReturning && !pharmacy) ||
     (isCalStep && false); // cal step uses pulse validation, not disabled state
@@ -545,141 +545,100 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           {/* Step content */}
           <div style={{padding:"12px 16px 0"}} key={`step-${step}`}>
 
-            {/* S1 NEW — Email + Symptoms */}
+            {/* S1 NEW — Compact card: reason + onset + severity + urgent + goal */}
             {step===1 && !isReturning && (
               <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
-
-                {/* Hidden field — browser autofills name here, used for greeting */}
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                {/* Email field + Confirm button inline */}
-                <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#374151",letterSpacing:".01em"}}>
-                    📧 Confirm Your Email
-                  </div>
-                  <div style={{display:"flex",gap:8,alignItems:"center",maxWidth:480}}>
-                    <input
-                      ref={emailRef}
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e:React.ChangeEvent<HTMLInputElement>) => {
-                        setEmail(e.target.value);
-                        setEmailError("");
-                        setEmailConfirmed(false);
-                        setWelcomeMsg("");
-                      }}
-                      onKeyDown={(e:React.KeyboardEvent<HTMLInputElement>) => { if(e.key==="Enter"){ e.preventDefault(); if(email.trim().includes("@") && email.trim().includes(".")) handleEmailLookup(); } }}
-                      placeholder="your@email.com"
-                      style={{
-                        flex:1,
-                        background: emailConfirmed ? "#F0FDF4" : (isMobile ? "#F0FDF4" : "#fff"),
-                        border: emailError ? "2px solid #DC2626" : emailConfirmed ? "2px solid #16A34A" : "1.5px solid #D1D5DB",
-                        borderRadius:10, padding:"11px 12px", color:"#111827", fontSize:14,
-                        outline:"none", fontFamily:"system-ui",
-                        minWidth:0,
-                      }}
+                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    <textarea
+                      ref={symRef}
+                      value={symptoms}
+                      autoFocus
+                      onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
+                      placeholder={"Describe why you're booking today.\n\nBurning urination, headache etc."}
                       className="booking-textarea"
-                    />
-                    <button
-                      onClick={() => {
-                        const em = email.trim();
-                        if(!em.includes("@") || !em.includes(".")) {
-                          setEmailError("Enter a valid email first");
-                          emailRef.current?.focus();
-                          return;
-                        }
-                        handleEmailLookup();
-                      }}
-                      disabled={emailLooking || emailConfirmed}
                       style={{
-                        flexShrink:0,
-                        padding:"11px 16px",
-                        borderRadius:10,
-                        border: emailConfirmed ? "2px solid #16A34A" : emailLooking ? "2px solid #9CA3AF" : isValidEmail(email) ? "2px solid #fff" : "2px solid rgba(255,255,255,0.3)",
-                        background: emailConfirmed ? "#16A34A" : emailLooking ? "#9CA3AF" : isValidEmail(email) ? "#f97316" : "rgba(249,115,22,0.3)",
-                        color:"#fff",
-                        fontSize:13,
-                        fontWeight:700,
-                        cursor: emailLooking || emailConfirmed ? "default" : "pointer",
-                        whiteSpace:"nowrap",
-                        display:"flex",alignItems:"center",gap:6,
-                        transition:"all .2s",
-                        animation: isValidEmail(email) && !emailConfirmed && !emailLooking ? "ctaPulse 1.4s ease-in-out infinite" : "none",
+                        width:"100%",height:102,background:"#fff",
+                        border: pulseSymptoms ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #2d7a5f" : "1.5px solid #a8cfc0",
+                        borderRadius:8,padding:"7px 10px",color:"#111",fontSize:12,
+                        resize:"none",outline:"none",
+                        fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",lineHeight:1.5,
+                        animation: pulseSymptoms ? "calPulse .6s ease" : "none",
                       }}
-                    >
-                      {emailLooking ? (
-                        <><div style={{width:12,height:12,border:"2px solid rgba(255,255,255,.3)",borderTop:"2px solid #fff",borderRadius:"50%",animation:"spin 1s linear infinite"}} /> Checking</>
-                      ) : emailConfirmed ? (
-                        <>✓ Confirmed</>
-                      ) : (
-                        <>Click to Confirm</>
-                      )}
-                    </button>
-                  </div>
-                  {emailError && <p style={{fontSize:11,color:"#DC2626",fontWeight:600,margin:0}}>⚠ {emailError}</p>}
-                  {welcomeMsg && <p style={{fontSize:12,color:"#16A34A",fontWeight:700,margin:0,animation:"stepFade .3s ease"}}>{welcomeMsg}</p>}
-                </div>
-
-                {/* Symptoms textarea — locked until email confirmed */}
-                <div style={{position:"relative"}}>
-                  {!emailConfirmed && (
-                    <div
-                      style={{position:"absolute",inset:0,zIndex:2,cursor:"not-allowed",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}
-                      onClick={() => {
-                        setSymPulseEmail(true);
-                        setTimeout(() => setSymPulseEmail(false), 900);
-                        emailRef.current?.focus();
-                      }}
-                    >
-                      {symPulseEmail && (
-                        <span style={{fontSize:12,fontWeight:700,color:"#f97316",background:"rgba(255,255,255,0.95)",padding:"4px 12px",borderRadius:20,boxShadow:"0 2px 8px rgba(0,0,0,0.1)",animation:"stepFade .2s ease",pointerEvents:"none"}}>
-                          👆 Click "Click to Confirm" button first
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <textarea
-                    ref={symRef}
-                    value={symptoms}
-                    onChange={(e:React.ChangeEvent<HTMLTextAreaElement>)=>{setSymptoms(e.target.value);setStep1ErrorMsg("");}}
-                    placeholder="e.g., Burning during urination for 3 days..."
-                    className="booking-textarea"
-                    disabled={!emailConfirmed}
-                    style={{
-                      width:"100%",height:120,
-                      background: !emailConfirmed ? "rgba(0,0,0,0.04)" : isMobile ? "#F0FDF4" : "transparent",
-                      border: symPulseEmail ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #16A34A" : "1.5px solid #BBF7D0",
-                      borderRadius:10,padding:"11px 12px",
-                      color: !emailConfirmed ? "#9CA3AF" : "#111827",
-                      fontSize:14,
-                      resize:"none",
-                      outline: pulseSymptoms ? "2px solid rgba(249,115,22,.6)" : "none",
-                      fontFamily:"system-ui",lineHeight:1.5,
-                      animation: symPulseEmail ? "calPulse .6s ease" : pulseSymptoms ? "calPulse .6s ease" : "none",
-                      opacity: !emailConfirmed ? 0.5 : 1,
-                      transition:"opacity .2s,border .2s",
-                    }}
-                  />
-                </div>
-
-                {emailConfirmed && (
-                  <>
-                    <div style={{fontSize:12,color:"#16A34A",fontWeight:500}}>Describe why you&apos;re booking today</div>
-                    {symptoms.trim().length < 3 && (
-                      <div style={{fontSize:12,color:"#6B7280"}}>
-                        <b style={{color:"#16A34A",fontSize:14}}>{Math.max(0,3-symptoms.trim().length)}</b> more characters needed
+                    />
+                    <div style={{display:"flex",flexDirection:"column",justifyContent:"space-between",alignSelf:"stretch"}}>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Onset</div>
+                        <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"wrap"}}>
+                          {["1–3d","Longer"].map(o=>(
+                            <button key={o} onClick={()=>setOnset(o)} style={{
+                              fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
+                              border:"2px solid #2d7a5f",
+                              background: onset===o ? "#2d7a5f" : "#fff",
+                              color: onset===o ? "#fff" : "#111",
+                              cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                            }}>{o}</button>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                  </>
-                )}
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Severity (1–5)</div>
+                        <div style={{display:"flex",gap:3}}>
+                          {([{v:1,c:"#2d7a5f"},{v:2,c:"#2d7a5f"},{v:3,c:"#b45309"},{v:4,c:"#b45309"},{v:5,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
+                            <button key={v} onClick={()=>setSeverity(v)} style={{
+                              fontSize:11,fontWeight:700,flex:1,padding:"4px 0",borderRadius:999,
+                              border:"2px solid #2d7a5f",
+                              background: severity===v ? c : "#fff",
+                              color: severity===v ? "#fff" : "#111",
+                              cursor:"pointer",textAlign:"center",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                            }}>{v}</button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{height:1,background:"#c8e0d6"}} />
+
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Urgent signs?</div>
+                      <div style={{display:"flex",gap:5}}>
+                        {(["no","yes"] as string[]).map(v=>(
+                          <button key={v} onClick={()=>setUrgentSign(v)} style={{
+                            fontSize:12,fontWeight:600,padding:"6px 16px",borderRadius:999,
+                            border:"2px solid #2d7a5f",
+                            background: urgentSign===v ? "#2d7a5f" : "#fff",
+                            color: urgentSign===v ? "#fff" : "#111",
+                            cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                            textTransform:"capitalize" as const,
+                          }}>{v}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Goal</div>
+                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                        {([{v:"treatment",l:"Treatment"},{v:"refill",l:"Refill"},{v:"advice",l:"Advice",sm:true}] as {v:string,l:string,sm?:boolean}[]).map(({v,l,sm})=>(
+                          <button key={v} onClick={()=>setVisitGoal(v)} style={{
+                            fontSize:sm?10:11,fontWeight:600,padding:sm?"4px 8px":"5px 9px",borderRadius:999,
+                            border:"2px solid #2d7a5f",
+                            background: visitGoal===v ? "#2d7a5f" : "#fff",
+                            color: visitGoal===v ? "#fff" : "#111",
+                            cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                          }}>{l}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
               </div>
             )}
-
             {/* S1 RETURNING — Reason */}
             {step===1 && isReturning && (
               <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
