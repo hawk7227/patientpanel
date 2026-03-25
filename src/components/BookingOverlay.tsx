@@ -637,6 +637,44 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 </div>
 
                 {step1ErrorMsg && <div style={{fontSize:11,color:"#DC2626",fontWeight:600,padding:"2px 0"}}>{step1ErrorMsg}</div>}
+
+                {/* Inline bottom bar: back arrow + email + continue pill */}
+                <div style={{display:"flex",alignItems:"center",gap:0,paddingBottom:4}}>
+                  {/* Back chevron */}
+                  <button onClick={goBack} style={{
+                    background:"transparent",border:"none",cursor:"pointer",
+                    padding:"4px 8px 4px 0",display:"flex",alignItems:"center",flexShrink:0,
+                  }}>
+                    <svg width="14" height="20" viewBox="0 0 18 28" fill="none">
+                      <path d="M15 3L3 14L15 25" stroke="#111827" strokeWidth="4" strokeLinecap="square" strokeLinejoin="miter"/>
+                    </svg>
+                  </button>
+                  {/* Email bare — no border, no bg */}
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e:React.ChangeEvent<HTMLInputElement>)=>{setEmail(e.target.value);setEmailError("");}}
+                    placeholder="your@email.com"
+                    style={{
+                      flex:1,border:"none",background:"transparent",outline:"none",
+                      fontSize:10,color:"#111827",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                      minWidth:0,padding:"0 8px 0 4px",
+                    }}
+                  />
+                  {/* Continue pill */}
+                  <button onClick={goContinue} style={{
+                    flexShrink:0,padding:"0 18px",height:38,borderRadius:999,
+                    fontSize:13,fontWeight:700,color:"#fff",
+                    border:"2px solid #5ecba1",cursor:"pointer",
+                    fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                    background:"linear-gradient(180deg,#4e9a76 0%,#3f8464 50%,#2f6f53 100%)",
+                    boxShadow:"0 3px 10px rgba(45,107,79,.4)",whiteSpace:"nowrap",
+                  }}>Continue →</button>
+                </div>
+
               </div>
             )}
             {/* S1 RETURNING — Reason */}
@@ -1013,7 +1051,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
           {/* Nav buttons */}
           <div style={{
-            display:"flex",gap:8,padding:"12px 16px 16px",
+            display: (step===1 && !isReturning) ? "none" : "flex",
+            gap:8,padding:"12px 16px 16px",
             paddingBottom:"max(16px,env(safe-area-inset-bottom))",
             borderTop:isCalStep?"1px solid rgba(255,255,255,.06)":"1px solid #F3F4F6",marginTop:12,
             background:isCalStep?"#0d1117":"#FFFFFF",
@@ -1054,11 +1093,13 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           </div>
 
           {/* Trust footer */}
+          {!(step===1 && !isReturning) && (
           <div style={{textAlign:"center",paddingBottom:"max(12px,env(safe-area-inset-bottom))",paddingTop:6,background:isCalStep?"#0d1117":"#FFFFFF"}}>
             <span style={{fontSize:10,color:isCalStep?"rgba(255,255,255,.25)":"#9CA3AF",letterSpacing:".02em"}}>
               HIPAA Secure · Licensed Providers · No subscription
             </span>
           </div>
+          )}
 
         </div>
         {/* No bottom dim — card touches bottom of viewport */}
