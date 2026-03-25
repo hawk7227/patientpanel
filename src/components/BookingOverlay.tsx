@@ -551,7 +551,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 10px",display:"flex",flexDirection:"column",gap:9,width:"100%",maxWidth:"100%",boxSizing:"border-box",overflow:"hidden"}}>
+                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 10px",display:"flex",flexDirection:"column",gap:9,width:"100%",maxWidth:"100%",boxSizing:"border-box",overflow:"hidden",margin:"0 8px",width:"calc(100% - 16px)"}}>
 
                   {/* Row 1: Reason textarea — full width */}
                   <textarea
@@ -573,71 +573,71 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
                   <div style={{height:1,background:"#c8e0d6"}} />
 
-                  {/* Row 2: Onset (left) + Severity (right) */}
+                  {/* Rows 2+3: Left col = Onset then Urgent Signs / Right col = Severity then Goal */}
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
-                    <div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Onset</div>
-                      <div style={{display:"flex",gap:4,justifyContent:"center",flexWrap:"nowrap"}}>
-                        {["1–3d","Longer"].map(o=>(
-                          <button key={o} onClick={()=>setOnset(o)} style={{
-                            fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
-                            border:"2px solid #2d7a5f",
-                            height:36,flexShrink:0,whiteSpace:"nowrap" as const,
-                            background: onset===o ? "#2d7a5f" : "#fff",
-                            color: onset===o ? "#fff" : "#111",
-                            cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
-                            display:"flex",alignItems:"center",justifyContent:"center",
-                          }}>{o}</button>
-                        ))}
+                    {/* LEFT: Onset on top, Urgent Signs below */}
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,paddingLeft:4}}>Onset</div>
+                        <div style={{display:"flex",gap:4,flexWrap:"nowrap",paddingLeft:4}}>
+                          {["1–3d","Longer"].map(o=>(
+                            <button key={o} onClick={()=>setOnset(o)} style={{
+                              fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
+                              border:"2px solid #2d7a5f",
+                              height:36,flexShrink:0,whiteSpace:"nowrap" as const,
+                              background: onset===o ? "#2d7a5f" : "#fff",
+                              color: onset===o ? "#fff" : "#111",
+                              cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                            }}>{o}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,paddingLeft:4}}>Urgent signs?</div>
+                        <div style={{display:"flex",gap:5,paddingLeft:4}}>
+                          {(["no","yes"] as string[]).map(v=>(
+                            <button key={v} onClick={()=>setUrgentSign(v)} style={{
+                              fontSize:12,fontWeight:600,padding:"6px 16px",borderRadius:999,
+                              border:"2px solid #2d7a5f",
+                              background: urgentSign===v ? "#2d7a5f" : "#fff",
+                              color: urgentSign===v ? "#fff" : "#111",
+                              cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                              textTransform:"capitalize" as const,
+                            }}>{v}</button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Severity (1–5)</div>
-                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-                        {([{v:1,c:"#2d7a5f"},{v:2,c:"#2d7a5f"},{v:3,c:"#b45309"},{v:4,c:"#b45309"},{v:5,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
-                          <button key={v} onClick={()=>setSeverity(v)} style={{
-                            fontSize:11,fontWeight:700,width:36,height:36,borderRadius:999,flexShrink:0,
-                            border:"2px solid #2d7a5f",
-                            background: severity===v ? c : "#fff",
-                            color: severity===v ? "#fff" : "#111",
-                            cursor:"pointer",textAlign:"center",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
-                          }}>{v}</button>
-                        ))}
+                    {/* RIGHT: Severity on top, Goal below */}
+                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Severity (1–3)</div>
+                        <div style={{display:"flex",gap:6,justifyContent:"center"}}>
+                          {([{v:1,c:"#2d7a5f"},{v:2,c:"#b45309"},{v:3,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
+                            <button key={v} onClick={()=>setSeverity(v)} style={{
+                              fontSize:11,fontWeight:700,width:36,height:36,borderRadius:999,flexShrink:0,
+                              border:"2px solid #2d7a5f",
+                              background: severity===v ? c : "#fff",
+                              color: severity===v ? "#fff" : "#111",
+                              cursor:"pointer",textAlign:"center",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                            }}>{v}</button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <div style={{height:1,background:"#c8e0d6"}} />
-
-                  {/* Row 3: Urgent signs (left) + Goal (right) */}
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
-                    <div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Urgent signs?</div>
-                      <div style={{display:"flex",gap:5,justifyContent:"center"}}>
-                        {(["no","yes"] as string[]).map(v=>(
-                          <button key={v} onClick={()=>setUrgentSign(v)} style={{
-                            fontSize:12,fontWeight:600,padding:"6px 16px",borderRadius:999,
-                            border:"2px solid #2d7a5f",
-                            background: urgentSign===v ? "#2d7a5f" : "#fff",
-                            color: urgentSign===v ? "#fff" : "#111",
-                            cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
-                            textTransform:"capitalize" as const,
-                          }}>{v}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Goal</div>
-                      <div style={{display:"flex",gap:4,justifyContent:"center"}}>
-                        {([{v:"treatment",l:"Treatment"},{v:"refill",l:"Refill"},{v:"advice",l:"Advice",sm:true}] as {v:string,l:string,sm?:boolean}[]).map(({v,l,sm})=>(
-                          <button key={v} onClick={()=>setVisitGoal(v)} style={{
-                            fontSize:sm?10:11,fontWeight:600,padding:sm?"4px 8px":"5px 9px",borderRadius:999,
-                            border:"2px solid #2d7a5f",
-                            background: visitGoal===v ? "#2d7a5f" : "#fff",
-                            color: visitGoal===v ? "#fff" : "#111",
-                            cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
-                          }}>{l}</button>
-                        ))}
+                      <div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Goal</div>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
+                          {([{v:"treatment",l:"Treatment"},{v:"refill",l:"Refill"},{v:"advice",l:"Advice",sm:true}] as {v:string,l:string,sm?:boolean}[]).map(({v,l,sm})=>(
+                            <button key={v} onClick={()=>setVisitGoal(v)} style={{
+                              fontSize:sm?10:11,fontWeight:600,padding:sm?"4px 8px":"5px 9px",borderRadius:999,
+                              border:"2px solid #2d7a5f",
+                              background: visitGoal===v ? "#2d7a5f" : "#fff",
+                              color: visitGoal===v ? "#fff" : "#111",
+                              cursor:"pointer",fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
+                            }}>{l}</button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
