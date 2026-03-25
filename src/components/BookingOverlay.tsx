@@ -460,7 +460,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
         @keyframes slotIn        { from{opacity:0;transform:scale(.97)}        to{opacity:1;transform:scale(1)} }
         @keyframes spin          { to{transform:rotate(360deg)} }
         @keyframes calPulse      { 0%,100%{opacity:1;transform:scale(1)} 30%{opacity:.5;transform:scale(.97)} 60%{opacity:1;transform:scale(1.01)} }
-        .booking-textarea::placeholder { color: #16A34A; opacity: 0.7; }
+        .booking-textarea::placeholder { color: #111827; opacity: 0.85; }
       `}</style>
 
       {/*
@@ -578,7 +578,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     {/* LEFT: Onset on top, Urgent Signs below */}
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Onset</div>
+                        <div style={{fontSize:11,fontWeight:800,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Onset</div>
                         <div style={{display:"flex",gap:4,flexWrap:"nowrap"}}>
                           {["1–3d","Longer"].map(o=>(
                             <button key={o} onClick={()=>setOnset(o)} style={{
@@ -594,7 +594,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         </div>
                       </div>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Urgent signs?</div>
+                        <div style={{fontSize:11,fontWeight:800,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Urgent signs?</div>
                         <div style={{display:"flex",gap:5}}>
                           {(["no","yes"] as string[]).map(v=>(
                             <button key={v} onClick={()=>setUrgentSign(v)} style={{
@@ -612,7 +612,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     {/* RIGHT: Severity on top, Goal below */}
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Severity (1–3)</div>
+                        <div style={{fontSize:11,fontWeight:800,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Pain Severity (1–3)</div>
                         <div style={{display:"flex",gap:8,justifyContent:"center"}}>
                           {([{v:1,c:"#2d7a5f"},{v:2,c:"#b45309"},{v:3,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
                             <button key={v} onClick={()=>setSeverity(v)} style={{
@@ -626,7 +626,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         </div>
                       </div>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Goal</div>
+                        <div style={{fontSize:11,fontWeight:800,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Goal</div>
                         <div style={{display:"flex",gap:4,justifyContent:"center"}}>
                           {([{v:"treatment",l:"Treatment"},{v:"refill",l:"Refill"},{v:"advice",l:"Advice",sm:true}] as {v:string,l:string,sm?:boolean}[]).map(({v,l,sm})=>(
                             <button key={v} onClick={()=>setVisitGoal(v)} style={{
