@@ -291,6 +291,22 @@ export async function POST(request: Request) {
       intakeFields: Object.keys(intakeData),
     });
 
+    // P5-Trigger2: Save per-visit telehealth consent record
+    if (intakeData.telehealth_consent_accepted === true) {
+      supabase.from("patient_consents").insert({
+        patient_id: patientId,
+        appointment_id: appointment.id,
+        consent_type: "telehealth_visit",
+        consent_text_version: intakeData.telehealth_consent_version || "v1",
+        accepted: true,
+        accepted_at: new Date().toISOString(),
+        visit_type: intakeData.visit_type || null,
+        created_at: new Date().toISOString(),
+      }).then(({ error: ce }) => {
+        if (ce) console.error("[save-consent] intake insert error:", ce.message);
+      });
+    }
+
     return NextResponse.json({
       success: true,
       appointmentId: appointment.id,

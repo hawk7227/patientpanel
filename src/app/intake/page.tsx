@@ -21,6 +21,8 @@ type FormData = {
   severity: number | null;
   trajectory: string;
   redFlags: string[];
+  // Telehealth consent (step 5)
+  telehealthConsentAccepted: boolean;
 };
 
 const STEPS = [
@@ -77,6 +79,7 @@ function IntakeForm() {
     severity: null,
     trajectory: "",
     redFlags: [],
+    telehealthConsentAccepted: false,
   });
 
   // Get accessToken and email from URL params or sessionStorage
@@ -150,7 +153,7 @@ function IntakeForm() {
   };
 
   const isFormComplete = () => {
-    return STEPS.every((_, idx) => isStepValid(idx)) && isClinicalStepValid();
+    return STEPS.every((_, idx) => isStepValid(idx)) && isClinicalStepValid() && formData.telehealthConsentAccepted;
   };
 
   const nextStep = () => {
@@ -259,6 +262,9 @@ function IntakeForm() {
             severity: formData.severity,
             ros_general: formData.trajectory,
             red_flags: formData.redFlags.join(', '),
+            telehealth_consent_accepted: formData.telehealthConsentAccepted,
+            telehealth_consent_version: "v1",
+            visit_type: visitType || null,
           },
         }),
       });
@@ -591,8 +597,71 @@ function IntakeForm() {
           </div>
         )}
 
+        {/* ── STEP 5: Telehealth Consent ── */}
+        {step === STEPS.length + 1 && (
+          <div className="w-full animate-in slide-in-from-right-8 fade-in duration-500">
+            <div className="bg-[#0d1218] border border-white/5 rounded-xl p-4 sm:p-5 shadow-2xl space-y-3">
+              <h2 className="text-base sm:text-lg font-bold text-white">Telehealth Consent</h2>
+              <p className="text-gray-400 text-xs leading-relaxed">
+                Before your provider reviews your case, please confirm the following:
+              </p>
+              <div className="space-y-2.5">
+                {[
+                  `I consent to receive telehealth services from LaMonica Hodges, MSN, APRN, FNP-C via ${visitType || 'telehealth'} for this visit`,
+                  "I understand this telehealth service may differ from in-person care and that technical limitations may occur",
+                  "I understand the provider may determine that my condition requires an in-person visit",
+                  "I have reviewed and agree to the HIPAA Notice of Privacy Practices",
+                ].map((text, i) => (
+                  <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white/3 border border-white/8">
+                    <div className="w-4 h-4 mt-0.5 rounded border-2 border-primary-teal flex-shrink-0 flex items-center justify-center bg-primary-teal/20">
+                      <Check size={10} className="text-primary-teal" />
+                    </div>
+                    <p className="text-gray-300 text-[11px] leading-snug">{text}</p>
+                  </div>
+                ))}
+              </div>
+              <label className="flex items-start gap-2.5 cursor-pointer group mt-1">
+                <input
+                  type="checkbox"
+                  checked={formData.telehealthConsentAccepted}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telehealthConsentAccepted: e.target.checked }))}
+                  className="mt-0.5 flex-shrink-0 w-4 h-4 rounded accent-teal-400"
+                />
+                <span className="text-white text-xs font-semibold leading-snug group-hover:text-primary-teal transition-colors">
+                  I agree to all of the above and consent to this telehealth visit
+                </span>
+              </label>
+              <button
+                onClick={() => setStep(STEPS.length + 2)}
+                disabled={!formData.telehealthConsentAccepted}
+                className={`w-full font-bold py-2.5 rounded-lg transition-colors text-sm ${
+                  !formData.telehealthConsentAccepted
+                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    : 'bg-white text-black hover:bg-gray-200'
+                }`}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Past consent step summary */}
+        {step > STEPS.length + 1 && (
+          <div
+            onClick={() => setStep(STEPS.length + 1)}
+            className="w-full opacity-60 scale-95 bg-[#0d1218] border border-white/10 rounded-xl p-3 sm:p-4 flex justify-between items-center cursor-pointer hover:bg-white/5 transition-colors group"
+          >
+            <div className="flex-1 min-w-0 pr-2">
+              <h3 className="text-gray-400 text-xs sm:text-sm font-medium truncate">Telehealth Consent</h3>
+              <p className="text-primary-teal font-bold text-xs sm:text-sm">✓ Consent signed</p>
+            </div>
+            <Edit2 size={16} className="text-gray-500 group-hover:text-white transition-colors shrink-0" />
+          </div>
+        )}
+
         {/* Complete Booking Button - shown when all steps are done */}
-        {step === STEPS.length + 1 && isFormComplete() && (
+        {step === STEPS.length + 2 && isFormComplete() && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 mt-2">
             <div className="bg-[#0d1218] border border-white/5 rounded-xl p-4 sm:p-6 shadow-2xl">
               <div className="text-center mb-4">

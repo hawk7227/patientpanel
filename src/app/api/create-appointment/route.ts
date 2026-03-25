@@ -853,8 +853,9 @@ export async function POST(request: Request) {
       // Browser/device info
       // browser_info: data.browserInfo || null, // column not yet migrated — run add-browser-info-column.sql first
 
-      // Consent (will be set during consent flow)
-      consent_accepted: false,
+      // Consent — saved from patient's checkbox at booking
+      consent_accepted: data.consent_accepted === true,
+      consent_accepted_at: data.consent_accepted === true ? new Date().toISOString() : null,
 
       // Access token
       access_token: accessToken,
@@ -958,6 +959,22 @@ export async function POST(request: Request) {
       .insert(appointmentInsert)
       .select()
       .single();
+
+    // P5-Trigger1: Save booking consent record to patient_consents
+    if (!error && appointment && patientId && data.consent_accepted === true) {
+      supabase.from("patient_consents").insert({
+        patient_id: patientId,
+        appointment_id: appointment.id,
+        consent_type: "general_terms",
+        consent_text_version: "v1",
+        accepted: true,
+        accepted_at: new Date().toISOString(),
+        visit_type: data.visitType || null,
+        created_at: new Date().toISOString(),
+      }).then(({ error: ce }) => {
+        if (ce) console.error("[save-consent] booking insert error:", ce.message);
+      });
+    }
 
     if (error) {
       // If error is due to status constraint violation, provide helpful message
