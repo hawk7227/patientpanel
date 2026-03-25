@@ -543,7 +543,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
           </div>
 
           {/* Step content */}
-          <div style={{padding: step===1 && !isReturning ? "12px 4px 0" : "12px 16px 0"}} key={`step-${step}`}>
+          <div style={{padding: step===1 && !isReturning ? "12px 0 0" : "12px 16px 0"}} key={`step-${step}`}>
 
             {/* S1 NEW — Compact card: reason + onset + severity + urgent + goal */}
             {step===1 && !isReturning && (
@@ -551,7 +551,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 10px",display:"flex",flexDirection:"column",gap:9,width:"100%",maxWidth:"100%",boxSizing:"border-box",overflow:"hidden",margin:"0 8px",width:"calc(100% - 16px)"}}>
+                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,maxWidth:"calc(100% - 32px)",width:"calc(100% - 32px)",boxSizing:"border-box",overflow:"hidden",margin:"0 auto"}}>
 
                   {/* Row 1: Reason textarea — full width */}
                   <textarea
@@ -578,8 +578,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     {/* LEFT: Onset on top, Urgent Signs below */}
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,paddingLeft:4}}>Onset</div>
-                        <div style={{display:"flex",gap:4,flexWrap:"nowrap",paddingLeft:4}}>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Onset</div>
+                        <div style={{display:"flex",gap:4,flexWrap:"nowrap"}}>
                           {["1–3d","Longer"].map(o=>(
                             <button key={o} onClick={()=>setOnset(o)} style={{
                               fontSize:11,fontWeight:600,padding:"4px 10px",borderRadius:999,
@@ -594,8 +594,8 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         </div>
                       </div>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,paddingLeft:4}}>Urgent signs?</div>
-                        <div style={{display:"flex",gap:5,paddingLeft:4}}>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Urgent signs?</div>
+                        <div style={{display:"flex",gap:5}}>
                           {(["no","yes"] as string[]).map(v=>(
                             <button key={v} onClick={()=>setUrgentSign(v)} style={{
                               fontSize:12,fontWeight:600,padding:"6px 16px",borderRadius:999,
@@ -613,7 +613,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       <div>
                         <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Severity (1–3)</div>
-                        <div style={{display:"flex",gap:6,justifyContent:"center"}}>
+                        <div style={{display:"flex",gap:8,justifyContent:"center"}}>
                           {([{v:1,c:"#2d7a5f"},{v:2,c:"#b45309"},{v:3,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
                             <button key={v} onClick={()=>setSeverity(v)} style={{
                               fontSize:11,fontWeight:700,width:36,height:36,borderRadius:999,flexShrink:0,
