@@ -578,7 +578,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     {/* LEFT: Onset on top, Urgent Signs below */}
                     <div style={{display:"flex",flexDirection:"column",gap:10}}>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Onset</div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Onset</div>
                         <div style={{display:"flex",gap:4,flexWrap:"nowrap"}}>
                           {["1–3d","Longer"].map(o=>(
                             <button key={o} onClick={()=>setOnset(o)} style={{
@@ -594,7 +594,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         </div>
                       </div>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5}}>Urgent signs?</div>
+                        <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,textAlign:"center"}}>Urgent signs?</div>
                         <div style={{display:"flex",gap:5}}>
                           {(["no","yes"] as string[]).map(v=>(
                             <button key={v} onClick={()=>setUrgentSign(v)} style={{
@@ -630,7 +630,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                         <div style={{display:"flex",gap:4,justifyContent:"center"}}>
                           {([{v:"treatment",l:"Treatment"},{v:"refill",l:"Refill"},{v:"advice",l:"Advice",sm:true}] as {v:string,l:string,sm?:boolean}[]).map(({v,l,sm})=>(
                             <button key={v} onClick={()=>setVisitGoal(v)} style={{
-                              fontSize:sm?10:11,fontWeight:600,padding:sm?"4px 8px":"5px 9px",borderRadius:999,
+                              fontSize:10,fontWeight:600,padding:"3px 7px",borderRadius:999,
                               border:"2px solid #2d7a5f",
                               background: visitGoal===v ? "#2d7a5f" : "#fff",
                               color: visitGoal===v ? "#fff" : "#111",
@@ -678,7 +678,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     border:"2px solid #5ecba1",cursor:"pointer",
                     fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",
                     background:"linear-gradient(180deg,#4e9a76 0%,#3f8464 50%,#2f6f53 100%)",
-                    boxShadow:"0 3px 10px rgba(45,107,79,.4)",whiteSpace:"nowrap",
+                    boxShadow:"0 3px 10px rgba(45,107,79,.4)",whiteSpace:"nowrap",marginRight:12,
                   }}>Continue →</button>
                 </div>
 
