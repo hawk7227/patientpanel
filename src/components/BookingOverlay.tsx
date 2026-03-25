@@ -227,14 +227,32 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
   }, []);
   useEffect(() => {
     if(!isCalStep) return;
-    if(!calDay) fetchSlots(isoDate(today));
+    if(!calDay) {
+      // If today already has no slots left (after-hours), auto-start on next business day
+      const todaySlots = filterSlotsForDay(today, []);
+      if(todaySlots.length === 0) {
+        const nxt = new Date(today); nxt.setDate(today.getDate()+1);
+        while(nxt.getDay()===0||nxt.getDay()===6) nxt.setDate(nxt.getDate()+1);
+        fetchSlots(isoDate(nxt));
+      } else {
+        fetchSlots(isoDate(today));
+      }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCalStep]);
 
-  // When slots load, check if all are after-hours/weekend → fetch next business day
+  // When slots load: if today's filtered slots are empty → auto-jump to next business day
   useEffect(() => {
     if(!selectedDayObj || apiLoading || apiSlots.length===0) return;
-    const allBadged = slots.length>0 && slots.every(s=>getSlotBadge(s, selectedDayObj)!==null);
+    const filtered = filterSlotsForDay(selectedDayObj, apiSlots);
+    // Today selected but all slots are past → silently jump to next business day
+    if(isSameDay(selectedDayObj, today) && filtered.length === 0) {
+      const nxt = new Date(today); nxt.setDate(today.getDate()+1);
+      while(nxt.getDay()===0||nxt.getDay()===6) nxt.setDate(nxt.getDate()+1);
+      fetchSlots(isoDate(nxt));
+      return;
+    }
+    const allBadged = filtered.length>0 && filtered.every(s=>getSlotBadge(s, selectedDayObj)!==null);
     const isWeekend = selectedDayObj.getDay()===0 || selectedDayObj.getDay()===6;
     if(allBadged || isWeekend){
       fetchNextDay(selectedDayObj);
