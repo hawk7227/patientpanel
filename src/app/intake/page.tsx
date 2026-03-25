@@ -15,6 +15,12 @@ type FormData = {
   medicalIssuesDetails: string;
   medications: boolean | null;
   medicationsDetails: string;
+  // Clinical snapshot (step 4)
+  currentSymptoms: string;
+  onset: string;
+  severity: number | null;
+  trajectory: string;
+  redFlags: string[];
 };
 
 const STEPS = [
@@ -66,6 +72,11 @@ function IntakeForm() {
     medicalIssuesDetails: "",
     medications: null,
     medicationsDetails: "",
+    currentSymptoms: "",
+    onset: "",
+    severity: null,
+    trajectory: "",
+    redFlags: [],
   });
 
   // Get accessToken and email from URL params or sessionStorage
@@ -109,7 +120,7 @@ function IntakeForm() {
         setFormData((prev) => ({ ...prev, [detailKey]: "" }));
       }
       setTimeout(() => {
-        setStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+        setStep((prev) => Math.min(prev + 1, STEPS.length));
       }, 250);
     }
   };
@@ -129,8 +140,17 @@ function IntakeForm() {
     return true;
   };
 
+  const isClinicalStepValid = () => {
+    return (
+      formData.currentSymptoms.trim().length > 0 &&
+      formData.onset.length > 0 &&
+      formData.severity !== null &&
+      formData.trajectory.length > 0
+    );
+  };
+
   const isFormComplete = () => {
-    return STEPS.every((_, idx) => isStepValid(idx));
+    return STEPS.every((_, idx) => isStepValid(idx)) && isClinicalStepValid();
   };
 
   const nextStep = () => {
@@ -139,7 +159,7 @@ function IntakeForm() {
       if (previousStep !== null) {
         setStep(previousStep);
         setPreviousStep(null);
-      } else if (step < STEPS.length - 1) {
+      } else if (step < STEPS.length) {
         setStep(prev => prev + 1);
       }
     }
@@ -203,6 +223,11 @@ function IntakeForm() {
           ongoing_medical_issues_details: formData.medicalIssuesDetails,
           has_current_medications: formData.medications,
           current_medications_details: formData.medicationsDetails,
+          current_symptoms: formData.currentSymptoms,
+          onset: formData.onset,
+          severity: formData.severity,
+          ros_general: formData.trajectory,
+          red_flags: formData.redFlags.join(', '),
         }),
       });
 
@@ -229,6 +254,11 @@ function IntakeForm() {
             medicalIssuesDetails: formData.medicalIssuesDetails,
             medications: formData.medications,
             medicationsDetails: formData.medicationsDetails,
+            symptoms: formData.currentSymptoms,
+            onset: formData.onset,
+            severity: formData.severity,
+            ros_general: formData.trajectory,
+            red_flags: formData.redFlags.join(', '),
           },
         }),
       });
@@ -410,7 +440,7 @@ function IntakeForm() {
                             : "bg-white text-black hover:bg-gray-200"
                         }`}
                       >
-                        {step === STEPS.length - 1 ? "Continue" : "Next"}
+                        {step === STEPS.length ? "Continue" : "Next"}
                       </button>
                     </div>
                   )}
@@ -420,8 +450,149 @@ function IntakeForm() {
           );
         })}
 
+        {/* ── STEP 4: Clinical Snapshot ── */}
+        {step === STEPS.length && (
+          <div className="w-full animate-in slide-in-from-right-8 fade-in duration-500">
+            <div className="bg-[#0d1218] border border-white/5 rounded-xl p-4 sm:p-5 shadow-2xl space-y-4">
+              <h2 className="text-base sm:text-lg font-bold text-white">Current Visit Details</h2>
+
+              {/* Current symptoms */}
+              <div>
+                <label className="block text-[11px] text-gray-400 uppercase tracking-wide mb-1.5">What are you experiencing right now?</label>
+                <input
+                  type="text"
+                  value={formData.currentSymptoms}
+                  onChange={(e) => setFormData(prev => ({ ...prev, currentSymptoms: e.target.value }))}
+                  placeholder="Describe your current symptoms..."
+                  autoFocus
+                  className="w-full bg-[#11161c] border border-white/15 rounded-lg py-2.5 px-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-primary-teal focus:ring-1 focus:ring-primary-teal"
+                />
+              </div>
+
+              {/* Onset + Severity row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-gray-400 uppercase tracking-wide mb-1.5">When did this start?</label>
+                  <select
+                    value={formData.onset}
+                    onChange={(e) => setFormData(prev => ({ ...prev, onset: e.target.value }))}
+                    className="w-full bg-[#11161c] border border-white/15 rounded-lg py-2.5 px-3 text-sm text-white focus:outline-none focus:border-primary-teal appearance-none"
+                  >
+                    <option value="" disabled>Select...</option>
+                    <option value="today">Today</option>
+                    <option value="1-3 days ago">1–3 days ago</option>
+                    <option value="this week">This week</option>
+                    <option value="2 weeks ago">2 weeks ago</option>
+                    <option value="1 month ago">~1 month ago</option>
+                    <option value="over 1 month">Over 1 month</option>
+                    <option value="chronic/ongoing">Chronic / ongoing</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-gray-400 uppercase tracking-wide mb-1.5">Severity (1–10)</label>
+                  <div className="flex gap-1 flex-wrap">
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, severity: n }))}
+                        className={`w-[10%] min-w-[20px] aspect-square rounded text-[11px] font-bold border transition-all ${
+                          formData.severity === n
+                            ? n <= 3 ? 'bg-green-500/80 border-green-400 text-white'
+                              : n <= 6 ? 'bg-yellow-500/80 border-yellow-400 text-black'
+                              : 'bg-red-500/80 border-red-400 text-white'
+                            : 'border-white/15 text-gray-400 hover:border-white/30'
+                        }`}
+                      >{n}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Trajectory */}
+              <div>
+                <label className="block text-[11px] text-gray-400 uppercase tracking-wide mb-1.5">Is this getting...?</label>
+                <div className="flex gap-2">
+                  {['Getting better', 'Staying the same', 'Getting worse'].map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, trajectory: opt }))}
+                      className={`flex-1 py-2 rounded-lg text-[11px] font-bold border transition-all ${
+                        formData.trajectory === opt
+                          ? opt === 'Getting better' ? 'bg-green-500/20 border-green-400 text-green-300'
+                            : opt === 'Getting worse' ? 'bg-red-500/20 border-red-400 text-red-300'
+                            : 'bg-yellow-500/20 border-yellow-400 text-yellow-300'
+                          : 'border-white/15 text-gray-400 hover:border-white/30'
+                      }`}
+                    >{opt}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Red flags */}
+              <div>
+                <label className="block text-[11px] text-gray-400 uppercase tracking-wide mb-1.5">Any of these? <span className="text-red-400 font-bold">(select all that apply)</span></label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {['Chest pain','Difficulty breathing','Severe headache','Fainting / loss of consciousness','Numbness or weakness','High fever (103°F+)'].map(flag => {
+                    const checked = formData.redFlags.includes(flag);
+                    return (
+                      <button
+                        key={flag}
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          redFlags: checked
+                            ? prev.redFlags.filter(f => f !== flag)
+                            : [...prev.redFlags, flag]
+                        }))}
+                        className={`text-left px-2.5 py-1.5 rounded-lg text-[11px] border transition-all ${
+                          checked
+                            ? 'bg-red-500/20 border-red-400/60 text-red-300 font-semibold'
+                            : 'border-white/10 text-gray-500 hover:border-white/20 hover:text-gray-400'
+                        }`}
+                      >
+                        {checked ? '✓ ' : ''}{flag}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-gray-600 mt-1.5">If experiencing a medical emergency, call 911 immediately.</p>
+              </div>
+
+              <button
+                onClick={() => setStep(STEPS.length + 1)}
+                disabled={!isClinicalStepValid()}
+                className={`w-full font-bold py-2.5 rounded-lg transition-colors text-sm ${
+                  !isClinicalStepValid()
+                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    : 'bg-white text-black hover:bg-gray-200'
+                }`}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Past clinical step summary */}
+        {step > STEPS.length && (
+          <div
+            onClick={() => setStep(STEPS.length)}
+            className="w-full opacity-60 scale-95 bg-[#0d1218] border border-white/10 rounded-xl p-3 sm:p-4 flex justify-between items-center cursor-pointer hover:bg-white/5 transition-colors group"
+          >
+            <div className="flex-1 min-w-0 pr-2">
+              <h3 className="text-gray-400 text-xs sm:text-sm font-medium truncate">Current Visit Details</h3>
+              <p className="text-primary-teal font-bold text-xs sm:text-sm truncate">
+                {formData.currentSymptoms.substring(0, 40)}{formData.currentSymptoms.length > 40 ? '...' : ''} · {formData.onset} · {formData.severity}/10
+              </p>
+            </div>
+            <Edit2 size={16} className="text-gray-500 group-hover:text-white transition-colors shrink-0" />
+          </div>
+        )}
+
         {/* Complete Booking Button - shown when all steps are done */}
-        {step === STEPS.length - 1 && isStepValid(step) && (
+        {step === STEPS.length + 1 && isFormComplete() && (
           <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 mt-2">
             <div className="bg-[#0d1218] border border-white/5 rounded-xl p-4 sm:p-6 shadow-2xl">
               <div className="text-center mb-4">
