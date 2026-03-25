@@ -31,7 +31,13 @@ export async function GET(request: Request) {
         dailyco_meeting_url,
         dailyco_room_name,
         dailyco_owner_token,
-        dailyco_patient_token
+        dailyco_patient_token,
+        intake_completed,
+        intake_completed_at,
+        preferred_pharmacy,
+        pharmacy_address,
+        pharmacy_phone,
+        chief_complaint
       `)
       .eq("access_token", token)
       .single();

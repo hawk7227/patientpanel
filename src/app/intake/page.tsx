@@ -294,18 +294,24 @@ function IntakeForm() {
           </div>
         </div>
 
-        {/* Required Notice */}
-        <div className="w-full bg-[#0d1218] border border-primary-orange/30 rounded-xl p-3 sm:p-4 mb-2">
-          <div className="text-center">
-            <div className="text-red-500 font-bold text-xs sm:text-sm mb-1 uppercase tracking-wider">
-              Required Before Visit
+        {/* Processing Gate Notice */}
+        <div className="w-full bg-[#0d1218] border border-orange-500/40 rounded-xl overflow-hidden mb-2">
+          <div className="bg-orange-500/10 border-b border-orange-500/20 px-3 sm:px-4 py-2 flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1L5 5.5M5 7.5V8" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
-            <div className="text-white font-bold text-base sm:text-lg">
-              Complete Your Medical Intake
-            </div>
-            <p className="text-gray-400 text-xs sm:text-sm mt-1">
-              Provide these details so we can prepare the provider before your visit
+            <span className="text-orange-400 font-black text-[11px] uppercase tracking-wider">Processing Gate — Action Required</span>
+          </div>
+          <div className="px-3 sm:px-4 py-3">
+            <p className="text-white font-bold text-sm sm:text-base mb-1">Complete Your Medical Intake</p>
+            <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+              Your request is currently <span className="text-orange-400 font-semibold">on hold</span>. Your provider needs this information to safely review and treat your case.
             </p>
+            <div className="mt-2.5 p-2.5 rounded-lg bg-red-500/8 border border-red-500/20">
+              <p className="text-red-300 text-[11px] font-medium leading-snug">
+                ⚠️ Incomplete intake may result in your visit request being marked incomplete — which risks your booking fee and delays your care. This takes less than 2 minutes.
+              </p>
+            </div>
           </div>
         </div>
         
