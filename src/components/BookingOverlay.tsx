@@ -551,7 +551,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
-                <div style={{background:"#f4f9f6",border:"1.5px solid #b2d4c5",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,width:"100%",boxSizing:"border-box",overflow:"hidden"}}>
+                <div style={{background:"#f4f9f6",border:"2.5px solid #2d7a5f",borderRadius:13,padding:"10px 12px",display:"flex",flexDirection:"column",gap:9,width:"100%",boxSizing:"border-box",overflow:"hidden"}}>
 
                   {/* Row 1: Reason textarea — full width */}
                   <textarea
@@ -563,7 +563,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                     className="booking-textarea"
                     style={{
                       width:"100%",height:88,background:"#fff",
-                      border: pulseSymptoms ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #2d7a5f" : "1.5px solid #a8cfc0",
+                      border: pulseSymptoms ? "2px solid rgba(249,115,22,.8)" : symptoms.trim().length>=3 ? "2px solid #2d7a5f" : "1.5px solid #5aab8a",
                       borderRadius:8,padding:"7px 10px",color:"#111",fontSize:12,
                       resize:"none",outline:"none",
                       fontFamily:"'Avenir Next',Inter,-apple-system,sans-serif",lineHeight:1.5,
