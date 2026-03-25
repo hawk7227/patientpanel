@@ -547,7 +547,7 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
 
             {/* S1 NEW — Compact card: reason + onset + severity + urgent + goal */}
             {step===1 && !isReturning && (
-              <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:8,animation:"stepFade .2s ease",maxWidth:480,margin:"0 auto",width:"100%"}}>
                 <input ref={autofillNameRef} type="text" autoComplete="given-name" name="given-name"
                   tabIndex={-1} aria-hidden="true" style={{position:"absolute",opacity:0,height:0,width:0,pointerEvents:"none"}} />
 
@@ -586,10 +586,10 @@ export default function BookingOverlay({ visitType, onClose }: BookingOverlayPro
                       </div>
                       <div>
                         <div style={{fontSize:9,fontWeight:700,color:"#2d7a5f",letterSpacing:".05em",textTransform:"uppercase",marginBottom:5,display:"flex",justifyContent:"center"}}>Severity (1–5)</div>
-                        <div style={{display:"flex",gap:3}}>
+                        <div style={{display:"flex",gap:4,justifyContent:"center"}}>
                           {([{v:1,c:"#2d7a5f"},{v:2,c:"#2d7a5f"},{v:3,c:"#b45309"},{v:4,c:"#b45309"},{v:5,c:"#b91c1c"}] as {v:number,c:string}[]).map(({v,c})=>(
                             <button key={v} onClick={()=>setSeverity(v)} style={{
-                              fontSize:11,fontWeight:700,flex:1,padding:"4px 0",borderRadius:999,
+                              fontSize:11,fontWeight:700,width:36,height:36,borderRadius:999,flexShrink:0,
                               border:"2px solid #2d7a5f",
                               background: severity===v ? c : "#fff",
                               color: severity===v ? "#fff" : "#111",
