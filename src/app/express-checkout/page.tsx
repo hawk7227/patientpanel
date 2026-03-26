@@ -1778,8 +1778,16 @@ export default function ExpressCheckoutPage() {
       router.push("/success");
       return;
     }
-    // New patients: show post-payment intake form
-    setIntakePhase(true);
+    // New patients: skip intake gate — route directly to confirmation
+    const stored = sessionStorage.getItem("appointmentData");
+    if (stored) {
+      try {
+        const data = JSON.parse(stored);
+        if (data.accessToken) { clearAnswers(); router.push(`/appointment/${data.accessToken}`); return; }
+      } catch {}
+    }
+    clearAnswers();
+    router.push("/success");
   };
 
 
