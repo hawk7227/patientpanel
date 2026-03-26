@@ -2,7 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { Check, Shield, Video, Phone, Clock, Pill, Calendar } from "lucide-react";
+import { Check, Shield, Video, Phone, Clock, Lock, Calendar, AlertTriangle, ChevronRight, Pill } from "lucide-react";
+import PatientVideoEmbed from "@/components/PatientVideoEmbed";
 
 interface AppointmentData {
   id: string;
@@ -18,6 +19,7 @@ interface AppointmentData {
   patient_phone: string | null;
   doctor_id: string;
   intake_completed: boolean | null;
+  intake_completed_at: string | null;
   preferred_pharmacy: string | null;
   pharmacy_address: string | null;
   pharmacy_phone: string | null;
@@ -95,230 +97,294 @@ function AppointmentContent() {
       });
       const parts = fmt.formatToParts(d);
       const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
-      return `${get("weekday")}, ${get("month")} ${get("day")} · ${get("hour")}:${get("minute")} ${get("dayPeriod")} AZ`;
+      return `${get("weekday")}, ${get("month")} ${get("day")} · ${get("hour")}:${get("minute")} ${get("dayPeriod")}`;
     } catch { return "Pending"; }
   };
 
-  const getVisitLabel = (vt: string) => {
-    if (vt === "video") return "Video Visit";
-    if (vt === "phone") return "Phone Visit";
-    if (vt === "refill") return "Rx Refill";
-    if (vt === "instant") return "Instant Care";
-    return "Async Visit";
-  };
-
-  const getVisitColor = (vt: string) => {
-    if (vt === "video") return "#3b82f6";
-    if (vt === "phone") return "#a855f7";
-    if (vt === "refill") return "#f59e0b";
-    return "#00cba9";
-  };
-
-  const getVisitIcon = (vt: string) => {
-    if (vt === "video") return <Video size={14} />;
-    if (vt === "phone") return <Phone size={14} />;
-    return <Clock size={14} />;
-  };
-
-  const getCTA = (vt: string) => {
-    if (vt === "video") return "Click Here to Start Visit";
-    if (vt === "phone") return "View Appointment Details";
-    if (vt === "refill") return "Track Your Rx Status";
-    return "Track Your Visit Status";
-  };
-
-  const getVisitLink = () => {
-    if (!appointment) return "#";
-    if (appointment.dailyco_meeting_url) {
-      const t = appointment.dailyco_patient_token;
-      const sep = appointment.dailyco_meeting_url.includes("?") ? "&" : "?";
-      return t ? `${appointment.dailyco_meeting_url}${sep}t=${t}` : appointment.dailyco_meeting_url;
-    }
-    return "#";
-  };
-
   if (loading) return (
-    <div style={{ minHeight:"100vh",background:"#0a0f1a",display:"flex",alignItems:"center",justifyContent:"center" }}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ textAlign:"center" }}>
-        <div style={{ width:48,height:48,border:"2px solid #00cba9",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 1s linear infinite",margin:"0 auto 16px" }} />
-        <p style={{ color:"#64748b",fontSize:14,fontFamily:"system-ui",margin:0 }}>Loading appointment...</p>
+    <div className="fixed inset-0 text-white font-sans flex items-center justify-center" style={{ background: "linear-gradient(168deg,#091211 0%,#080c10 40%,#0a0e14 100%)" }}>
+      <div className="text-center">
+        <div className="w-12 h-12 border-2 border-[#2dd4a0] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-400 text-sm">Loading appointment...</p>
       </div>
     </div>
   );
 
   if (error || !appointment) return (
-    <div style={{ minHeight:"100vh",background:"#0a0f1a",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 16px" }}>
-      <div style={{ textAlign:"center",maxWidth:360 }}>
-        <div style={{ fontSize:40,marginBottom:16 }}>⚠️</div>
-        <h2 style={{ color:"#fff",fontSize:18,fontWeight:700,marginBottom:8,fontFamily:"system-ui",margin:"0 0 8px" }}>Appointment Not Found</h2>
-        <p style={{ color:"#64748b",fontSize:14,marginBottom:24,fontFamily:"system-ui",margin:"0 0 24px" }}>{error || "This link may have expired."}</p>
-        <a href="/" style={{ display:"inline-block",background:"#00cba9",color:"#000",fontWeight:700,padding:"12px 32px",borderRadius:12,textDecoration:"none",fontFamily:"system-ui" }}>Return Home</a>
+    <div className="fixed inset-0 text-white font-sans flex items-center justify-center px-4" style={{ background: "linear-gradient(168deg,#091211 0%,#080c10 40%,#0a0e14 100%)" }}>
+      <div className="text-center max-w-sm">
+        <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4"><span className="text-2xl">⚠️</span></div>
+        <h2 className="text-lg font-bold mb-2">Appointment Not Found</h2>
+        <p className="text-gray-400 text-sm mb-6">{error || "This link may have expired."}</p>
+        <a href="/" className="inline-block bg-[#2dd4a0] text-black font-bold py-3 px-8 rounded-xl text-sm">Return Home</a>
       </div>
     </div>
   );
 
-  void router;
-  const dName = appointment.doctor
-    ? `${appointment.doctor.first_name} ${appointment.doctor.last_name}, ${appointment.doctor.specialty || "FNP-C"}`
-    : "LaMonica A. Hodges, Family Medicine";
   const pName = `${appointment.patient_first_name} ${appointment.patient_last_name}`;
-  const vt = appointment.visit_type;
-  const isLive = vt === "video" || vt === "phone";
-  const visitColor = getVisitColor(vt);
+  const dName = appointment.doctor ? `${appointment.doctor.first_name} ${appointment.doctor.last_name}` : "Your Provider";
+  const dTitle = appointment.doctor?.specialty || "Healthcare Provider";
+  const isVid = appointment.visit_type === "video";
+  const isPh = appointment.visit_type === "phone";
+  const isAs = ["instant","refill","async"].includes(appointment.visit_type);
+  const needsIntake = !appointment.intake_completed;
+
+  // Visit-type specific messaging
+  const visitLabel = isVid ? "Video Visit" : isPh ? "Phone Call" : "Async Review";
+  const intakeUrgencyMsg = isVid
+    ? "Your video session cannot start until medical intake is complete. The provider needs this information before connecting."
+    : isPh
+    ? "Your phone call will not be initiated until medical intake is complete."
+    : "Incomplete intake could result in monetary loss — your provider cannot safely review or treat your case without your medical history.";
+
+  const videoAppointment = {
+    id: appointment.id,
+    dailyco_meeting_url: appointment.dailyco_meeting_url,
+    dailyco_room_name: appointment.dailyco_room_name,
+    dailyco_owner_token: appointment.dailyco_owner_token,
+    dailyco_patient_token: appointment.dailyco_patient_token,
+    requested_date_time: appointment.requested_date_time,
+  };
+
+  const buildFallbackVideoUrl = (): string | null => {
+    if (!appointment.dailyco_meeting_url) return null;
+    const patientToken = appointment.dailyco_patient_token;
+    if (patientToken?.trim()) {
+      const sep = appointment.dailyco_meeting_url.includes("?") ? "&" : "?";
+      return `${appointment.dailyco_meeting_url}${sep}t=${patientToken}`;
+    }
+    return appointment.dailyco_meeting_url;
+  };
+  const fallbackVideoUrl = buildFallbackVideoUrl();
 
   return (
-    <div style={{ minHeight:"100vh",background:"#0a0f1a",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif",padding:"32px 16px" }}>
+    <div className="fixed inset-0 text-white font-sans overflow-hidden" style={{ background: "linear-gradient(168deg,#091211 0%,#080c10 40%,#0a0e14 100%)" }}>
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg) } }
-        @keyframes countPulse { 0%,100%{opacity:.85} 50%{opacity:1} }
-        @keyframes confirmGlow { 0%,100%{box-shadow:0 0 0 0 rgba(0,203,169,0)} 50%{box-shadow:0 0 24px 6px rgba(0,203,169,0.12)} }
+        @keyframes countPulse { 0%,100%{opacity:.85}50%{opacity:1} }
+        @keyframes gateGlow { 0%,100%{box-shadow:0 0 0 0 rgba(251,146,60,.0)}50%{box-shadow:0 0 20px 4px rgba(251,146,60,.18)} }
       `}</style>
 
-      <div style={{ maxWidth:600,margin:"0 auto" }}>
+      <div className="h-full max-w-[430px] mx-auto flex flex-col" style={{ paddingTop:"env(safe-area-inset-top,8px)", paddingBottom:"env(safe-area-inset-bottom,8px)", paddingLeft:16, paddingRight:16 }}>
 
-        {/* Medazon wordmark */}
-        <div style={{ textAlign:"center",marginBottom:20 }}>
-          <p style={{ margin:0,color:"#00cba9",fontSize:11,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase" }}>Medazon Health</p>
+        {/* HEADER */}
+        <div className="flex items-center justify-between pt-1 pb-1">
+          <div className="flex items-center gap-1">
+            <span className="text-white font-black text-[15px] tracking-tight">MEDAZON</span>
+            <span className="text-[#2dd4a0] font-black text-[15px] tracking-tight">HEALTH</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Shield size={12} className="text-[#2dd4a0]" />
+            <span className="text-[9px] text-[#2dd4a0] font-bold">CONFIRMED</span>
+          </div>
         </div>
 
-        {/* Main dark card */}
-        <div style={{ background:"#0d1628",border:"1px solid #1e3a5f",borderRadius:16,overflow:"hidden",animation:"confirmGlow 4s ease-in-out infinite" }}>
-
-          {/* CONFIRMED header */}
-          <div style={{ padding:"36px 32px 24px",textAlign:"center",borderBottom:"1px solid #1e293b" }}>
-            <div style={{ width:56,height:56,borderRadius:"50%",background:"rgba(0,203,169,0.15)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",border:"1.5px solid rgba(0,203,169,0.3)" }}>
-              <Check size={28} color="#00cba9" />
+        {/* CONFIRMED BANNER */}
+        <div className="rounded-xl p-3 mb-2 border border-green-500/25" style={{ background:"rgba(34,197,94,.06)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+              <Check size={20} className="text-green-400" />
             </div>
-            <h1 style={{ margin:"0 0 10px",color:"#00cba9",fontSize:28,fontWeight:800,letterSpacing:"-0.01em" }}>
-              Appointment Confirmed
-            </h1>
-            <p style={{ margin:0,color:"#cbd5e1",fontSize:15,lineHeight:1.5 }}>
-              Dear {pName.toUpperCase()}, Your {getVisitLabel(vt)} has been scheduled.
-            </p>
-          </div>
-
-          {/* Date & Time */}
-          <div style={{ padding:"24px 32px",textAlign:"center",borderBottom:"1px solid #1e293b" }}>
-            <p style={{ margin:"0 0 8px",color:"#64748b",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em" }}>Date &amp; Time</p>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
-              <Calendar size={16} color="#00cba9" />
-              <p style={{ margin:0,color:"#fff",fontSize:20,fontWeight:700 }}>{formatDT(appointment.requested_date_time)}</p>
+            <div>
+              <p className="text-green-400 font-black text-[14px]">Appointment Confirmed</p>
+              <p className="text-gray-400 text-[10px]">Hi {appointment.patient_first_name}, your {visitLabel} is all set.</p>
             </div>
           </div>
+        </div>
 
-          {/* Provider information */}
-          <div style={{ padding:"24px 32px",borderBottom:"1px solid #1e293b" }}>
-            <p style={{ margin:"0 0 14px",color:"#64748b",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",textAlign:"center" }}>Provider Information</p>
-            <div style={{ display:"flex",alignItems:"center",gap:16,background:"#162032",border:"1px solid #1e3a5f",borderRadius:12,padding:"16px 20px" }}>
-              <div style={{ width:56,height:56,borderRadius:"50%",border:"2px solid #00cba9",overflow:"hidden",flexShrink:0 }}>
-                <img
-                  src="/assets/provider-lamonica.png"
-                  alt="Provider"
-                  style={{ width:"100%",height:"100%",objectFit:"cover",objectPosition:"top" }}
-                  onError={(e) => { (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent(`<svg width="56" height="56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" fill="#00cba9"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#000" font-size="22" font-weight="bold">LH</text></svg>`)}`; }}
+        {/* SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-2 pb-1" style={{ scrollbarWidth:"none" }}>
+
+          {/* DETAILS CARD */}
+          <div className="rounded-xl border border-white/10 overflow-hidden" style={{ background:"rgba(255,255,255,.02)" }}>
+            {/* Doctor */}
+            <div className="flex items-center gap-3 px-3 py-2.5 border-b border-white/5">
+              <div className="w-10 h-10 rounded-full border-2 border-[#2dd4a0] overflow-hidden flex-shrink-0" style={{ boxShadow:"0 0 10px rgba(45,212,160,.2)" }}>
+                <img src="/assets/provider-lamonica.png" alt={dName} className="w-full h-full object-cover object-top"
+                  onError={(e) => { (e.target as HTMLImageElement).src = `data:image/svg+xml,${encodeURIComponent(`<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" fill="#2dd4a0"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#000" font-size="24" font-weight="bold">${dName.charAt(0)}</text></svg>`)}`; }}
                 />
               </div>
-              <div style={{ flex:1,minWidth:0 }}>
-                <p style={{ margin:"0 0 4px",color:"#fff",fontSize:15,fontWeight:700 }}>Medazon Health AZ — {dName}</p>
-                <p style={{ margin:"0 0 8px",color:"#94a3b8",fontSize:12 }}>Board-Certified Family Nurse Practitioner</p>
-                <span style={{ display:"inline-flex",alignItems:"center",gap:6,background:`${visitColor}22`,border:`1px solid ${visitColor}55`,borderRadius:6,color:visitColor,fontSize:12,fontWeight:700,padding:"3px 12px",letterSpacing:"0.04em" }}>
-                  {getVisitIcon(vt)} {getVisitLabel(vt)}
-                </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-[13px]">{dName}</p>
+                <p className="text-gray-500 text-[10px]">{dTitle} · Board-Certified</p>
               </div>
+            </div>
+
+            {/* Visit type */}
+            <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+              <span className="text-gray-500 text-[10px]">Visit Type</span>
+              <span className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: isVid?"#3b82f6":isPh?"#a855f7":"#2dd4a0" }}>
+                {isVid?<><Video size={12}/>Video Call</>:isPh?<><Phone size={12}/>Phone Call</>:<><Clock size={12}/>Async Review</>}
+              </span>
+            </div>
+
+            {/* Date & Time */}
+            <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+              <span className="text-gray-500 text-[10px]">Date &amp; Time</span>
+              <span className="text-white text-[11px] font-semibold flex items-center gap-1.5">
+                <Calendar size={11} className="text-[#2dd4a0]" />{formatDT(appointment.requested_date_time)}
+              </span>
+            </div>
+
+            {/* Patient */}
+            <div className="px-3 py-2 flex items-center justify-between border-b border-white/5">
+              <span className="text-gray-500 text-[10px]">Patient</span>
+              <span className="text-white text-[11px] font-medium">{pName}</span>
+            </div>
+
+            {/* Pharmacy */}
+            {appointment.preferred_pharmacy && (
+              <div className="px-3 py-2 border-b border-white/5">
+                <div className="flex items-start gap-2">
+                  <Pill size={11} className="text-[#2dd4a0] mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500 mb-0.5">Pharmacy</p>
+                    <p className="text-white text-[11px] font-medium truncate">{appointment.preferred_pharmacy}</p>
+                    {appointment.pharmacy_address && <p className="text-gray-500 text-[10px] truncate">{appointment.pharmacy_address}</p>}
+                    {appointment.pharmacy_phone && <p className="text-gray-500 text-[10px]">{appointment.pharmacy_phone}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Chief complaint — shown as Private to patient, provider sees full detail */}
+            <div className="px-3 py-2">
+              <p className="text-[10px] text-gray-500 mb-0.5">Reason for Visit</p>
+              <p className="text-gray-400 text-[11px] italic">Private — Provider receives full details</p>
             </div>
           </div>
 
-          {/* Pharmacy */}
-          {appointment.preferred_pharmacy && (
-            <div style={{ padding:"20px 32px",borderBottom:"1px solid #1e293b" }}>
-              <div style={{ display:"flex",alignItems:"flex-start",gap:10 }}>
-                <Pill size={14} color="#00cba9" style={{ marginTop:2,flexShrink:0 }} />
+          {/* ═══════════════════════════════════════════════
+              INTAKE GATE — required before visit proceeds
+              ═══════════════════════════════════════════════ */}
+          {needsIntake ? (
+            <div className="rounded-xl border overflow-hidden" style={{ borderColor:"rgba(251,146,60,.4)", background:"rgba(251,146,60,.04)", animation:"gateGlow 3s ease-in-out infinite" }}>
+              {/* Gate header */}
+              <div className="px-3 py-2.5 border-b flex items-center gap-2" style={{ borderColor:"rgba(251,146,60,.2)", background:"rgba(251,146,60,.08)" }}>
+                <div className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle size={12} className="text-orange-400" />
+                </div>
                 <div>
-                  <p style={{ margin:"0 0 2px",color:"#64748b",fontSize:10,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:700 }}>Pharmacy</p>
-                  <p style={{ margin:"0 0 2px",color:"#fff",fontSize:13,fontWeight:600 }}>{appointment.preferred_pharmacy}</p>
-                  {appointment.pharmacy_address && <p style={{ margin:"0 0 2px",color:"#64748b",fontSize:11 }}>{appointment.pharmacy_address}</p>}
-                  {appointment.pharmacy_phone && <p style={{ margin:0,color:"#64748b",fontSize:11 }}>{appointment.pharmacy_phone}</p>}
+                  <p className="text-orange-400 font-black text-[12px] uppercase tracking-wide">Action Required</p>
+                  <p className="text-orange-300/70 text-[9px]">Complete medical intake to proceed</p>
                 </div>
+              </div>
+
+              {/* Gate body */}
+              <div className="px-3 py-3 space-y-2">
+                <p className="text-white text-[12px] font-semibold leading-snug">
+                  Your {visitLabel} is pending your medical intake.
+                </p>
+                <p className="text-gray-400 text-[11px] leading-relaxed">
+                  {intakeUrgencyMsg}
+                </p>
+                <div className="rounded-lg p-2.5 border" style={{ background:"rgba(239,68,68,.06)", borderColor:"rgba(239,68,68,.2)" }}>
+                  <p className="text-red-300 text-[10px] font-semibold">
+                    ⚠️ Risk: Incomplete intake could result in monetary loss. Without your medical history, your provider cannot safely treat you — incomplete requests may result in visit cancellation with no refund once a provider has reviewed your case.
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push(`/intake?accessToken=${token}&visitType=${appointment.visit_type}`)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-black text-[13px] text-white transition-all active:scale-95"
+                  style={{ background:"linear-gradient(135deg,#f97316,#ea580c)", boxShadow:"0 4px 16px rgba(249,115,22,.35)" }}
+                >
+                  Complete Medical Intake Now
+                  <ChevronRight size={16} />
+                </button>
+                <p className="text-gray-600 text-[9px] text-center">Takes less than 2 minutes · Encrypted · HIPAA compliant</p>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-green-500/20 p-2.5 flex items-center gap-2" style={{ background:"rgba(34,197,94,.05)" }}>
+              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                <Check size={12} className="text-green-400" />
+              </div>
+              <div>
+                <p className="text-green-400 font-bold text-[11px]">Medical Intake Complete</p>
+                <p className="text-gray-500 text-[9px]">Your provider has your medical history.</p>
               </div>
             </div>
           )}
 
-          {/* Countdown timer */}
-          {timeRemaining && !timeRemaining.isPast && (
-            <div style={{ padding:"28px 32px",borderBottom:"1px solid #1e293b",textAlign:"center" }}>
-              <p style={{ margin:"0 0 16px",color:"#64748b",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em" }}>Time Until Your Appointment</p>
-              <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:32 }}>
+          {/* COUNTDOWN — always shows on page load */}
+          {timeRemaining && !timeRemaining.isPast && !isAs && (
+            <div className="rounded-xl border border-[#2dd4a0]/15 p-3" style={{ background:"rgba(45,212,160,.03)" }}>
+              <p className="text-gray-500 text-[9px] font-semibold uppercase tracking-wider text-center mb-2">Time Until Your Visit</p>
+              <div className="flex items-center justify-center gap-4">
                 {timeRemaining.days > 0 && (
-                  <div style={{ textAlign:"center" }}>
-                    <div style={{ fontSize:48,fontWeight:800,color:"#00cba9",lineHeight:1,animation:"countPulse 2s ease-in-out infinite" }}>{String(timeRemaining.days).padStart(2,"0")}</div>
-                    <div style={{ fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700,marginTop:6 }}>Days</div>
+                  <div className="text-center">
+                    <div className="text-[28px] font-black text-[#2dd4a0]" style={{ animation:"countPulse 2s ease-in-out infinite" }}>{String(timeRemaining.days).padStart(2,"0")}</div>
+                    <div className="text-[8px] text-gray-500 uppercase font-bold">Days</div>
                   </div>
                 )}
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:48,fontWeight:800,color:"#00cba9",lineHeight:1,animation:"countPulse 2s ease-in-out infinite" }}>{String(timeRemaining.hours).padStart(2,"0")}</div>
-                  <div style={{ fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700,marginTop:6 }}>Hours</div>
+                <div className="text-center">
+                  <div className="text-[28px] font-black text-[#2dd4a0]" style={{ animation:"countPulse 2s ease-in-out infinite" }}>{String(timeRemaining.hours).padStart(2,"0")}</div>
+                  <div className="text-[8px] text-gray-500 uppercase font-bold">Hours</div>
                 </div>
-                <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:48,fontWeight:800,color:"#00cba9",lineHeight:1,animation:"countPulse 2s ease-in-out infinite" }}>{String(timeRemaining.minutes).padStart(2,"0")}</div>
-                  <div style={{ fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700,marginTop:6 }}>Minutes</div>
+                <div className="text-center">
+                  <div className="text-[28px] font-black text-[#2dd4a0]" style={{ animation:"countPulse 2s ease-in-out infinite" }}>{String(timeRemaining.minutes).padStart(2,"0")}</div>
+                  <div className="text-[8px] text-gray-500 uppercase font-bold">Min</div>
                 </div>
-                {timeRemaining.days === 0 && (
-                  <div style={{ textAlign:"center" }}>
-                    <div style={{ fontSize:48,fontWeight:800,color:"#475569",lineHeight:1 }}>{String(timeRemaining.seconds).padStart(2,"0")}</div>
-                    <div style={{ fontSize:10,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700,marginTop:6 }}>Sec</div>
-                  </div>
-                )}
+                <div className="text-center">
+                  <div className="text-[28px] font-black text-gray-500">{String(timeRemaining.seconds).padStart(2,"0")}</div>
+                  <div className="text-[8px] text-gray-500 uppercase font-bold">Sec</div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Async message */}
-          {!isLive && (
-            <div style={{ padding:"20px 32px",borderBottom:"1px solid #1e293b",textAlign:"center" }}>
-              <p style={{ margin:0,color:"#94a3b8",fontSize:14,lineHeight:1.7 }}>
+          {/* ASYNC message — always shows for async visits */}
+          {isAs && (
+            <div className="rounded-xl border border-[#2dd4a0]/15 p-3" style={{ background:"rgba(45,212,160,.03)" }}>
+              <p className="text-[11px] text-gray-300 text-center leading-relaxed">
                 Your provider is reviewing your information and will respond within{" "}
-                <span style={{ color:"#00cba9",fontWeight:700 }}>1–2 hours</span> during business hours.
+                <span className="text-[#2dd4a0] font-bold">1–2 hours</span> during business hours.
                 You&apos;ll receive a notification when ready.
               </p>
             </div>
           )}
 
-          {/* Orange CTA */}
-          <div style={{ padding:"28px 32px 32px",textAlign:"center" }}>
-            {isLive ? (
-              <a
-                href={getVisitLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display:"block",background:"#f97316",color:"#fff",fontSize:16,fontWeight:800,textDecoration:"none",padding:"16px 48px",borderRadius:12,letterSpacing:"0.01em",boxShadow:"0 4px 20px rgba(249,115,22,0.35)" }}
-              >
-                {getCTA(vt)}
-              </a>
-            ) : (
-              <div style={{ display:"block",background:"#f97316",color:"#fff",fontSize:16,fontWeight:800,padding:"16px 48px",borderRadius:12,letterSpacing:"0.01em",boxShadow:"0 4px 20px rgba(249,115,22,0.35)" }}>
-                {getCTA(vt)}
-              </div>
-            )}
-            <p style={{ margin:"12px 0 0",color:"#64748b",fontSize:12 }}>We also sent it to you by SMS/E-mail</p>
-            <div style={{ marginTop:16,display:"flex",alignItems:"center",justifyContent:"center",gap:6 }}>
-              <Shield size={12} color="#2dd4a0" />
-              <span style={{ color:"#475569",fontSize:11 }}>HIPAA Compliant · Encrypted · Board-Certified Provider</span>
+          {/* VISIT READY — shows when time has passed and intake complete */}
+          {(isVid||isPh) && timeRemaining?.isPast && !needsIntake && (
+            <div className="rounded-xl border border-green-500/30 p-3 text-center" style={{ background:"rgba(34,197,94,.08)" }}>
+              <p className="text-green-400 font-bold text-[12px]">🟢 Your visit is ready to start</p>
             </div>
-          </div>
+          )}
 
+          {/* LOCKED VIDEO NOTICE */}
+          {needsIntake && (isVid||isPh) && (
+            <div className="rounded-xl border border-white/5 p-3 flex items-center gap-2" style={{ background:"rgba(255,255,255,.02)" }}>
+              <Lock size={14} className="text-gray-600 flex-shrink-0" />
+              <p className="text-gray-600 text-[10px]">
+                {isVid ? "Video session" : "Phone call"} link unlocks after intake is completed above.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Legal footer */}
-        <div style={{ marginTop:20,textAlign:"center" }}>
-          <p style={{ margin:"0 0 4px",color:"#334155",fontSize:11,lineHeight:1.7 }}>
-            Your $1.89 booking fee is non-refundable and reserves your provider&apos;s time slot. Your visit fee is held on your card and collected upon provider acceptance.
-          </p>
-          <p style={{ margin:0,color:"#1e293b",fontSize:10 }}>
-            Medazon Health · Telehealth Services · Arizona, USA · HIPAA Compliant
+        {/* BOTTOM — video embed only when intake complete */}
+        <div className="flex-shrink-0 pb-2 pt-1 space-y-1.5">
+          {(isVid||isPh) && !needsIntake && (
+            <PatientVideoEmbed appointment={videoAppointment} patientName={pName} doctorName={dName} />
+          )}
+          {(isVid||isPh) && !needsIntake && fallbackVideoUrl && (
+            <p className="text-center text-[9px] text-gray-600">
+              Having trouble?{" "}
+              <a href={fallbackVideoUrl} target="_blank" rel="noopener noreferrer" className="text-[#2dd4a0] underline">Open in new tab</a>
+            </p>
+          )}
+          {/* Locked CTA when intake pending */}
+          {(isVid||isPh) && needsIntake && (
+            <div className="w-full py-3.5 rounded-xl font-black text-[14px] text-center flex items-center justify-center gap-2"
+              style={{ background:"rgba(255,255,255,.04)", border:"1px solid rgba(255,255,255,.08)", color:"#374151" }}>
+              <Lock size={14} />
+              {isVid ? "Start Video Visit" : "Start Phone Call"} — Complete Intake First
+            </div>
+          )}
+          <p className="text-center text-gray-700 text-[8px]">
+            <Lock size={8} className="inline mr-0.5" />
+            HIPAA Compliant · Meeting link also sent via SMS/Email
           </p>
         </div>
-
       </div>
     </div>
   );
@@ -327,9 +393,8 @@ function AppointmentContent() {
 export default function AppointmentPage() {
   return (
     <Suspense fallback={
-      <div style={{ minHeight:"100vh",background:"#0a0f1a",display:"flex",alignItems:"center",justifyContent:"center" }}>
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        <div style={{ width:32,height:32,border:"2px solid #00cba9",borderTopColor:"transparent",borderRadius:"50%",animation:"spin 1s linear infinite" }} />
+      <div className="fixed inset-0 flex items-center justify-center" style={{ background:"#080c10" }}>
+        <div className="w-8 h-8 border-2 border-[#2dd4a0] border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <AppointmentContent />
